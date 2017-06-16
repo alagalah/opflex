@@ -219,7 +219,23 @@ endif
 if RENDERER_VPP
   libagent_ovs_la_SOURCES += \
 	src/VppRenderer.cpp \
+	src/VppObjectDB.cpp \
+	src/VppObject.cpp \
+	src/VppInterface.cpp \
+	src/VppInterfaceCmds.cpp \
+	src/VppInterfaceTypes.cpp \
+	src/VppL2Interface.cpp \
+	src/VppL2InterfaceCmds.cpp \
+	src/VppBridgeDomain.cpp \
+	src/VppBridgeDomainCmds.cpp \
+	src/VppRouteDomain.cpp \
+	src/VppSubnet.cpp \
 	src/VppManager.cpp \
+	src/VppHW.cpp \
+	src/Vpp.cpp \
+	src/VppOM.cpp \
+	src/VppKeyDB.cpp \
+	src/VppRoute.cpp \
 	src/VppApi.cpp \
 	src/VppConnection.cpp
 endif
@@ -305,7 +321,7 @@ if RENDERER_VPP
   VPP_TEST_SOURCES += \
 	test/include/MockVppConnection.h \
 	test/MockVppConnection.cpp \
-    test/VppApi_test.cpp \
+	test/VppOM_test.cpp \
 	test/VppManager_test.cpp
 endif
 

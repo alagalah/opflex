@@ -35,6 +35,10 @@
 #include "VppManager.h"
 #include "VppApi.h"
 #include "Packets.h"
+#include "VppOM.hpp"
+#include "VppInterface.hpp"
+#include "VppL2Interface.hpp"
+#include "VppBridgeDomain.hpp"
 
 #include "arp.h"
 #include "eth.h"
@@ -264,19 +268,18 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
     if (!epWrapper) {
         /*
-         * TODO remove everything related to this endpoint
-         *
-         * Keith, Do you believe that we need to delete the
-         * interface from VPP here or we need to do it somewhere?
-         *
-         * Problem I see here is, we don't have reference to interface
-         * apart from UUID which I believe is not mapped to interface
-         * name or index in Vpp API class in vppAPI::intfIndexbyName.
+         * remove everything related to this endpoint
          */
-        // vppApi.deleteAfpacketIntf();
-        removeEndpointFromFloodGroup(uuid);
+        VPP::OM::remove(uuid);
         return;
     }
+
+    /*
+     * This is an update to all the state related to this endpoint.
+     * At the end of processing we want all the state realted to this endpint,
+     * that we don't touch here, gone.
+     */
+    VPP::OM::mark(uuid);
 
     if (!vppApi.isConnected()) {
         LOG(ERROR) << "VppApi is not connected";
@@ -287,20 +290,13 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
     int rv;
 
-    if (vppApi.getIntfIndexByName(vppInterfaceName.get()).first == false) {
-        rv = vppApi.createAfPacketIntf(vppInterfaceName.get());
-        if (rv != 0) {
-            LOG(ERROR) << "VppApi did not create port: " << vppInterfaceName.get();
-            return;
-        }
-
-        rv = vppApi.setIntfFlags(vppInterfaceName.get(), vppApi.intfFlags::Up);
-        if (rv != 0) {
-            LOG(ERROR) << "VppApi did not set interface flags for port: " <<
-                           vppInterfaceName.get();
-            return;
-        }
-    }
+    /*
+     * We wnat a vhost-user interface - admin up
+     */
+    VPP::Interface itf(vppInterfaceName.get(),
+                       VPP::Interface::type_t::VHOST,
+                       VPP::Interface::admin_state_t::UP);
+    VPP::OM::write(uuid, itf);
 
     uint8_t macAddr[6];
     bool hasMac = endPoint.getMAC() != boost::none;
@@ -363,24 +359,26 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         bcastFloodMode = fd.get()
             ->getBcastFloodMode(BcastFloodModeEnumT::CONST_NORMAL);
 
-        if (vppApi.getBridgeIdByName(*fd.get()->getName()).first == false) {
-            rv = vppApi.createBridge(*fd.get()->getName());
-            if (rv != 0) {
-                LOG(ERROR) << "VppApi did not create bridge: " <<
-                    *fd.get()->getName() << " for port: " <<
-                     vppInterfaceName.get();
-                return;
-            }
+        VPP::BridgeDomain bd(fd.get()->getName().get());
+
+        if (VPP::rc_t::OK != VPP::OM::write(uuid, bd))
+        {
+            LOG(ERROR) << "VppApi did not create bridge: "
+                       << *fd.get()->getName()
+                       << " for port: "
+                       << vppInterfaceName.get();
+            return;
         }
 
-        if (vppApi.getBridgeNameByIntf(vppInterfaceName.get()).first == false) {
-            rv = vppApi.setIntfL2Bridge(*fd.get()->getName(),
-                     vppInterfaceName.get(), vppApi.bviFlags::NoBVI);
-            if (rv != 0) {
-                LOG(ERROR) << "VppApi did not set bridge: " << *fd.get()
-                    ->getName() << " for port: " << vppInterfaceName.get();
-                return;
-            }
+        VPP::L2Interface l2itf(itf, bd);
+
+        if (VPP::rc_t::OK != VPP::OM::write(uuid, l2itf))
+        {
+            LOG(ERROR) << "VppApi did not set bridge: "
+                       << *fd.get()->getName()
+                       << " for port: "
+                       << vppInterfaceName.get();
+            return;
         }
     }
 
@@ -487,6 +485,11 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     } else {
         removeEndpointFromFloodGroup(uuid);
     }
+
+    /*
+     * That's all folks ...
+     */
+    VPP::OM::sweep(uuid);
 }
 
     void VppManager::handleAnycastServiceUpdate(const string& uuid) {

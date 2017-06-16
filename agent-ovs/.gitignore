@@ -47,6 +47,8 @@ m4/lt*.m4
 GPATH
 GRTAGS
 GTAGS
+ID
+TAGS
 .dirstamp
 doc/Doxyfile
 doc/html
