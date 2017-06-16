@@ -1,0 +1,74 @@
+/*
+ * Copyright (c) 2017 Cisco Systems, Inc. and others.  All rights reserved.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
+ */
+
+#ifndef __VPP_SUBNET_H__
+#define __VPP_SUBNET_H__
+
+#include <string>
+#include <stdint.h>
+
+#include "VppObject.hpp"
+#include "VppRouteDomain.hpp"
+#include "VppOM.hpp"
+#include "VppInstDB.hpp"
+#include "VppRoute.hpp"
+
+#include <boost/asio/ip/address.hpp>
+
+namespace VPP
+{
+    /**
+     * A representation of a Subnet. This exists in one or more RouteDomains
+     */
+    class Subnet: public Object
+    {
+    public:
+        /**
+         * Construct a new object matching the desried state
+         */
+        Subnet(const Route::prefix_t &p);
+        Subnet(const Subnet& o);
+        ~Subnet();
+
+        /**
+         * Debug print function
+         */
+        std::string to_string(void);
+
+    private:
+        /**
+         * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
+         */
+        void update(const Subnet &obj);
+
+        static std::shared_ptr<Subnet> find_or_add(const Subnet &temp);
+        static std::shared_ptr<Subnet> find(const Subnet &temp);
+
+        /*
+         * It's the VPPHW class that updates the objects in HW
+         */
+        friend class VPP::OM;
+    
+        /**
+         * Sweep/reap the object if still stale
+         */
+        void sweep(void);
+
+        /**
+         * The Subnet's prefixt
+         */
+        Route::prefix_t m_prefix;
+
+        /**
+         * A map of all subnet's key against the prefix
+         */
+        static InstDB<const Route::prefix_t, Subnet> m_db;
+    };
+};
+
+#endif
