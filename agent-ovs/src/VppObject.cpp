@@ -14,7 +14,8 @@ using namespace VPP;
 /**
  * Construct a new object matching the desried state
  */
-Object::Object()
+Object::Object():
+    m_flags(0)
 {
     ObjectDB::add(this);
 }
@@ -22,6 +23,16 @@ Object::Object()
 Object::~Object()
 {
     ObjectDB::remove(this);
+}
+
+void Object::bless()
+{
+    m_flags = OBJECT_FLAG_BLESSED;
+}
+
+bool Object::is_blessed() const
+{
+    return (m_flags == OBJECT_FLAG_BLESSED);
 }
 
 ObjectRef::ObjectRef(std::shared_ptr<Object> obj):
@@ -53,4 +64,11 @@ void ObjectRef::clear() const
 bool ObjectRef::stale() const
 {
     return (m_state == OBJECT_STATE_STALE);
+}
+
+std::ostream& VPP::operator<<(std::ostream &os, const Object& o)
+{
+    os << o.to_string();
+
+    return (os);
 }

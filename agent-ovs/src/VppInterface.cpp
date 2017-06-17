@@ -10,14 +10,10 @@
 #include <iostream>
 
 #include "VppInterface.hpp"
+#include "VppRoute.hpp"
 #include "VppCmd.hpp"
 
 using namespace VPP;
-
-/**
- * The name of a nameless interface
- */
-const std::string Interface::NAMELESS("__no_name__");
 
 /**
  * A DB of al the interfaces, key on the name
@@ -34,7 +30,8 @@ Interface::Interface(const std::string &name,
     m_state(itf_state),
     m_type(itf_type),
     m_hdl(handle_t::INVALID),
-    m_prefix(Route::prefix_t::ZERO)
+    m_prefix(Route::prefix_t::ZERO),
+    m_table_id(Route::DEFAULT_TABLE)
 {
 }
 Interface::Interface(const std::string &name,
@@ -45,17 +42,21 @@ Interface::Interface(const std::string &name,
     m_state(itf_state),
     m_type(itf_type),
     m_hdl(handle_t::INVALID),
+    m_table_id(Route::DEFAULT_TABLE),
     m_prefix(prefix)
 {
 }
-
-Interface::Interface(Interface::type_t itf_type,
+Interface::Interface(const std::string &name,
+                     Interface::type_t itf_type,
                      Interface::admin_state_t itf_state,
+                     const RouteDomain &rd,
                      Route::prefix_t prefix):
-    m_name(Interface::NAMELESS),
+    m_name(name),
     m_state(itf_state),
     m_type(itf_type),
     m_hdl(handle_t::INVALID),
+    m_rd(RouteDomain::find(rd)),
+    m_table_id(m_rd->table_id()),
     m_prefix(prefix)
 {
 }
@@ -65,6 +66,8 @@ Interface::Interface(const Interface& o):
     m_state(o.m_state),
     m_type(o.m_type),
     m_prefix(o.m_prefix),
+    m_table_id(o.m_table_id),
+    m_rd(o.m_rd),
     m_hdl(handle_t::INVALID)
 {
 }
@@ -92,6 +95,12 @@ void Interface::sweep()
         HW::enqueue(new PrefixDelCmd(m_prefix, m_hdl));
     }
 
+    if (m_table_id)
+    {
+        m_table_id.data() = Route::DEFAULT_TABLE;
+        HW::enqueue(new SetTableCmd(m_table_id, m_hdl));
+    }
+
     // If the interface is up, bring it down
     if (m_state &&
         Interface::admin_state_t::UP == m_state.data())
@@ -103,6 +112,7 @@ void Interface::sweep()
     {
         HW::enqueue(new DeleteCmd(m_hdl, m_type));
     }
+    HW::write();
 }
 
 Interface::~Interface()
@@ -113,7 +123,7 @@ Interface::~Interface()
     m_db.release(m_name, this);
 }
 
-std::string Interface::to_string()
+std::string Interface::to_string() const
 {
     std::ostringstream s;
     s << "interface: " << m_name
@@ -142,6 +152,15 @@ void Interface::update(const Interface &desired)
         HW::enqueue(new StateChangeCmd(m_state, m_hdl));
     }
 
+    /*
+     * If the interface is mapped into a route domain, set VPP's
+     * table ID
+     */
+    if (!m_table_id && m_rd)
+    {
+        HW::enqueue(new SetTableCmd(m_table_id, m_hdl));
+    }
+        
     /*
      * Add an IP address if desired
      */

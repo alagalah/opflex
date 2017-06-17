@@ -19,6 +19,7 @@
 #include "VppInstDB.hpp"
 #include "VppEnum.hpp"
 #include "VppRoute.hpp"
+#include "VppRouteDomain.hpp"
 
 namespace VPP
 {
@@ -30,11 +31,6 @@ namespace VPP
     {
     public:
         /**
-         * The name of a nameless interface
-         */
-        const static std::string NAMELESS;
-
-        /**
          * An interface type
          */
         struct type_t: Enum<type_t>
@@ -43,6 +39,8 @@ namespace VPP
 
             const static type_t VHOST;
             const static type_t BVI;
+            const static type_t VXLAN;
+            const static type_t ETHERNET;
         };
 
         /**
@@ -66,8 +64,10 @@ namespace VPP
                   type_t type,
                   admin_state_t state,
                   Route::prefix_t prefix);
-        Interface(type_t type,
+        Interface(const std::string &name,
+                  type_t type,
                   admin_state_t state,
+                  const RouteDomain &rd,
                   Route::prefix_t prefix);
         ~Interface();
         Interface(const Interface& o);
@@ -75,7 +75,7 @@ namespace VPP
         /**
          * Debug rpint function
          */
-        std::string to_string(void);
+        virtual std::string to_string(void) const;
 
         /**
          * Return VPP's handle to this object
@@ -96,11 +96,9 @@ namespace VPP
             CreateCmd(HW::Item<handle_t> &item,
                        const std::string &name,
                        type_t type);
-            CreateCmd(HW::Item<handle_t> &item,
-                       type_t type);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const CreateCmd&i) const;
         private:
@@ -118,7 +116,7 @@ namespace VPP
                        type_t type);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const DeleteCmd&i) const;
         private:
@@ -135,7 +133,7 @@ namespace VPP
                             const HW::Item<handle_t> &h);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const StateChangeCmd&i) const;
         private:
@@ -152,7 +150,7 @@ namespace VPP
                          const HW::Item<handle_t> &h);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const PrefixAddCmd&i) const;
         private:
@@ -169,9 +167,26 @@ namespace VPP
                          const HW::Item<handle_t> &h);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const PrefixDelCmd&i) const;
+        private:
+            const HW::Item<handle_t> &m_hdl;
+        };
+
+        /**
+         * A functor class that creates an interface
+         */
+        class SetTableCmd: public CmdT<HW::Item<Route::table_id_t>>
+        {
+        public:
+            SetTableCmd(HW::Item<Route::table_id_t> &item,
+                         const HW::Item<handle_t> &h);
+
+            rc_t exec();
+            std::string to_string() const;
+
+            bool operator==(const SetTableCmd&i) const;
         private:
             const HW::Item<handle_t> &m_hdl;
         };
@@ -180,6 +195,12 @@ namespace VPP
          * The the instance of the Interface in the Object-Model
          */
         static std::shared_ptr<Interface> find(const Interface &temp);
+
+    protected:
+        /**
+         * The SW interface handle VPP has asigned to the interface
+         */
+        HW::Item<handle_t> m_hdl;
 
     private:
         /**
@@ -197,18 +218,13 @@ namespace VPP
         /**
          * Sweep/reap the object if still stale
          */
-        void sweep(void);
+        virtual void sweep(void);
 
         /**
          * The interfaces name
          */
         const std::string m_name;
     
-        /**
-         * The SW interface handle VPP has asigned to the interface
-         */
-        HW::Item<handle_t> m_hdl;
-
         /**
          * The interface type. clearly this cannot be changed
          * once the interface has been created.
@@ -224,6 +240,18 @@ namespace VPP
          * An IP prefix assigned to the interface
          */
         HW::Item<Route::prefix_t> m_prefix;
+
+        /**
+         * shared pointer to the RouteDoamin the interface is in.
+         * NULL is not mapped  - i.e. in eht default table
+         */
+        const std::shared_ptr<RouteDomain> m_rd;
+
+        /**
+         * HW state of the VPP table mapping
+         */
+        HW::Item<Route::table_id_t> m_table_id;
+
 
         /**
          * A map of all interfaces key against the interface's name

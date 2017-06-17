@@ -11,6 +11,8 @@
 
 #include <memory>
 
+#include "logging.h"
+
 namespace VPP
 {
     /**
@@ -26,7 +28,7 @@ namespace VPP
         {
         }
 
-        std::shared_ptr<OBJ> find_or_add(KEY &key, const OBJ &obj)
+        std::shared_ptr<OBJ> find_or_add(const KEY &key, const OBJ &obj)
         {
             auto search = m_map.find(key);
 
@@ -36,14 +38,16 @@ namespace VPP
                 std::shared_ptr<OBJ> sp = std::make_shared<OBJ>(obj);
 
                 m_map[key] = sp;
+                sp->bless();
 
+                LOG(ovsagent::INFO) << *sp;
                 return (sp);
             }
 
             return ((*search).second.lock());
         }
 
-        std::shared_ptr<OBJ> find(KEY &key, const OBJ &obj)
+        std::shared_ptr<OBJ> find(const KEY &key, const OBJ &obj)
         {
             auto search = m_map.find(key);
 
@@ -61,11 +65,9 @@ namespace VPP
         /*
          * Release the object from the DB store, if it's the one we have stored
          */
-        void release(KEY &key, const OBJ *obj)
+        void release(const KEY &key, const OBJ *obj)
         {
-            std::shared_ptr<OBJ> sp = m_map[key].lock();
-
-            if (sp.get() == obj)
+            if (obj->is_blessed())
             {
                 m_map[key].reset();
             }

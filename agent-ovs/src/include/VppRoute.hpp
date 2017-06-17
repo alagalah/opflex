@@ -20,6 +20,16 @@ namespace VPP
     class Route
     {
     public:
+        /*
+         * type def the table-id
+         */
+        typedef uint32_t table_id_t;
+
+        /**
+         * The table-id for the default table
+         */
+        const static table_id_t DEFAULT_TABLE;
+
         /**
          * A prefix defintion. Address + length
          */

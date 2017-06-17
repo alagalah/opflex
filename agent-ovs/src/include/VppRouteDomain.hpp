@@ -15,6 +15,7 @@
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppInstDB.hpp"
+#include "VppRoute.hpp"
 
 namespace VPP
 {
@@ -25,11 +26,6 @@ namespace VPP
     class RouteDomain: public Object
     {
     public:
-        /*
-         * type def the table-id
-         */
-        typedef uint32_t table_id_t;
-
         /**
          * Construct a new object matching the desried state
          */
@@ -40,12 +36,17 @@ namespace VPP
         /**
          * Debug print function
          */
-        std::string to_string(void);
+        std::string to_string() const;
 
         /**
          * Get the table ID
          */
-        table_id_t table_id() const;
+        Route::table_id_t table_id() const;
+
+        virtual void bless();
+
+        static std::shared_ptr<RouteDomain> find(const RouteDomain &temp);
+
     private:
         /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
@@ -53,7 +54,6 @@ namespace VPP
         void update(const RouteDomain &obj);
 
         static std::shared_ptr<RouteDomain> find_or_add(const RouteDomain &temp);
-        static std::shared_ptr<RouteDomain> find(const RouteDomain &temp);
 
         /*
          * It's the VPPHW class that updates the objects in HW
@@ -74,7 +74,7 @@ namespace VPP
          * VPP understands Table-IDs not table names.
          *  The table IDs for V4 and V6 are the same.
          */
-        table_id_t m_table_id;
+        Route::table_id_t m_table_id;
 
         /**
          * A map of all interfaces key against the interface's name
@@ -85,7 +85,7 @@ namespace VPP
          * A crude unique ID Dgeneratoer, with a complex algorithem
          * of 'the-next-one'.
          */
-        static table_id_t m_id_generator;
+        static Route::table_id_t m_id_generator;
     };
 };
 

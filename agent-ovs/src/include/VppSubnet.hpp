@@ -38,7 +38,7 @@ namespace VPP
         /**
          * Debug print function
          */
-        std::string to_string(void);
+        std::string to_string() const;
 
     private:
         /**

@@ -31,7 +31,7 @@ namespace VPP
 
         virtual rc_t exec() = 0;
 
-        virtual std::string to_string() = 0;
+        virtual std::string to_string() const = 0;
     private:
         uint8_t m_prio;
     };
@@ -62,6 +62,11 @@ namespace VPP
     protected:
         HWITEM &m_hw_item;
     };
+
+    /**
+     * Free ostream function to print a command
+     */
+    std::ostream & operator<<(std::ostream &os, const Cmd &cmd);
 };
 
 

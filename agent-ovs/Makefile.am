@@ -225,16 +225,21 @@ endif
 if RENDERER_VPP
   libagent_ovs_la_SOURCES += \
 	src/VppRenderer.cpp \
+	src/VppUplink.cpp \
 	src/VppObjectDB.cpp \
 	src/VppObject.cpp \
+	src/VppCmd.cpp \
 	src/VppInterface.cpp \
 	src/VppInterfaceCmds.cpp \
 	src/VppInterfaceTypes.cpp \
 	src/VppL2Interface.cpp \
 	src/VppL2InterfaceCmds.cpp \
+	src/VppSubInterface.cpp \
 	src/VppBridgeDomain.cpp \
 	src/VppBridgeDomainCmds.cpp \
 	src/VppRouteDomain.cpp \
+	src/VppVxlanTunnel.cpp \
+	src/VppVxlanTunnelCmds.cpp \
 	src/VppSubnet.cpp \
 	src/VppManager.cpp \
 	src/VppHW.cpp \

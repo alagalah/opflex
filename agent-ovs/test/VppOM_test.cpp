@@ -19,6 +19,8 @@
 #include "VppInterface.hpp"
 #include "VppL2Interface.hpp"
 #include "VppBridgeDomain.hpp"
+#include "VppRouteDomain.hpp"
+#include "VppVxlanTunnel.hpp"
 
 using namespace boost;
 using namespace VPP;
@@ -55,7 +57,8 @@ public:
 
     bool is_empty()
     {
-        return (0 == m_exp_queue.size());
+        return ((0 == m_exp_queue.size()) &&
+                (0 == m_act_queue.size()));
     }
 
     rc_t write()
@@ -63,7 +66,7 @@ public:
         Cmd *f_exp, *f_act;
         rc_t rc = rc_t::OK;
 
-        while (m_exp_queue.size())
+        while (m_act_queue.size())
         {
             f_exp = m_exp_queue.front();
             f_act = m_act_queue.front();
@@ -83,6 +86,10 @@ public:
             else if (typeid(*f_exp) == typeid(Interface::StateChangeCmd))
             {
                 rc = handle_derived<Interface::StateChangeCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(Interface::SetTableCmd))
+            {
+                rc = handle_derived<Interface::SetTableCmd>(f_exp, f_act);
             }
             else if (typeid(*f_exp) == typeid(Interface::DeleteCmd))
             {
@@ -111,6 +118,14 @@ public:
             else if (typeid(*f_exp) == typeid(L2Interface::UnbindCmd))
             {
                 rc = handle_derived<L2Interface::UnbindCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(VxlanTunnel::CreateCmd))
+            {
+                rc = handle_derived<VxlanTunnel::CreateCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(VxlanTunnel::DeleteCmd))
+            {
+                rc = handle_derived<VxlanTunnel::DeleteCmd>(f_exp, f_act);
             }
             else
             {
@@ -344,14 +359,16 @@ BOOST_AUTO_TEST_CASE(bvi) {
      * Enrest creates a BVI with address 10.10.10.10/24
      */
     Route::prefix_t pfx_10("10.10.10.10", 24);
-    
-    Interface itf(Interface::type_t::BVI,
+
+    const std::string bvi_name = "bvi1";
+    Interface itf(bvi_name,
+                  Interface::type_t::BVI,
                   Interface::admin_state_t::UP,
                   pfx_10);
     HW::Item<handle_t> hw_ifh(4, rc_t::OK);
     HW::Item<Route::prefix_t> hw_pfx_10(pfx_10, rc_t::OK);
 
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, Interface::type_t::BVI));
+    ADD_EXPECT(Interface::CreateCmd(hw_ifh, bvi_name, Interface::type_t::BVI));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
     ADD_EXPECT(Interface::PrefixAddCmd(hw_pfx_10, hw_ifh));
 
@@ -361,6 +378,36 @@ BOOST_AUTO_TEST_CASE(bvi) {
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
     ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::BVI));
     TRY_CHECK(OM::remove(ernest));
+
+    /*
+     * Graham creates a BVI with address 10.10.10.10/24 in Routing Domain
+     */
+
+    RouteDomain rd("red");
+    HW::Item<Route::table_id_t> hw_rd_bind(1, rc_t::OK);
+    HW::Item<Route::table_id_t> hw_rd_unbind(0, rc_t::OK);
+    TRY_CHECK_RC(OM::write(graham, rd));
+
+    const std::string bvi2_name = "bvi2";
+    Interface itf2(bvi2_name,
+                   Interface::type_t::BVI,
+                   Interface::admin_state_t::UP,
+                   rd,
+                   pfx_10);
+    HW::Item<handle_t> hw_ifh2(5, rc_t::OK);
+
+    ADD_EXPECT(Interface::CreateCmd(hw_ifh2, bvi2_name, Interface::type_t::BVI));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh2));
+    ADD_EXPECT(Interface::SetTableCmd(hw_rd_bind, hw_ifh2));
+    ADD_EXPECT(Interface::PrefixAddCmd(hw_pfx_10, hw_ifh2));
+
+    TRY_CHECK_RC(OM::write(graham, itf2));
+
+    ADD_EXPECT(Interface::PrefixDelCmd(hw_pfx_10, hw_ifh2));
+    ADD_EXPECT(Interface::SetTableCmd(hw_rd_unbind, hw_ifh2));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
+    ADD_EXPECT(Interface::DeleteCmd(hw_ifh2, Interface::type_t::BVI));
+    TRY_CHECK(OM::remove(graham));
 }
 
 BOOST_AUTO_TEST_CASE(bridge) {
@@ -443,6 +490,54 @@ BOOST_AUTO_TEST_CASE(bridge) {
     ADD_EXPECT(Interface::DeleteCmd(hw_ifh2, Interface::type_t::VHOST));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
     TRY_CHECK(OM::remove(dante));
+}
+
+BOOST_AUTO_TEST_CASE(vxlan) {
+    VppInit vi;
+    const std::string franz = "FranzKafka";
+    rc_t rc = rc_t::OK;
+
+    /*
+     * Franz creates an interface, Bridge-domain, then binds the two
+     */
+
+    // VXLAN create
+    boost::asio::ip::address src = boost::asio::ip::address::from_string("10.10.10.10");
+    boost::asio::ip::address dst = boost::asio::ip::address::from_string("10.10.10.11");
+    uint32_t vni;
+
+    VxlanTunnel vxt(src, dst, vni);
+
+    HW::Item<handle_t> hw_vxt(3, rc_t::OK);
+    ADD_EXPECT(VxlanTunnel::CreateCmd(hw_vxt, src, dst, vni));
+
+    TRY_CHECK_RC(OM::write(franz, vxt));
+
+    // bridge-domain create
+    std::string bd1_name = "bd1";
+    BridgeDomain bd1(bd1_name);
+
+    HW::Item<handle_t> hw_bd(33, rc_t::OK);
+    ADD_EXPECT(BridgeDomain::CreateCmd(hw_bd, bd1_name));
+
+    TRY_CHECK_RC(OM::write(franz, bd1));
+
+    // L2-interface create and bind
+    // this needs to be delete'd before the flush below, since it too maintains
+    // references to the BD and Interface
+    L2Interface *l2itf = new L2Interface(vxt, bd1);
+    HW::Item<bool> hw_l2_bind(true, rc_t::OK);
+
+    ADD_EXPECT(L2Interface::BindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
+    TRY_CHECK_RC(OM::write(franz, *l2itf));
+
+    // flush Franz's state
+    delete l2itf;
+    HW::Item<handle_t> hw_vxtdel(3, rc_t::NOOP);
+    ADD_EXPECT(L2Interface::UnbindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
+    ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
+    ADD_EXPECT(VxlanTunnel::DeleteCmd(hw_vxtdel, src, dst, vni));
+    TRY_CHECK(OM::remove(franz));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -31,7 +31,7 @@ rc_t BridgeDomain::CreateCmd::exec()
 {
     // finally... call VPP
 }
-std::string BridgeDomain::CreateCmd::to_string()
+std::string BridgeDomain::CreateCmd::to_string() const
 {
     std::ostringstream s;
     s << "bridge-domain-create: " << m_hw_item.to_string();
@@ -53,7 +53,7 @@ rc_t BridgeDomain::DeleteCmd::exec()
 {
     // finally... call VPP
 }
-std::string BridgeDomain::DeleteCmd::to_string()
+std::string BridgeDomain::DeleteCmd::to_string() const
 {
     std::ostringstream s;
     s << "bridge-domain-delete: " << m_hw_item.to_string();
