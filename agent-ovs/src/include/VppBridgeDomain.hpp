@@ -39,7 +39,7 @@ namespace VPP
         /**
          * Debug rpint function
          */
-        std::string to_string(void);
+        std::string to_string(void) const;
 
         /**
          * Return VPP's handle for this obejct
@@ -61,7 +61,7 @@ namespace VPP
                       const std::string &name);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const CreateCmd&i) const;
         private:
@@ -77,7 +77,7 @@ namespace VPP
             DeleteCmd(HW::Item<handle_t> &item);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const DeleteCmd&i) const;
         private:

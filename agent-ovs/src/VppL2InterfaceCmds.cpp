@@ -34,7 +34,7 @@ rc_t L2Interface::BindCmd::exec()
 {
     // finally... call VPP
 }
-std::string L2Interface::BindCmd::to_string()
+std::string L2Interface::BindCmd::to_string() const
 {
     std::ostringstream s;
     s << "L2-interface-BD-bind: " << m_hw_item.to_string()
@@ -66,7 +66,7 @@ rc_t L2Interface::UnbindCmd::exec()
 {
     // finally... call VPP
 }
-std::string L2Interface::UnbindCmd::to_string()
+std::string L2Interface::UnbindCmd::to_string() const
 {
     std::ostringstream s;
     s << "L2-interface-BD-unbind: " << m_hw_item.to_string()

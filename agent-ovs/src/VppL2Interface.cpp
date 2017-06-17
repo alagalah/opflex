@@ -30,6 +30,14 @@ L2Interface::L2Interface(const Interface &itf,
 {
 }
 
+L2Interface::L2Interface(const VxlanTunnel &vxt,
+                         const BridgeDomain &bd):
+    m_itf(VxlanTunnel::find(vxt)),
+    m_bd(BridgeDomain::find(bd)),
+    m_binding(0)
+{
+}
+
 L2Interface::L2Interface(const L2Interface& o):
     m_itf(o.m_itf),
     m_bd(o.m_bd),
@@ -46,6 +54,7 @@ void L2Interface::sweep()
                                   m_bd->handle(),
                                   Interface::type_t::BVI == m_itf->type()));
     }
+    HW::write();
 }
 
 L2Interface::~L2Interface()
@@ -56,7 +65,7 @@ L2Interface::~L2Interface()
     m_db.release(m_itf->handle(), this);
 }
 
-std::string L2Interface::to_string()
+std::string L2Interface::to_string() const
 {
     std::ostringstream s;
     s << "L2-interface: " << m_itf->to_string()

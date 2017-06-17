@@ -22,24 +22,38 @@ InstDB<const std::string, RouteDomain> RouteDomain::m_db;
 /**
  * Instantiate the ID generator
  */
-RouteDomain::table_id_t RouteDomain::m_id_generator;
+Route::table_id_t RouteDomain::m_id_generator;
 
 /**
  * Construct a new object matching the desried state
  */
 RouteDomain::RouteDomain(const std::string &name):
-    m_name(name)
+    m_name(name),
+    m_table_id(Route::DEFAULT_TABLE)
 {
-    /*
-     * assign a unique-ID for this RouteDomain for VPP
-     */
-    m_table_id = ++m_id_generator;
 }
 
 RouteDomain::RouteDomain(const RouteDomain& o):
     m_name(o.m_name),
     m_table_id(o.m_table_id)
 {
+}
+
+void RouteDomain::bless()
+{
+    Object::bless();
+
+    /*
+     * assign a unique-ID for this RouteDomain for VPP
+     */
+    m_table_id = ++m_id_generator;
+}
+
+Route::table_id_t RouteDomain::table_id() const
+{
+    assert(is_blessed());
+
+    return (m_table_id);
 }
 
 void RouteDomain::sweep()
@@ -52,7 +66,7 @@ RouteDomain::~RouteDomain()
     m_db.release(m_name, this);
 }
 
-std::string RouteDomain::to_string()
+std::string RouteDomain::to_string() const
 {
     std::ostringstream s;
     s << "route-domain: " << m_name

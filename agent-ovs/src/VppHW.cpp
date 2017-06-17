@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#include "logging.h"
+
 #include "VppHW.hpp"
 
 using namespace VPP;
@@ -31,48 +33,86 @@ HW::CmdQ & HW::CmdQ::operator=(const HW::CmdQ &f)
 {
 }
 
-void HW::CmdQ::enqueue(Cmd *f)
+void HW::CmdQ::enqueue(Cmd *cmd)
 {
+    std::shared_ptr<Cmd> sp(cmd);
+
+    m_queue.push_back(sp);
 }
 
 rc_t HW::CmdQ::write()
 {
-    return (rc_t::OK);
+    rc_t rc = rc_t::OK;
+
+    /*
+     * Execute each command in the queue. If one execution fails, abort the rest
+     */
+    auto it = m_queue.begin();
+
+    while (it != m_queue.end())
+    {
+        LOG(ovsagent::INFO) << **it;
+
+        rc = (*it)->exec();
+
+        if (rc_t::OK == rc)
+        {
+            ++it;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    /*
+     * erase all objects in the equeue
+     */
+    m_queue.erase(m_queue.begin(), m_queue.end());
+
+    return (rc);
 }
 
-HW::CmdQ* HW::m_fifo;
+HW::CmdQ* HW::m_cmdQ;
 
 /**
  * Initalse the connection to VPP
  */
 void HW::init(HW::CmdQ *f)
 {
-    m_fifo = f;
-    /**
-     * Read all the existing state from VPP
-     */
+    m_cmdQ = f;
 }
+
 /**
  * Initalse the connection to VPP
  */
 void HW::init()
 {
-    /**
-     * Read all the existing state from VPP
-     */
+    m_cmdQ = new CmdQ();
 }
 
 void HW::enqueue(Cmd *f)
 {
-    m_fifo->enqueue(f);
+    m_cmdQ->enqueue(f);
 }
 
 rc_t HW::write()
 {
-    return (m_fifo->write());
+    return (m_cmdQ->write());
 }
 
 template <> std::string HW::Item<bool>::to_string() const
+{
+    std::ostringstream os;
+
+    os << "hw-item:["
+       << "rc:" << item_rc.to_string()
+       << " data:" << item_data
+       << "]";
+    return (os.str());
+}
+
+template <> std::string HW::Item<unsigned int>::to_string() const
 {
     std::ostringstream os;
 

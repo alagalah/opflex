@@ -13,6 +13,11 @@
 using namespace VPP;
 
 /**
+ * In VPP 0 represents the default table.
+ */
+const Route::table_id_t Route::DEFAULT_TABLE = 0;
+
+/**
  * The all Zeros prefix
  */
 const Route::prefix_t Route::prefix_t::ZERO("0.0.0.0", 0);
@@ -82,7 +87,7 @@ std::string Route::prefix_t::to_string() const
     std::ostringstream s;
 
     s << m_addr.to_string()
-      << "/" << m_len;
+      << "/" << std::to_string(m_len);
 
     return (s.str());
 }

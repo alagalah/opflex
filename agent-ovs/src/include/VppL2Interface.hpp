@@ -20,6 +20,7 @@
 #include "VppInstDB.hpp"
 #include "VppInterface.hpp"
 #include "VppBridgeDomain.hpp"
+#include "VppVxlanTunnel.hpp"
 
 namespace VPP
 {
@@ -35,13 +36,15 @@ namespace VPP
          */
         L2Interface(const Interface &itf,
                     const BridgeDomain &bd);
+        L2Interface(const VxlanTunnel &itf,
+                    const BridgeDomain &bd);
         ~L2Interface();
         L2Interface(const L2Interface& o);
 
         /**
-         * Debug rpint function
+         * Debug print function
          */
-        std::string to_string(void);
+        std::string to_string() const;
 
         /**
          * A functor class that creates an interface
@@ -55,7 +58,7 @@ namespace VPP
                     bool is_bvi);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const BindCmd&i) const;
         private:
@@ -76,7 +79,7 @@ namespace VPP
                       bool is_bvi);
 
             rc_t exec();
-            std::string to_string();
+            std::string to_string() const;
 
             bool operator==(const UnbindCmd&i) const;
         private:

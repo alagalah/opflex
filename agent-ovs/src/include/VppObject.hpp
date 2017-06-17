@@ -26,12 +26,15 @@ namespace VPP
         /**
          * Debug rpint function
          */
-        virtual std::string to_string() = 0;
+        virtual std::string to_string() const = 0;
 
         /**
          * Sweep/reap the object if still stale
          */
         virtual void sweep(void) = 0;
+
+        virtual void bless();
+        bool is_blessed() const;
 
     protected:
         /**
@@ -42,6 +45,22 @@ namespace VPP
 
     private:
         /**
+         * object flags
+         */
+        enum obj_flags_t
+        {
+            OBJECT_FLAG_NONE = 0,
+
+            /**
+             * Is this the single 'blessed' instance in the OM
+             */
+            OBJECT_FLAG_BLESSED,
+        };
+
+        uint32_t m_flags;
+
+
+        /**
          * note we are not maintaining dependencies back to the
          * keys. i.e. this object does not know all the keys that
          * refer to it.
@@ -49,7 +68,7 @@ namespace VPP
     };
 
     /**
-     * Flags on the object
+     * object state
      */
     enum obj_state_t
     {
@@ -79,6 +98,7 @@ namespace VPP
         void mark()  const;
         void clear() const;
         bool stale() const;
+
     private:
         std::shared_ptr<Object> m_obj;
 
@@ -88,5 +108,8 @@ namespace VPP
          */
         mutable obj_state_t m_state;
     };
+
+    std::ostream& operator<<(std::ostream &os, const Object& o);
+    
 };
 #endif

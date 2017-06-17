@@ -93,6 +93,8 @@ namespace ovsagent {
         stopping(false),
         vppApi(std::unique_ptr<VppConnection>(new VppConnection())) {
 
+        VPP::HW::init();
+        VPP::OM::init();
         memset(routerMac, 0, sizeof(routerMac));
         memset(dhcpMac, 0, sizeof(dhcpMac));
 
@@ -503,8 +505,96 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     }
 
 
-    void VppManager::handleEndpointGroupDomainUpdate(const URI& epgURI) {
+    void VppManager::handleEndpointGroupDomainUpdate(const URI& epgURI)
+    {
         LOG(DEBUG) << "Updating endpoint-group " << epgURI;
+
+        const string& epg_uuid = epgURI.toString();
+        PolicyManager &pm = agent.getPolicyManager();
+
+        if (!agent.getPolicyManager().groupExists(epgURI))
+        {
+            VPP::OM::remove(epg_uuid);
+            return;
+        }
+
+        /*
+         * Mark all of this EPG's state stale.
+         */
+        VPP::OM::mark(epg_uuid);
+
+        /*
+         * Construct the BridgeDomain
+         */
+        optional<shared_ptr<FloodDomain>> fd = pm.getFDForGroup(epgURI);
+
+        VPP::BridgeDomain bd(fd.get()->getName().get());
+
+        VPP::OM::write(epg_uuid, bd);
+
+        /*
+         * Construct the uplink
+         */
+        optional<uint32_t> epgVnid = pm.getVnidForGroup(epgURI);
+        if (!epgVnid) {
+            return;
+        }
+
+        VPP::Interface up_link = m_uplink.makeInterface(epgVnid.get());
+
+        VPP::OM::write(epg_uuid, up_link);
+
+        /*
+         * Add the uplink to the BD
+         */
+        VPP::L2Interface l2(up_link, bd);
+        VPP::OM::write(epg_uuid, l2);
+
+        /*
+         * Add the BVIs to the BD
+         */
+        optional<shared_ptr<RoutingDomain>> epgRd = pm.getRDForGroup(epgURI);
+
+        VPP::RouteDomain rd(epgRd.get()->getURI().toString());
+        updateBVIs(epgURI, bd, rd);
+
+        /*
+         * Sweep the remaining EPG's state
+         */
+        VPP::OM::sweep(epg_uuid);
+    }
+
+    void VppManager::updateBVIs(const URI& epgURI,
+                                VPP::BridgeDomain &bd,
+                                const VPP::RouteDomain &rd)
+    {
+        LOG(DEBUG) << "Updating BVIs";
+
+        const string& epg_uuid = epgURI.toString();
+        PolicyManager::subnet_vector_t subnets;
+        agent.getPolicyManager().getSubnetsForGroup(epgURI, subnets);
+
+        for (shared_ptr<Subnet>& sn : subnets)
+        {
+            optional<address> routerIp =
+                PolicyManager::getRouterIpForSubnet(*sn);
+            
+            if (routerIp)
+            {
+                VPP::Route::prefix_t pfx(routerIp.get(), sn->getPrefixLen().get());
+
+                VPP::Interface bvi("bvi-" + routerIp.get().to_string(),
+                                   VPP::Interface::type_t::BVI,
+                                   VPP::Interface::admin_state_t::UP,
+                                   rd,
+                                   pfx);
+
+                VPP::OM::write(epg_uuid, bvi);
+
+                VPP::L2Interface l2(bvi, bd);
+                VPP::OM::write(epg_uuid, bvi);
+            }
+        }
     }
 
     void VppManager::updateGroupSubnets(const URI& egURI, uint32_t bdId,
@@ -658,5 +748,9 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         }
     }
 
+    VPP::Uplink &VppManager::uplink()
+    {
+        return m_uplink;
+    }
 
 } // namespace ovsagent

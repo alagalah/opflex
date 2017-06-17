@@ -42,7 +42,7 @@ Subnet::~Subnet()
     m_db.release(m_prefix, this);
 }
 
-std::string Subnet::to_string()
+std::string Subnet::to_string() const
 {
     std::ostringstream s;
     s << "subnet: " << m_prefix.to_string();

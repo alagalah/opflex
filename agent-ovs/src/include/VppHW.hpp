@@ -6,8 +6,10 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_EXECTUOR_H__
-#define __VPP_EXECTUOR_H__
+#ifndef __VPP_HW_H__
+#define __VPP_HW_H__
+
+#include <deque>
 
 #include "VppCmd.hpp"
 #include "VppConnection.h"
@@ -127,7 +129,15 @@ namespace VPP
             virtual void enqueue(Cmd *f);
             virtual rc_t write();
         private:
+            /**
+             * The connection to VPP
+             */
             std::unique_ptr<ovsagent::VppConnection> m_conn;
+
+            /**
+             * A queue of enqueued commands, ready to be written
+             */
+            std::deque<std::shared_ptr<Cmd>> m_queue;
         };
 
         /*
@@ -140,13 +150,14 @@ namespace VPP
         static rc_t write();
 
     private:
-        static CmdQ *m_fifo;
+        static CmdQ *m_cmdQ;
     };
     
     /*
-     * Specialisation for the boolean version of an item
+     * Specialisation for the POD versions of an item
      */
     template <> std::string HW::Item<bool>::to_string() const;
+    template <> std::string HW::Item<unsigned int>::to_string() const;
 };
 
 #endif

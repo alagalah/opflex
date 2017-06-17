@@ -25,6 +25,10 @@
 #include <utility>
 #include <unordered_map>
 
+#include "VppInterface.hpp"
+#include "VppBridgeDomain.hpp"
+#include "VppUplink.hpp"
+
 namespace ovsagent {
 
 /**
@@ -193,6 +197,8 @@ public:
      */
     static uint32_t getPromId(uint32_t fgrpId);
 
+    VPP::Uplink &uplink();
+
 private:
     /**
      * Compare and update changes in an endpoint.
@@ -263,7 +269,9 @@ private:
     void updateEPGFlood(const opflex::modb::URI& epgURI,
                         uint32_t epgVnid, uint32_t fgrpId,
                         boost::asio::ip::address epgTunDst);
-
+    void updateBVIs(const opflex::modb::URI& egURI,
+                    VPP::BridgeDomain &bd,
+                    const VPP::RouteDomain &rd);
 
     /**
      * Associate an endpoint with a flood-group.
@@ -307,6 +315,9 @@ private:
     bool conntrackEnabled;
     uint8_t dhcpMac[6];
     std::string mcastGroupFile;
+
+
+    VPP::Uplink m_uplink;
 
     /*
      * Map of flood-group URI to the endpoints associated with it.

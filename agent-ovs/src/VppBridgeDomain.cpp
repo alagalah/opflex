@@ -45,6 +45,7 @@ void BridgeDomain::sweep()
     {
         HW::enqueue(new DeleteCmd(m_hdl));
     }
+    HW::write();
 }
 
 BridgeDomain::~BridgeDomain()
@@ -55,7 +56,7 @@ BridgeDomain::~BridgeDomain()
     m_db.release(m_name, this);
 }
 
-std::string BridgeDomain::to_string()
+std::string BridgeDomain::to_string() const
 {
     std::ostringstream s;
     s << "ridge-domain: " << m_name
