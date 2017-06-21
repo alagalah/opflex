@@ -58,9 +58,14 @@ namespace VPP
          * A value of an interface handle_t that means the itf does not exist
          */
         const static handle_t INVALID;
+
+        uint32_t value() const;
+
     private:
         uint32_t m_value;
     };
+
+    std::ostream & operator<<(std::ostream &os, const handle_t &h);
 };
 
 #endif

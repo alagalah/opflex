@@ -29,6 +29,11 @@ namespace VPP
     {
     public:
         /**
+         * The key type for subnets
+         */
+        typedef std::string key_tpe;
+
+        /**
          * Construct a new object matching the desried state
          */
         Subnet(const Route::prefix_t &p);

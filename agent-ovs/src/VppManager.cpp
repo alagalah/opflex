@@ -37,7 +37,7 @@
 #include "Packets.h"
 #include "VppOM.hpp"
 #include "VppInterface.hpp"
-#include "VppL2Interface.hpp"
+#include "VppL2Config.hpp"
 #include "VppBridgeDomain.hpp"
 
 #include "arp.h"
@@ -372,7 +372,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             return;
         }
 
-        VPP::L2Interface l2itf(itf, bd);
+        VPP::L2Config l2itf(itf, bd);
 
         if (VPP::rc_t::OK != VPP::OM::write(uuid, l2itf))
         {
@@ -547,7 +547,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         /*
          * Add the uplink to the BD
          */
-        VPP::L2Interface l2(up_link, bd);
+        VPP::L2Config l2(up_link, bd);
         VPP::OM::write(epg_uuid, l2);
 
         /*
@@ -591,7 +591,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
                 VPP::OM::write(epg_uuid, bvi);
 
-                VPP::L2Interface l2(bvi, bd);
+                VPP::L2Config l2(bvi, bd);
                 VPP::OM::write(epg_uuid, bvi);
             }
         }

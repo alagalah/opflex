@@ -1,5 +1,5 @@
 /*
- * Test suite for class VppApi
+ * Test suite for class VppOM
  *
  * Copyright (c) 2017 Cisco Systems, Inc. and others.  All rights reserved.
  *
@@ -17,10 +17,11 @@
 #include "logging.h"
 #include "VppOM.hpp"
 #include "VppInterface.hpp"
-#include "VppL2Interface.hpp"
+#include "VppL2Config.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppRouteDomain.hpp"
 #include "VppVxlanTunnel.hpp"
+#include "VppSubInterface.hpp"
 
 using namespace boost;
 using namespace VPP;
@@ -33,7 +34,7 @@ class ExpException
 public:
     ExpException()
     {
-        // a neat place to ad  a brak point
+        // a neat place to add a break point
     }
 };
 
@@ -111,13 +112,13 @@ public:
             {
                 rc = handle_derived<BridgeDomain::DeleteCmd>(f_exp, f_act);
             }
-            else if (typeid(*f_exp) == typeid(L2Interface::BindCmd))
+            else if (typeid(*f_exp) == typeid(L2Config::BindCmd))
             {
-                rc = handle_derived<L2Interface::BindCmd>(f_exp, f_act);
+                rc = handle_derived<L2Config::BindCmd>(f_exp, f_act);
             }
-            else if (typeid(*f_exp) == typeid(L2Interface::UnbindCmd))
+            else if (typeid(*f_exp) == typeid(L2Config::UnbindCmd))
             {
-                rc = handle_derived<L2Interface::UnbindCmd>(f_exp, f_act);
+                rc = handle_derived<L2Config::UnbindCmd>(f_exp, f_act);
             }
             else if (typeid(*f_exp) == typeid(VxlanTunnel::CreateCmd))
             {
@@ -126,6 +127,14 @@ public:
             else if (typeid(*f_exp) == typeid(VxlanTunnel::DeleteCmd))
             {
                 rc = handle_derived<VxlanTunnel::DeleteCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(SubInterface::CreateCmd))
+            {
+                rc = handle_derived<SubInterface::CreateCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(SubInterface::DeleteCmd))
+            {
+                rc = handle_derived<SubInterface::DeleteCmd>(f_exp, f_act);
             }
             else
             {
@@ -446,10 +455,10 @@ BOOST_AUTO_TEST_CASE(bridge) {
     // L2-interface create and bind
     // this needs to be delete'd before the flush below, since it too maintains
     // references to the BD and Interface
-    L2Interface *l2itf = new L2Interface(itf1, bd1);
+    L2Config *l2itf = new L2Config(itf1, bd1);
     HW::Item<bool> hw_l2_bind(true, rc_t::OK);
 
-    ADD_EXPECT(L2Interface::BindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Config::BindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
     TRY_CHECK_RC(OM::write(franz, *l2itf));
 
     /*
@@ -468,16 +477,16 @@ BOOST_AUTO_TEST_CASE(bridge) {
     // BD add is a no-op since it exists
     TRY_CHECK_RC(OM::write(dante, bd1));
 
-    L2Interface *l2itf2 = new L2Interface(itf2, bd1);
+    L2Config *l2itf2 = new L2Config(itf2, bd1);
 
-    ADD_EXPECT(L2Interface::BindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Config::BindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
     TRY_CHECK_RC(OM::write(dante, *l2itf2));
 
     // flush Franz's state
     delete l2itf;
     HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN,
                                                   rc_t::OK);
-    ADD_EXPECT(L2Interface::UnbindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
     ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::VHOST));
     TRY_CHECK(OM::remove(franz));
@@ -485,7 +494,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
     // flush Dante's state - the fact the BD is removed after the interface
     // is an uncontrollable artifact of the C++ object destruction.
     delete l2itf2;
-    ADD_EXPECT(L2Interface::UnbindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
     ADD_EXPECT(Interface::DeleteCmd(hw_ifh2, Interface::type_t::VHOST));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
@@ -525,19 +534,59 @@ BOOST_AUTO_TEST_CASE(vxlan) {
     // L2-interface create and bind
     // this needs to be delete'd before the flush below, since it too maintains
     // references to the BD and Interface
-    L2Interface *l2itf = new L2Interface(vxt, bd1);
+    L2Config *l2itf = new L2Config(vxt, bd1);
     HW::Item<bool> hw_l2_bind(true, rc_t::OK);
 
-    ADD_EXPECT(L2Interface::BindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Config::BindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
     TRY_CHECK_RC(OM::write(franz, *l2itf));
 
     // flush Franz's state
     delete l2itf;
     HW::Item<handle_t> hw_vxtdel(3, rc_t::NOOP);
-    ADD_EXPECT(L2Interface::UnbindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
     ADD_EXPECT(VxlanTunnel::DeleteCmd(hw_vxtdel, src, dst, vni));
     TRY_CHECK(OM::remove(franz));
+}
+
+BOOST_AUTO_TEST_CASE(vlan) {
+    VppInit vi;
+    const std::string noam = "NoamChomsky";
+    rc_t rc = rc_t::OK;
+
+    std::string itf1_name = "host1";
+    Interface itf1(itf1_name,
+                   Interface::type_t::AFPACKET,
+                   Interface::admin_state_t::UP);
+
+    HW::Item<handle_t> hw_ifh(2, rc_t::OK);
+    ADD_EXPECT(Interface::CreateCmd(hw_ifh, itf1_name, Interface::type_t::AFPACKET));
+
+    HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP, rc_t::OK);
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
+
+    TRY_CHECK_RC(OM::write(noam, itf1));
+
+    SubInterface *vl33 = new SubInterface(itf1,
+                                          Interface::admin_state_t::UP,
+                                          33);
+
+    HW::Item<handle_t> hw_vl33(3, rc_t::OK);
+    ADD_EXPECT(SubInterface::CreateCmd(hw_vl33, 2, 33));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_vl33));
+
+    TRY_CHECK_RC(OM::write(noam, *vl33));
+
+    delete vl33;
+    HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN, rc_t::OK);
+    HW::Item<handle_t> hw_vl33_down(3, rc_t::NOOP);
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_vl33));
+    ADD_EXPECT(SubInterface::DeleteCmd(hw_vl33_down));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
+    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::AFPACKET));
+
+    TRY_CHECK(OM::remove(noam));
+    
 }
 
 BOOST_AUTO_TEST_SUITE_END()
