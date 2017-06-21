@@ -6,8 +6,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_L2_INTERFACE_H__
-#define __VPP_L2_INTERFACE_H__
+#ifndef __VPP_L3_INTERFACE_H__
+#define __VPP_L3_INTERFACE_H__
 
 #include <string>
 #include <map>
@@ -19,27 +19,23 @@
 #include "VppCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppInterface.hpp"
-#include "VppBridgeDomain.hpp"
-#include "VppVxlanTunnel.hpp"
+#include "VppSubnet.hpp"
 
 namespace VPP
 {
     /**
-     * A base class for all Object in the VPP Object-Model.
-     *  provides the abstract interface.
+     * A representation of L3 configuration on an interface
      */
-    class L2Interface: public Object
+    class L3Config: public Object
     {
     public:
         /**
          * Construct a new object matching the desried state
          */
-        L2Interface(const Interface &itf,
-                    const BridgeDomain &bd);
-        L2Interface(const VxlanTunnel &itf,
-                    const BridgeDomain &bd);
-        ~L2Interface();
-        L2Interface(const L2Interface& o);
+        L3Config(const Interface &itf,
+                 const Route::prefix_t &pfx);
+        ~L3Config();
+        L3Config(const L3Config& o);
 
         /**
          * Debug print function
@@ -54,8 +50,7 @@ namespace VPP
         public:
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
-                    const handle_t &bd,
-                    bool is_bvi);
+                    const Route::prefix_t &pfx);
 
             rc_t exec();
             std::string to_string() const;
@@ -63,8 +58,7 @@ namespace VPP
             bool operator==(const BindCmd&i) const;
         private:
             const handle_t m_itf;
-            const handle_t m_bd;
-            bool m_is_bvi;
+            const Route::prefix_t m_pfx;
         };
 
         /**
@@ -75,8 +69,7 @@ namespace VPP
         public:
             UnbindCmd(HW::Item<bool> &item,
                       const handle_t &itf,
-                      const handle_t &bd,
-                      bool is_bvi);
+                      const Route::prefix_t &pfx);
 
             rc_t exec();
             std::string to_string() const;
@@ -84,17 +77,16 @@ namespace VPP
             bool operator==(const UnbindCmd&i) const;
         private:
             const handle_t m_itf;
-            const handle_t m_bd;
-            bool m_is_bvi;
+            const Route::prefix_t m_pfx;
         };
 
     private:
         /**
          * Enquue commonds to the VPP command Q for the update
          */
-        void update(const L2Interface &obj);
+        void update(const L3Config &obj);
 
-        static std::shared_ptr<L2Interface> find_or_add(const L2Interface &temp);
+        static std::shared_ptr<L3Config> find_or_add(const L3Config &temp);
 
         /*
          * It's the VPPHW class that updates the objects in HW
@@ -107,18 +99,16 @@ namespace VPP
         void sweep(void);
 
         /**
-         * A reference counting pointer the interface that this L2 layer
+         * A reference counting pointer the interface that this L3 layer
          * represents. By holding the reference here, we can guarantee that
          * this object will outlive the interface
          */
         const std::shared_ptr<Interface> m_itf;
     
         /**
-         * A reference counting pointer the Bridge-Domain that this L2
-         * interface is bound to. By holding the reference here, we can
-         * guarantee that this object will outlive the BD.
+         * The prefix for this L3 configuration
          */
-        const std::shared_ptr<BridgeDomain> m_bd;
+        Route::prefix_t m_pfx;
 
         /**
          * HW configuration for the binding. The bool representing the
@@ -127,9 +117,10 @@ namespace VPP
         HW::Item<bool> m_binding;
 
         /**
-         * A map of all L2 interfaces key against the interface's handle_t
+         * A map of all L3 configs keyed against a combination of the interface
+         * and subnet's keys.
          */
-        static InstDB<const handle_t, L2Interface> m_db;
+        static InstDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> m_db;
     };
 };
 

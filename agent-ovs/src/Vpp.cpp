@@ -44,3 +44,15 @@ bool handle_t::operator<(const handle_t &other) const
 {
     return (m_value < other.m_value);    
 }
+
+uint32_t handle_t::value() const
+{
+    return (m_value);
+}
+
+std::ostream & VPP::operator<<(std::ostream &os, const handle_t &h)
+{
+    os << h.value();
+
+    return (os);
+}

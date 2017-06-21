@@ -16,7 +16,7 @@
 using namespace VPP;
 
 /**
- * A DB of al the interfaces, key on the name
+ * A DB of al the sub-interfaces, key on the name
  */
 InstDB<const std::string, Interface> Interface::m_db;
 
@@ -34,6 +34,7 @@ Interface::Interface(const std::string &name,
     m_table_id(Route::DEFAULT_TABLE)
 {
 }
+
 Interface::Interface(const std::string &name,
                      Interface::type_t itf_type,
                      Interface::admin_state_t itf_state,
@@ -46,6 +47,7 @@ Interface::Interface(const std::string &name,
     m_prefix(prefix)
 {
 }
+
 Interface::Interface(const std::string &name,
                      Interface::type_t itf_type,
                      Interface::admin_state_t itf_state,
@@ -110,7 +112,7 @@ void Interface::sweep()
     }
     if (m_hdl)
     {
-        HW::enqueue(new DeleteCmd(m_hdl, m_type));
+        HW::enqueue(mk_delete_cmd());
     }
     HW::write();
 }
@@ -134,6 +136,22 @@ std::string Interface::to_string() const
     return (s.str());
 }
 
+const std::string &Interface::name() const
+{
+    return (m_name);
+}
+
+Cmd* Interface::mk_create_cmd()
+{
+    return (new CreateCmd(m_hdl, m_name, m_type));
+}
+
+Cmd* Interface::mk_delete_cmd()
+{
+    return (new DeleteCmd(m_hdl, m_type));
+}
+
+
 void Interface::update(const Interface &desired)
 {
     /*
@@ -141,7 +159,7 @@ void Interface::update(const Interface &desired)
      */
     if (rc_t::OK != m_hdl.rc())
     {
-        HW::enqueue(new CreateCmd(m_hdl, m_name, m_type));
+        HW::enqueue(mk_create_cmd());
     }
 
     /*

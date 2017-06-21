@@ -31,6 +31,11 @@ namespace VPP
     {
     public:
         /**
+         * The key for interface's key
+         */
+        typedef std::string key_type;
+
+        /**
          * An interface type
          */
         struct type_t: Enum<type_t>
@@ -41,6 +46,7 @@ namespace VPP
             const static type_t BVI;
             const static type_t VXLAN;
             const static type_t ETHERNET;
+            const static type_t AFPACKET;
         };
 
         /**
@@ -62,14 +68,12 @@ namespace VPP
                   admin_state_t state);
         Interface(const std::string &name,
                   type_t type,
-                  admin_state_t state,
-                  Route::prefix_t prefix);
+                  admin_state_t state);
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state,
-                  const RouteDomain &rd,
-                  Route::prefix_t prefix);
-        ~Interface();
+                  const RouteDomain &rd);
+        virtual ~Interface();
         Interface(const Interface& o);
 
         /**
@@ -86,6 +90,16 @@ namespace VPP
          * Return the interface type
          */
         const type_t & type() const;
+
+        /**
+         * Return the interface type
+         */
+        const std::string & name() const;
+
+        /**
+         * Return the interface type
+         */
+        const key_type & key() const;
 
         /**
          * A functor class that creates an interface
@@ -202,23 +216,32 @@ namespace VPP
          */
         HW::Item<handle_t> m_hdl;
 
+        static std::shared_ptr<Interface> find_or_add(const Interface &temp);
+
+        /**
+         * Virtual functions to construct an interface create/delete commands.
+         * Overridden in derived classes like the SubInterface
+         */
+        virtual Cmd* mk_create_cmd();
+        virtual Cmd* mk_delete_cmd();
+
+        /**
+         * Sweep/reap the object if still stale
+         */
+        virtual void sweep(void);
+
     private:
         /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
          */
         void update(const Interface &obj);
 
-        static std::shared_ptr<Interface> find_or_add(const Interface &temp);
 
         /*
          * It's the VPPHW class that updates the objects in HW
          */
         friend class VPP::OM;
-    
-        /**
-         * Sweep/reap the object if still stale
-         */
-        virtual void sweep(void);
+
 
         /**
          * The interfaces name

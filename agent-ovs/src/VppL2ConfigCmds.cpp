@@ -8,14 +8,14 @@
 
 #include <iostream>
 
-#include "VppL2Interface.hpp"
+#include "VppL2Config.hpp"
 
 using namespace VPP;
 
-L2Interface::BindCmd::BindCmd(HW::Item<bool> &item,
-                              const handle_t &itf,
-                              const handle_t &bd,
-                              bool is_bvi):
+L2Config::BindCmd::BindCmd(HW::Item<bool> &item,
+                           const handle_t &itf,
+                           const handle_t &bd,
+                           bool is_bvi):
     CmdT(item),
     m_itf(itf),
     m_bd(bd),
@@ -23,31 +23,31 @@ L2Interface::BindCmd::BindCmd(HW::Item<bool> &item,
 {
 }
 
-bool L2Interface::BindCmd::operator==(const BindCmd& other) const
+bool L2Config::BindCmd::operator==(const BindCmd& other) const
 {
     return ((m_itf == other.m_itf) &&
             (m_bd == other.m_bd) &&
             (m_is_bvi == other.m_is_bvi));
 }
 
-rc_t L2Interface::BindCmd::exec()
+rc_t L2Config::BindCmd::exec()
 {
     // finally... call VPP
 }
-std::string L2Interface::BindCmd::to_string() const
+std::string L2Config::BindCmd::to_string() const
 {
     std::ostringstream s;
-    s << "L2-interface-BD-bind: " << m_hw_item.to_string()
+    s << "L2-config-BD-bind: " << m_hw_item.to_string()
       << " itf:" << m_itf.to_string()
       << " bd:" << m_bd.to_string();
 
     return (s.str());
 }
 
-L2Interface::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
-                                  const handle_t &itf,
-                                  const handle_t &bd,
-                                  bool is_bvi):
+L2Config::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
+                               const handle_t &itf,
+                               const handle_t &bd,
+                               bool is_bvi):
     CmdT(item),
     m_itf(itf),
     m_bd(bd),
@@ -55,21 +55,21 @@ L2Interface::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
 {
 }
 
-bool L2Interface::UnbindCmd::operator==(const UnbindCmd& other) const
+bool L2Config::UnbindCmd::operator==(const UnbindCmd& other) const
 {
     return ((m_itf == other.m_itf) &&
             (m_bd == other.m_bd) &&
             (m_is_bvi == other.m_is_bvi));
 }
 
-rc_t L2Interface::UnbindCmd::exec()
+rc_t L2Config::UnbindCmd::exec()
 {
     // finally... call VPP
 }
-std::string L2Interface::UnbindCmd::to_string() const
+std::string L2Config::UnbindCmd::to_string() const
 {
     std::ostringstream s;
-    s << "L2-interface-BD-unbind: " << m_hw_item.to_string()
+    s << "L2-config-BD-unbind: " << m_hw_item.to_string()
       << " itf:" << m_itf.to_string()
       << " bd:" << m_bd.to_string();
 

@@ -11,18 +11,29 @@
 using namespace VPP;
 
 /**
+ * A DB of all the sub-interfaces, key on the name
+ */
+InstDB<const std::string, SubInterface> SubInterface::m_db;
+
+/**
  * Construct a new object matching the desried state
  */
-SubInterface::SubInterface(const std::string &name,
-                           const std::shared_ptr<Interface> parent,
+SubInterface::SubInterface(const Interface &parent,
                            admin_state_t state,
                            vlan_id_t vlan):
-    Interface(name, parent->type(), state),
-    m_parent(parent),
+    Interface(mk_name(parent, vlan), parent.type(), state),
+    m_parent(Interface::find(parent)),
     m_vlan(vlan)
 {
 }
     
+SubInterface::~SubInterface()
+{
+    sweep();
+
+    // not in the DB anymore.
+    m_db.release(name(), this);
+}
 
 SubInterface::SubInterface(const SubInterface& o):
     Interface(o),
@@ -31,3 +42,23 @@ SubInterface::SubInterface(const SubInterface& o):
 {
 }
 
+std::string SubInterface::mk_name(const Interface &parent,
+                                  vlan_id_t vlan)
+{
+    return (parent.name() + "." + std::to_string(vlan));
+}
+
+std::shared_ptr<SubInterface> SubInterface::find_or_add(const SubInterface &temp)
+{
+    return (m_db.find_or_add(temp.name(), temp));
+}
+
+Cmd* SubInterface::mk_create_cmd()
+{
+    return (new CreateCmd(m_hdl, m_parent->handle(), m_vlan));
+}
+
+Cmd* SubInterface::mk_delete_cmd()
+{
+    return (new DeleteCmd(m_hdl));
+}

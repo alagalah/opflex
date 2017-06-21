@@ -232,9 +232,12 @@ if RENDERER_VPP
 	src/VppInterface.cpp \
 	src/VppInterfaceCmds.cpp \
 	src/VppInterfaceTypes.cpp \
-	src/VppL2Interface.cpp \
-	src/VppL2InterfaceCmds.cpp \
+	src/VppL2Config.cpp \
+	src/VppL2ConfigCmds.cpp \
+	src/VppL3Config.cpp \
+	src/VppL3ConfigCmds.cpp \
 	src/VppSubInterface.cpp \
+	src/VppSubInterfaceCmds.cpp \
 	src/VppBridgeDomain.cpp \
 	src/VppBridgeDomainCmds.cpp \
 	src/VppRouteDomain.cpp \
