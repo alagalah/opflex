@@ -20,6 +20,7 @@
 #include "VppEnum.hpp"
 #include "VppRoute.hpp"
 #include "VppRouteDomain.hpp"
+#include "VppConnection.h"
 
 namespace VPP
 {
@@ -40,24 +41,29 @@ namespace VPP
          */
         struct type_t: Enum<type_t>
         {
-            type_t(int v, const std::string &s);
-
+            const static type_t UNKNWON;
             const static type_t VHOST;
             const static type_t BVI;
             const static type_t VXLAN;
             const static type_t ETHERNET;
             const static type_t AFPACKET;
+
+            static type_t from_string(const std::string &str);
+        private:
+            type_t(int v, const std::string &s);
         };
 
         /**
          * The admin state of the interface
          */
         struct admin_state_t: Enum<admin_state_t>
-        {
-            admin_state_t(int v, const std::string &s);
-            
+        {            
             const static admin_state_t DOWN;
             const static admin_state_t UP;
+
+            static admin_state_t from_int(uint8_t val);
+        private:
+            admin_state_t(int v, const std::string &s);
         };
 
         /**
@@ -66,6 +72,7 @@ namespace VPP
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state);
+        Interface(vl_api_sw_interface_details_t *vd);
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state,

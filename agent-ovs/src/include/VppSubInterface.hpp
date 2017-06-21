@@ -66,6 +66,11 @@ namespace VPP
             bool operator==(const DeleteCmd&i) const;
         };
 
+        /**
+         * The the instance of the Interface in the Object-Model
+         */
+        static std::shared_ptr<SubInterface> find(const SubInterface &temp);
+
     private:
         /**
          * Virtual functions to construct an interface create/delete commands.

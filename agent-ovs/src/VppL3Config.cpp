@@ -30,6 +30,14 @@ L3Config::L3Config(const Interface &itf,
 {
 }
 
+L3Config::L3Config(const SubInterface &itf,
+                   const Route::prefix_t &pfx):
+    m_itf(SubInterface::find(itf)),
+    m_pfx(pfx),
+    m_binding(0)
+{
+}
+
 L3Config::L3Config(const L3Config& o):
     m_itf(o.m_itf),
     m_pfx(o.m_pfx),

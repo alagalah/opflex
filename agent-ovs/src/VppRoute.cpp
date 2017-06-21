@@ -7,6 +7,8 @@
  */
 
 #include <sstream>
+#include <vector>
+#include <boost/algorithm/string.hpp>
 
 #include "VppRoute.hpp"
 
@@ -92,3 +94,12 @@ std::string Route::prefix_t::to_string() const
     return (s.str());
 }
 
+Route::prefix_t Route::prefix_t::from_string(const std::string &str)
+{
+    std::vector<std::string> strs;
+
+    boost::split(strs, str, boost::is_any_of("/"));
+
+    return (Route::prefix_t(boost::asio::ip::address::from_string(strs[0]),
+                            std::stoi(strs[1])));
+}

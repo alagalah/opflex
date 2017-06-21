@@ -33,7 +33,9 @@ bool L2Config::BindCmd::operator==(const BindCmd& other) const
 rc_t L2Config::BindCmd::exec()
 {
     // finally... call VPP
+    return (rc_t::OK);
 }
+
 std::string L2Config::BindCmd::to_string() const
 {
     std::ostringstream s;
@@ -65,7 +67,9 @@ bool L2Config::UnbindCmd::operator==(const UnbindCmd& other) const
 rc_t L2Config::UnbindCmd::exec()
 {
     // finally... call VPP
+    return (rc_t::OK);
 }
+
 std::string L2Config::UnbindCmd::to_string() const
 {
     std::ostringstream s;

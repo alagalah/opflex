@@ -247,6 +247,9 @@
         //             // The vlan tag, if any, used on the uplink interface.
         //             // Set to zero or omit if the uplink is untagged.
         //             "uplink-vlan": 4093,
+	//
+	//	       // The IP prefix on the uplink
+        //             "uplink-prefix": "10.0.0.44/8",
         //
         //             // The IP address used for the destination IP in
         //             // the encapsulated traffic.  This should be an

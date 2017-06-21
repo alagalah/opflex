@@ -36,6 +36,7 @@ namespace VPP
         class prefix_t
         {
         public:
+            prefix_t();
             prefix_t(const boost::asio::ip::address &addr,
                      uint8_t len);
             ~prefix_t();
@@ -49,8 +50,10 @@ namespace VPP
             bool operator<(const prefix_t &o) const;
             bool operator==(const prefix_t &o) const;
             bool operator!=(const prefix_t &o) const;
+            prefix_t & operator=(const prefix_t &o) const;
 
             std::string to_string() const;
+            static prefix_t from_string(const std::string &str);
 
             /**
              * The all Zeros prefix

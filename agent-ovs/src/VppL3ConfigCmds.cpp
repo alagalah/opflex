@@ -30,6 +30,7 @@ bool L3Config::BindCmd::operator==(const BindCmd& other) const
 rc_t L3Config::BindCmd::exec()
 {
     // finally... call VPP
+    return (rc_t::OK);
 }
 
 std::string L3Config::BindCmd::to_string() const
@@ -60,7 +61,9 @@ bool L3Config::UnbindCmd::operator==(const UnbindCmd& other) const
 rc_t L3Config::UnbindCmd::exec()
 {
     // finally... call VPP
+    return (rc_t::OK);
 }
+
 std::string L3Config::UnbindCmd::to_string() const
 {
     std::ostringstream s;

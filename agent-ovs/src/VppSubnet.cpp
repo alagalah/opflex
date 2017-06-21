@@ -61,5 +61,5 @@ std::shared_ptr<Subnet> Subnet::find_or_add(const Subnet &temp)
 
 std::shared_ptr<Subnet> Subnet::find(const Subnet &temp)
 {
-    return (m_db.find(temp.m_prefix, temp));
+    return (m_db.find(temp.m_prefix));
 }

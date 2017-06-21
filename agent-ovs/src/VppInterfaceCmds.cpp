@@ -61,7 +61,9 @@ bool Interface::DeleteCmd::operator==(const DeleteCmd& other) const
 rc_t Interface::DeleteCmd::exec()
 {
     // finally... call VPP
+    return (rc_t::OK);
 }
+
 std::string Interface::DeleteCmd::to_string() const
 {
     std::ostringstream s;
@@ -86,6 +88,7 @@ bool Interface::StateChangeCmd::operator==(const StateChangeCmd& other) const
 rc_t Interface::StateChangeCmd::exec()
 {
     // finally... call VPP
+    return (rc_t::OK);
 }
 
 std::string Interface::StateChangeCmd::to_string() const
@@ -112,6 +115,7 @@ bool Interface::SetTableCmd::operator==(const SetTableCmd& other) const
 rc_t Interface::SetTableCmd::exec()
 {
     // finally... call VPP
+    return (rc_t::OK);
 }
 
 std::string Interface::SetTableCmd::to_string() const

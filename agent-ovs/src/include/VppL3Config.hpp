@@ -19,7 +19,7 @@
 #include "VppCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppInterface.hpp"
-#include "VppSubnet.hpp"
+#include "VppSubInterface.hpp"
 
 namespace VPP
 {
@@ -33,6 +33,8 @@ namespace VPP
          * Construct a new object matching the desried state
          */
         L3Config(const Interface &itf,
+                 const Route::prefix_t &pfx);
+        L3Config(const SubInterface &itf,
                  const Route::prefix_t &pfx);
         ~L3Config();
         L3Config(const L3Config& o);

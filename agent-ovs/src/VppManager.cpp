@@ -575,6 +575,15 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         PolicyManager::subnet_vector_t subnets;
         agent.getPolicyManager().getSubnetsForGroup(epgURI, subnets);
 
+        VPP::Interface bvi("bvi-" + bd.to_string(),
+                           VPP::Interface::type_t::BVI,
+                           VPP::Interface::admin_state_t::UP,
+                           rd);
+        VPP::OM::write(epg_uuid, bvi);
+
+        VPP::L2Config l2(bvi, bd);
+        VPP::OM::write(epg_uuid, bvi);
+
         for (shared_ptr<Subnet>& sn : subnets)
         {
             optional<address> routerIp =
@@ -584,18 +593,8 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             {
                 VPP::Route::prefix_t pfx(routerIp.get(), sn->getPrefixLen().get());
 
-                VPP::Interface bvi("bvi-" + routerIp.get().to_string(),
-                                   VPP::Interface::type_t::BVI,
-                                   VPP::Interface::admin_state_t::UP,
-                                   rd);
-
-                VPP::OM::write(epg_uuid, bvi);
-
                 VPP::L3Config l3(bvi, pfx);
                 VPP::OM::write(epg_uuid, l3);
-
-                VPP::L2Config l2(bvi, bd);
-                VPP::OM::write(epg_uuid, bvi);
             }
         }
     }

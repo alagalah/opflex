@@ -89,5 +89,5 @@ std::shared_ptr<RouteDomain> RouteDomain::find_or_add(const RouteDomain &temp)
 
 std::shared_ptr<RouteDomain> RouteDomain::find(const RouteDomain &temp)
 {
-    return (m_db.find(temp.m_name, temp));
+    return (m_db.find(temp.m_name));
 }

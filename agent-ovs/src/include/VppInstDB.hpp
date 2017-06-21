@@ -47,7 +47,7 @@ namespace VPP
             return ((*search).second.lock());
         }
 
-        std::shared_ptr<OBJ> find(const KEY &key, const OBJ &obj)
+        std::shared_ptr<OBJ> find(const KEY &key)
         {
             auto search = m_map.find(key);
 

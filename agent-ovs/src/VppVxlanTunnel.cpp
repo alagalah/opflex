@@ -147,5 +147,5 @@ std::shared_ptr<VxlanTunnel> VxlanTunnel::find_or_add(const VxlanTunnel &temp)
 
 std::shared_ptr<VxlanTunnel> VxlanTunnel::find(const VxlanTunnel &temp)
 {
-    return (m_db.find(temp.m_tep, temp));
+    return (m_db.find(temp.m_tep));
 }

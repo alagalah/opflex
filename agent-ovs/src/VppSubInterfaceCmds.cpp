@@ -59,7 +59,9 @@ bool SubInterface::DeleteCmd::operator==(const DeleteCmd& other) const
 rc_t SubInterface::DeleteCmd::exec()
 {
     // finally... call VPP
+    return (rc_t::OK);
 }
+
 std::string SubInterface::DeleteCmd::to_string() const
 {
     std::ostringstream s;
