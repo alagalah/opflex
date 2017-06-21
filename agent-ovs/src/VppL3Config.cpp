@@ -17,7 +17,7 @@ using namespace VPP;
 /**
  * A DB of al the interfaces, key on the name
  */
-InstDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> m_db;
+InstDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> L3Config::m_db;
 
 /**
  * Construct a new object matching the desried state
@@ -29,7 +29,6 @@ L3Config::L3Config(const Interface &itf,
     m_binding(0)
 {
 }
-
 
 L3Config::L3Config(const L3Config& o):
     m_itf(o.m_itf),

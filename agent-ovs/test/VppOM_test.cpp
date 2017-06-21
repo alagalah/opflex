@@ -18,6 +18,7 @@
 #include "VppOM.hpp"
 #include "VppInterface.hpp"
 #include "VppL2Config.hpp"
+#include "VppL3Config.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppRouteDomain.hpp"
 #include "VppVxlanTunnel.hpp"
@@ -96,13 +97,13 @@ public:
             {
                 rc = handle_derived<Interface::DeleteCmd>(f_exp, f_act);
             }
-            else if (typeid(*f_exp) == typeid(Interface::PrefixAddCmd))
+            else if (typeid(*f_exp) == typeid(L3Config::BindCmd))
             {
-                rc = handle_derived<Interface::PrefixAddCmd>(f_exp, f_act);
+                rc = handle_derived<L3Config::BindCmd>(f_exp, f_act);
             }
-            else if (typeid(*f_exp) == typeid(Interface::PrefixDelCmd))
+            else if (typeid(*f_exp) == typeid(L3Config::UnbindCmd))
             {
-                rc = handle_derived<Interface::PrefixDelCmd>(f_exp, f_act);
+                rc = handle_derived<L3Config::UnbindCmd>(f_exp, f_act);
             }
             else if (typeid(*f_exp) == typeid(BridgeDomain::CreateCmd))
             {
@@ -347,10 +348,6 @@ BOOST_AUTO_TEST_CASE(interface) {
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
     ADD_EXPECT(Interface::DeleteCmd(hw_ifh2, Interface::type_t::VHOST));
     TRY_CHECK(OM::sweep(go));
-
-    /*
-     * A BVI interface with an IP prefix configured.
-     */
 }
 
 BOOST_AUTO_TEST_CASE(bvi) {
@@ -358,6 +355,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
     const std::string ernest = "ErnestHemmingway";
     const std::string graham = "GrahamGreene";
     rc_t rc = rc_t::OK;
+    L3Config *l3;
 
     HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP,
                                                 rc_t::OK);
@@ -372,18 +370,22 @@ BOOST_AUTO_TEST_CASE(bvi) {
     const std::string bvi_name = "bvi1";
     Interface itf(bvi_name,
                   Interface::type_t::BVI,
-                  Interface::admin_state_t::UP,
-                  pfx_10);
+                  Interface::admin_state_t::UP);
     HW::Item<handle_t> hw_ifh(4, rc_t::OK);
     HW::Item<Route::prefix_t> hw_pfx_10(pfx_10, rc_t::OK);
 
     ADD_EXPECT(Interface::CreateCmd(hw_ifh, bvi_name, Interface::type_t::BVI));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
-    ADD_EXPECT(Interface::PrefixAddCmd(hw_pfx_10, hw_ifh));
-
     TRY_CHECK_RC(OM::write(ernest, itf));
 
-    ADD_EXPECT(Interface::PrefixDelCmd(hw_pfx_10, hw_ifh));
+    l3 = new L3Config(itf, pfx_10);
+    HW::Item<bool> hw_l3_bind(true, rc_t::OK);
+    HW::Item<bool> hw_l3_unbind(false, rc_t::OK);
+    ADD_EXPECT(L3Config::BindCmd(hw_l3_bind, hw_ifh.data(), pfx_10));
+    TRY_CHECK_RC(OM::write(ernest, *l3));
+
+    delete l3;
+    ADD_EXPECT(L3Config::UnbindCmd(hw_l3_unbind, hw_ifh.data(), pfx_10));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
     ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::BVI));
     TRY_CHECK(OM::remove(ernest));
@@ -393,26 +395,30 @@ BOOST_AUTO_TEST_CASE(bvi) {
      */
 
     RouteDomain rd("red");
-    HW::Item<Route::table_id_t> hw_rd_bind(1, rc_t::OK);
-    HW::Item<Route::table_id_t> hw_rd_unbind(0, rc_t::OK);
+    HW::Item<Route::table_id_t> hw_rd_bind(true, rc_t::OK);
+    HW::Item<Route::table_id_t> hw_rd_unbind(false, rc_t::OK);
     TRY_CHECK_RC(OM::write(graham, rd));
 
     const std::string bvi2_name = "bvi2";
     Interface itf2(bvi2_name,
                    Interface::type_t::BVI,
                    Interface::admin_state_t::UP,
-                   rd,
-                   pfx_10);
+                   rd);
     HW::Item<handle_t> hw_ifh2(5, rc_t::OK);
 
     ADD_EXPECT(Interface::CreateCmd(hw_ifh2, bvi2_name, Interface::type_t::BVI));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh2));
     ADD_EXPECT(Interface::SetTableCmd(hw_rd_bind, hw_ifh2));
-    ADD_EXPECT(Interface::PrefixAddCmd(hw_pfx_10, hw_ifh2));
 
     TRY_CHECK_RC(OM::write(graham, itf2));
 
-    ADD_EXPECT(Interface::PrefixDelCmd(hw_pfx_10, hw_ifh2));
+    l3 = new L3Config(itf2, pfx_10);
+    ADD_EXPECT(L3Config::BindCmd(hw_l3_bind, hw_ifh2.data(), pfx_10));
+    TRY_CHECK_RC(OM::write(graham, *l3));
+
+    delete l3;
+
+    ADD_EXPECT(L3Config::UnbindCmd(hw_l3_unbind, hw_ifh2.data(), pfx_10));
     ADD_EXPECT(Interface::SetTableCmd(hw_rd_unbind, hw_ifh2));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
     ADD_EXPECT(Interface::DeleteCmd(hw_ifh2, Interface::type_t::BVI));
