@@ -34,6 +34,16 @@ Interface::Interface(const std::string &name,
 {
 }
 
+Interface::Interface(vl_api_sw_interface_details_t *vd):
+    m_name(reinterpret_cast<char*>(vd->interface_name)),
+    m_state(Interface::admin_state_t::from_int(vd->link_up_down),
+            rc_t::OK),
+    m_type(Interface::type_t::from_string(m_name)),
+    m_hdl(handle_t(vd->sw_if_index), rc_t::OK),
+    m_table_id(Route::DEFAULT_TABLE)
+{
+}
+
 Interface::Interface(const std::string &name,
                      Interface::type_t itf_type,
                      Interface::admin_state_t itf_state,
@@ -167,5 +177,5 @@ std::shared_ptr<Interface> Interface::find_or_add(const Interface &temp)
 
 std::shared_ptr<Interface> Interface::find(const Interface &temp)
 {
-    return (m_db.find(temp.m_name, temp));
+    return (m_db.find(temp.m_name));
 }

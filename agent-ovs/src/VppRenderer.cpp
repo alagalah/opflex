@@ -7,6 +7,7 @@
  */
 
 #include "VppRenderer.h"
+#include "VppRoute.hpp"
 #include "logging.h"
 
 #include <boost/asio/placeholders.hpp>
@@ -58,6 +59,7 @@ namespace ovsagent {
         static const std::string ENCAP_VLAN("encap.vlan");
         static const std::string UPLINK_IFACE("uplink-iface");
         static const std::string UPLINK_VLAN("uplink-vlan");
+        static const std::string UPLINK_PREFIX("uplink-prefix");
         static const std::string ENCAP_IFACE("encap-iface");
         static const std::string REMOTE_IP("remote-ip");
         static const std::string REMOTE_PORT("remote-port");
@@ -84,6 +86,9 @@ namespace ovsagent {
             remote_ip =
                 boost::asio::ip::address::from_string(
                     vxlan.get().get<std::string>(REMOTE_IP, ""));
+            VPP::Route::prefix_t pfx = VPP::Route::prefix_t::from_string(
+                vxlan.get().get<std::string>(UPLINK_PREFIX, ""));
+
             if (ec)
             {
                 LOG(ERROR) << "Invalid tunnel destination IP: "
@@ -95,6 +100,7 @@ namespace ovsagent {
             {
                 vppManager.uplink().set(vxlan.get().get<std::string>(UPLINK_IFACE, ""),
                                         vxlan.get().get<uint16_t>(UPLINK_VLAN, 0),
+                                        pfx,
                                         vxlan.get().get<std::string>(ENCAP_IFACE, ""),
                                         remote_ip,
                                         vxlan.get().get<uint16_t>(REMOTE_PORT, 4789));

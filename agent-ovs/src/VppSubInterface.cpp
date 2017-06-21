@@ -53,6 +53,11 @@ std::shared_ptr<SubInterface> SubInterface::find_or_add(const SubInterface &temp
     return (m_db.find_or_add(temp.name(), temp));
 }
 
+std::shared_ptr<SubInterface> SubInterface::find(const SubInterface &temp)
+{
+    return (m_db.find(temp.name()));
+}
+
 Cmd* SubInterface::mk_create_cmd()
 {
     return (new CreateCmd(m_hdl, m_parent->handle(), m_vlan));

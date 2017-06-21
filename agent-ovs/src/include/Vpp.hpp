@@ -61,6 +61,8 @@ namespace VPP
 
         uint32_t value() const;
 
+        static handle_t from_int(uint32_t value);
+
     private:
         uint32_t m_value;
     };
