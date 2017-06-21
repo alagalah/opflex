@@ -96,58 +96,6 @@ std::string Interface::StateChangeCmd::to_string() const
     return (s.str());
 }
 
-Interface::PrefixAddCmd::PrefixAddCmd(HW::Item<Route::prefix_t> &item,
-                                      const HW::Item<handle_t> &hdl):
-    CmdT(item),
-    m_hdl(hdl)
-{
-}
-
-bool Interface::PrefixAddCmd::operator==(const PrefixAddCmd& other) const
-{
-    return ((m_hdl == other.m_hdl) &&
-            (m_hw_item == other.m_hw_item));
-}
-
-rc_t Interface::PrefixAddCmd::exec()
-{
-    // finally... call VPP
-}
-
-std::string Interface::PrefixAddCmd::to_string() const
-{
-    std::ostringstream s;
-    s << "itf-prefix-add: " << m_hw_item.to_string()
-      << " hdl:" << m_hdl.to_string();
-    return (s.str());
-}
-
-Interface::PrefixDelCmd::PrefixDelCmd(HW::Item<Route::prefix_t> &item,
-                                      const HW::Item<handle_t> &hdl):
-    CmdT(item),
-    m_hdl(hdl)
-{
-}
-
-bool Interface::PrefixDelCmd::operator==(const PrefixDelCmd& other) const
-{
-    return ((m_hdl == other.m_hdl) &&
-            (m_hw_item == other.m_hw_item));
-}
-
-rc_t Interface::PrefixDelCmd::exec()
-{
-    // finally... call VPP
-}
-
-std::string Interface::PrefixDelCmd::to_string() const
-{
-    std::ostringstream s;
-    s << "itf-prefix-del: " << m_hw_item.to_string()
-      << " hdl:" << m_hdl.to_string();
-    return (s.str());
-}
-
 Interface::SetTableCmd::SetTableCmd(HW::Item<Route::table_id_t> &table,
                                     const HW::Item<handle_t> &hdl):
     CmdT<HW::Item<Route::table_id_t>>(table),

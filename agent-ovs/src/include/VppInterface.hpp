@@ -68,9 +68,6 @@ namespace VPP
                   admin_state_t state);
         Interface(const std::string &name,
                   type_t type,
-                  admin_state_t state);
-        Interface(const std::string &name,
-                  type_t type,
                   admin_state_t state,
                   const RouteDomain &rd);
         virtual ~Interface();
@@ -153,40 +150,6 @@ namespace VPP
         private:
             const HW::Item<handle_t> &m_hdl;
         };
-        
-        /**
-         * A functor class that creates an interface
-         */
-        class PrefixAddCmd: public CmdT<HW::Item<Route::prefix_t> >
-        {
-        public:
-            PrefixAddCmd(HW::Item<Route::prefix_t> &item,
-                         const HW::Item<handle_t> &h);
-
-            rc_t exec();
-            std::string to_string() const;
-
-            bool operator==(const PrefixAddCmd&i) const;
-        private:
-            const HW::Item<handle_t> &m_hdl;
-        };
-
-        /**
-         * A functor class that creates an interface
-         */
-        class PrefixDelCmd: public CmdT<HW::Item<Route::prefix_t> >
-        {
-        public:
-            PrefixDelCmd(HW::Item<Route::prefix_t> &item,
-                         const HW::Item<handle_t> &h);
-
-            rc_t exec();
-            std::string to_string() const;
-
-            bool operator==(const PrefixDelCmd&i) const;
-        private:
-            const HW::Item<handle_t> &m_hdl;
-        };
 
         /**
          * A functor class that creates an interface
@@ -258,11 +221,6 @@ namespace VPP
          * The state of the interface
          */
         HW::Item<admin_state_t> m_state;
-
-        /**
-         * An IP prefix assigned to the interface
-         */
-        HW::Item<Route::prefix_t> m_prefix;
 
         /**
          * shared pointer to the RouteDoamin the interface is in.

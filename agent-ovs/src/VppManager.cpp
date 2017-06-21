@@ -38,6 +38,7 @@
 #include "VppOM.hpp"
 #include "VppInterface.hpp"
 #include "VppL2Config.hpp"
+#include "VppL3Config.hpp"
 #include "VppBridgeDomain.hpp"
 
 #include "arp.h"
@@ -586,10 +587,12 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                 VPP::Interface bvi("bvi-" + routerIp.get().to_string(),
                                    VPP::Interface::type_t::BVI,
                                    VPP::Interface::admin_state_t::UP,
-                                   rd,
-                                   pfx);
+                                   rd);
 
                 VPP::OM::write(epg_uuid, bvi);
+
+                VPP::L3Config l3(bvi, pfx);
+                VPP::OM::write(epg_uuid, l3);
 
                 VPP::L2Config l2(bvi, bd);
                 VPP::OM::write(epg_uuid, bvi);
