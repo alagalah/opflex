@@ -47,12 +47,12 @@ namespace VPP
 
     protected:
 
+        template <typename CMD_TYPE>
         static vapi_error_e callback(vapi_ctx_t ctx,
                                      void *callback_ctx,
                                      T *reply)
         {
-            Cmd *c = static_cast<Cmd*>(callback_ctx);
-            EventCmd *cmd = dynamic_cast<EventCmd*>(c);
+            CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
 
             {
                 std::lock_guard<std::mutex> s(cmd->m_mutex);
@@ -63,12 +63,13 @@ namespace VPP
 
             return (VAPI_OK);     
         }
+
+        template <typename CMD_TYPE>
         static vapi_error_e callback(vapi_ctx_t ctx,
                                      void *callback_ctx,
                                      void *reply)
         {
-            Cmd *c = static_cast<Cmd*>(callback_ctx);
-            EventCmd *cmd = dynamic_cast<EventCmd*>(c);
+            CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
 
             {
                 std::lock_guard<std::mutex> s(cmd->m_mutex);

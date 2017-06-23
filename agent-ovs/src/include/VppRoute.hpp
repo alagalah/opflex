@@ -43,6 +43,7 @@ namespace VPP
             prefix_t(const std::string &s,
                      uint8_t len);
             prefix_t(const prefix_t&);
+            prefix_t(uint8_t is_ip6, uint8_t *addr, uint8_t len);
 
             const boost::asio::ip::address &address() const;
 

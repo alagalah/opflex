@@ -44,6 +44,12 @@ Route::prefix_t::prefix_t(const prefix_t &o):
 {
 }
 
+Route::prefix_t::prefix_t():
+    m_addr(),
+    m_len(0)
+{
+}
+
 Route::prefix_t::~prefix_t()
 {
 }
@@ -92,6 +98,27 @@ std::string Route::prefix_t::to_string() const
       << "/" << std::to_string(m_len);
 
     return (s.str());
+}
+
+Route::prefix_t::prefix_t(uint8_t is_ip6,
+                          uint8_t *addr,
+                          uint8_t len):
+    m_len(len)
+{
+    if (is_ip6)
+    {
+        std::array<uint8_t, 16> a;
+        std::copy(addr, addr+16, std::begin(a));
+        boost::asio::ip::address_v6 v6(a);
+        m_addr = v6;
+    }
+    else
+    {
+        std::array<uint8_t, 4> a;
+        std::copy(addr, addr+4, std::begin(a));
+        boost::asio::ip::address_v4 v4(a);
+        m_addr = v4;
+    }
 }
 
 void Route::prefix_t::to_vpp(uint8_t *is_ip6,
