@@ -42,8 +42,7 @@ public:
 class MockCmdQ : public HW::CmdQ
 {
 public:
-    MockCmdQ():
-        CmdQ(false)
+    MockCmdQ()
     {
     }
     ~MockCmdQ()

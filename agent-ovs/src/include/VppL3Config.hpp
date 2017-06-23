@@ -17,13 +17,14 @@
 #include "VppOM.hpp"
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
+#include "VppDumpCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppInterface.hpp"
 #include "VppSubInterface.hpp"
 
 extern "C"
 {
-    #include "interface.api.vapi.h"
+    #include "ip.api.vapi.h"
 }
 
 namespace VPP
@@ -85,6 +86,22 @@ namespace VPP
         private:
             const handle_t m_itf;
             const Route::prefix_t m_pfx;
+        };
+
+        /**
+         * A cmd class that Dumps all the IPv4 L3 configs
+         */
+        class DumpV4Cmd: public DumpCmd<vapi_payload_ip_fib_details>
+        {
+        public:
+            DumpV4Cmd();
+
+            rc_t issue(Connection &con);
+            std::string to_string() const;
+
+            bool operator==(const DumpV4Cmd&i) const;
+        private:
+            HW::Item<bool> item;
         };
 
     private:

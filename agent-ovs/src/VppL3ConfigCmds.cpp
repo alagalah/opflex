@@ -41,7 +41,8 @@ rc_t L3Config::BindCmd::issue(Connection &con)
 
     vapi_sw_interface_add_del_address(
         con.ctx(), req,
-        RpcCmd::callback<vapi_payload_sw_interface_add_del_address_reply>,
+        RpcCmd::callback<vapi_payload_sw_interface_add_del_address_reply,
+                         BindCmd>,
         this);
 
     HW::Item<bool> res(true, wait());
@@ -89,7 +90,8 @@ rc_t L3Config::UnbindCmd::issue(Connection &con)
 
     vapi_sw_interface_add_del_address(
         con.ctx(), req,
-        RpcCmd::callback<vapi_payload_sw_interface_add_del_address_reply>,
+        RpcCmd::callback<vapi_payload_sw_interface_add_del_address_reply,
+                         UnbindCmd>,
         this);
 
     HW::Item<bool> res(true, wait());
@@ -106,4 +108,31 @@ std::string L3Config::UnbindCmd::to_string() const
       << " pfx:" << m_pfx.to_string();
 
     return (s.str());
+}
+
+L3Config::DumpV4Cmd::DumpV4Cmd()
+{
+}
+
+bool L3Config::DumpV4Cmd::operator==(const DumpV4Cmd& other) const
+{
+    return (true);
+}
+
+rc_t L3Config::DumpV4Cmd::issue(Connection &con)
+{
+    vapi_msg_ip_fib_dump *req;
+
+    req = vapi_alloc_ip_fib_dump(con.ctx());
+
+    vapi_ip_fib_dump(con.ctx(), req, DumpCmd::callback<DumpV4Cmd>, this);
+
+    wait();
+
+    return rc_t::OK;
+}
+
+std::string L3Config::DumpV4Cmd::to_string() const
+{
+    return ("L3-config-dump");
 }

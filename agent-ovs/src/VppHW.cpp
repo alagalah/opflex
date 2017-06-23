@@ -16,19 +16,7 @@ using namespace VPP;
 
 HW::CmdQ::CmdQ():
     m_alive(true),
-    m_conn(),
-    m_rx_thread(&HW::CmdQ::rx_run, this)
-{
-}
-
-/*
- * A constructor variant, just for testing, that does not start the
- * connect/dispatch thread
- */
-HW::CmdQ::CmdQ(bool start):
-    m_alive(start),
-    m_conn(),
-    m_rx_thread()
+    m_conn()
 {
 }
 
@@ -36,9 +24,9 @@ HW::CmdQ::~CmdQ()
 {
     m_alive = false;
 
-    if (m_rx_thread.joinable())
+    if (m_rx_thread && m_rx_thread->joinable())
     {
-        m_rx_thread.join();
+        m_rx_thread->join();
     }
 }
 
@@ -53,11 +41,6 @@ void HW::CmdQ::rx_run()
 {
     while (m_alive)
     {
-        while (!m_conn.connected())
-        {
-            m_conn.connect();
-        }
-
         vapi_dispatch(m_conn.ctx());
     }
 }
@@ -72,6 +55,13 @@ void HW::CmdQ::enqueue(Cmd *cmd)
 void HW::CmdQ::enqueue(std::shared_ptr<Cmd> cmd)
 {
     m_queue.push_back(cmd);
+}
+
+void HW::CmdQ::connect()
+{
+    m_conn.connect();
+
+    m_rx_thread.reset(new std::thread(&HW::CmdQ::rx_run, this));
 }
 
 rc_t HW::CmdQ::write()
@@ -173,6 +163,11 @@ void HW::enqueue(Cmd *cmd)
 void HW::enqueue(std::shared_ptr<Cmd> cmd)
 {
     m_cmdQ->enqueue(cmd);
+}
+
+void HW::connect()
+{
+    m_cmdQ->connect();
 }
 
 rc_t HW::write()

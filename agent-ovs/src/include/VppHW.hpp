@@ -36,6 +36,10 @@ namespace VPP
                 item_rc(rc_t::NOOP)
              {
              }
+            Item():
+                item_rc(rc_t::NOOP)
+             {
+             }
             Item(const T &data,
                  rc_t rc):
                 item_data(data),
@@ -127,7 +131,6 @@ namespace VPP
         class CmdQ
         {
         public:
-            CmdQ(bool start);
             CmdQ();
             ~CmdQ();
             CmdQ& operator=(const CmdQ &f);
@@ -135,6 +138,21 @@ namespace VPP
             virtual void enqueue(Cmd *c);
             virtual void enqueue(std::shared_ptr<Cmd> c);
             virtual rc_t write();
+
+            void connect();
+
+            /**
+             * Disable the passing of commands to VPP. Whilst disabled all writes
+             * will be discarded. Use this during the reset phase.
+             */
+            void disable();
+
+            /**
+             * Enable the passing of commands to VPP - undoes the disable.
+             * The Q is enabled by default.
+             */
+            void enable();
+
         private:
             /**
              * A queue of enqueued commands, ready to be written
@@ -153,7 +171,10 @@ namespace VPP
              */
             void rx_run();
 
-            std::thread m_rx_thread;
+            /**
+             * The thread object running the poll/dispatch/connect thread
+             */
+            std::unique_ptr<std::thread> m_rx_thread;
 
             /**
              * The connection to VPP
@@ -176,6 +197,23 @@ namespace VPP
         static void enqueue(std::shared_ptr<Cmd> c);
         static rc_t write();
 
+        /**
+         * Blocking Connect to VPP
+         */
+        static void connect();
+
+        /**
+         * Disable the passing of commands to VPP. Whilst disabled all writes
+         * will be discarded. Use this during the reset phase.
+         */
+        static void disable();
+
+        /**
+         * Enable the passing of commands to VPP - undoes the disable.
+         * The Q is enabled by default.
+         */
+        static void enable();
+        
     private:
         static CmdQ *m_cmdQ;
     };

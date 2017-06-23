@@ -100,6 +100,33 @@ namespace ovsagent {
 
         agent.getFramework().registerPeerStatusListener(this);
 
+    }
+
+    void VppManager::start(const std::string& name) {
+
+        for (size_t i = 0; i < sizeof(ID_NAMESPACES)/sizeof(char*); i++) {
+            idGen.initNamespace(ID_NAMESPACES[i]);
+        }
+        initPlatformConfig();
+
+        /*
+         * make sure the first event in the task Q is the blocking
+         * connection initiation to VPP ...
+         */
+        taskQueue.dispatch("init-connection",
+                           bind(&VppManager::handleInitConnection, this));
+
+        /**
+         * ... followed by uplink configuration
+         */
+        taskQueue.dispatch("uplink-configure",
+                           bind(&VppManager::handleUplinkConfigure, this));
+
+    }
+    void VppManager::handleInitConnection()
+    {
+        VPP::HW::connect();
+
         /**
          * We are insterested in getting interface evnets from VPP
          */
@@ -109,12 +136,9 @@ namespace ovsagent {
         m_cmds.push_back(itf);
     }
 
-    void VppManager::start(const std::string& name) {
-
-        for (size_t i = 0; i < sizeof(ID_NAMESPACES)/sizeof(char*); i++) {
-            idGen.initNamespace(ID_NAMESPACES[i]);
-        }
-        initPlatformConfig();
+    void VppManager::handleUplinkConfigure()
+    {
+        m_uplink.configure();
     }
 
     void VppManager::registerModbListeners() {
@@ -306,7 +330,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     int rv;
 
     /*
-     * We wnat a veth interface - admin up
+     * We want a veth interface - admin up
      */
     VPP::Interface itf(vppInterfaceName.get(),
                        VPP::Interface::type_t::AFPACKET,

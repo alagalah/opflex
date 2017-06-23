@@ -63,6 +63,11 @@ rc_t Interface::LoopbackCreateCmd::issue(Connection &con)
 
     m_hw_item = wait();
 
+    if (m_hw_item.rc() == rc_t::OK)
+    {
+        complete();
+    }
+
     return rc_t::OK;
 }
 std::string Interface::LoopbackCreateCmd::to_string() const
@@ -205,7 +210,8 @@ rc_t Interface::StateChangeCmd::issue(Connection &con)
 
     vapi_sw_interface_set_flags(
         con.ctx(), req,
-        RpcCmd::callback<vapi_payload_sw_interface_set_flags_reply>,
+        RpcCmd::callback<vapi_payload_sw_interface_set_flags_reply,
+                         StateChangeCmd>,
         this);
 
     HW::Item<admin_state_t> res(m_hw_item.data(), wait());
@@ -271,7 +277,7 @@ rc_t Interface::EventsCmd::issue(Connection &con)
      */
     vapi_set_event_cb(con.ctx(),
                       vapi_msg_id_sw_interface_set_flags,
-                      EventCmd::callback,
+                      EventCmd::callback<EventsCmd>,
                       this);
 
     /*
@@ -284,7 +290,8 @@ rc_t Interface::EventsCmd::issue(Connection &con)
 
     vapi_want_interface_events(con.ctx(),
                                req,
-                               RpcCmd::callback, //<vapi_msg_want_interface_events_reply>,
+                               RpcCmd::callback<vapi_payload_want_interface_events_reply,
+                                                EventsCmd>,
                                this);
     wait();
 

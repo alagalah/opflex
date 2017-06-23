@@ -38,7 +38,7 @@ namespace VPP
             return m_hw_item;
         }
 
-        void complete(const DATA &d)
+        void fulfill(const DATA &d)
         {
             m_promise.set_value(d);
         }
@@ -53,16 +53,16 @@ namespace VPP
 
         std::promise<DATA> m_promise;
 
-        template <typename REPLY>
+        template <typename REPLY, typename CMD_TYPE>
         static vapi_error_e callback(vapi_ctx_t ctx,
                                      void *callback_ctx,
                                      vapi_error_e rv,
                                      bool is_last,
                                      REPLY *reply)
         {
-            RpcCmd *cmd = static_cast<RpcCmd*>(callback_ctx);
+            CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
 
-            cmd->complete(rc_t::from_vpp_retval(reply->retval));
+            cmd->fulfill(rc_t::from_vpp_retval(reply->retval));
 
             return (VAPI_OK);     
         }

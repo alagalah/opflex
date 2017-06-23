@@ -31,14 +31,12 @@ VPP::Interface Uplink::makeInterface(uint32_t vnid)
     }
 }
 
-void Uplink::mk_control(const std::string &uplink,
-                        uint16_t vlan,
-                        Route::prefix_t &uplink_prefix)
+void Uplink::configure()
 {
     /*
      * Consruct the uplink physical, so we now 'own' it
      */
-    Interface itf(uplink,
+    Interface itf(m_iface,
                   Interface::type_t::LOOPBACK,
                   Interface::admin_state_t::UP);
     VPP::OM::write(UPLINK_KEY, itf);
@@ -54,14 +52,31 @@ void Uplink::mk_control(const std::string &uplink,
      */
     SubInterface subitf(itf,
                         Interface::admin_state_t::UP,
-                        vlan);
+                        m_vlan);
     VPP::OM::write(UPLINK_KEY, subitf);
 
     /**
      * Add the prefix to the control interface
      */
-    L3Config l3(subitf, uplink_prefix);
+    L3Config l3(subitf, m_prefix);
     VPP::OM::write(UPLINK_KEY, l3);
+
+    /*
+     * Just for fun... dump configs
+     */
+    std::shared_ptr<L3Config::DumpV4Cmd> cmd(new L3Config::DumpV4Cmd());
+
+    HW::enqueue(cmd);
+    HW::write();
+
+    L3Config::DumpV4Cmd::details_type data;
+
+    while (cmd->pop(data))
+    {
+        Route::prefix_t pfx(0, data.address, data.address_length);
+
+        LOG(ovsagent::INFO) << "dump: " << pfx.to_string();
+    }
 }
 
 void Uplink::set(const std::string &uplink,
@@ -72,6 +87,7 @@ void Uplink::set(const std::string &uplink,
                  uint16_t port)
 {
     m_vxlan.src = remote_ip;
-
-    mk_control(uplink, uplink_vlan, uplink_prefix);
+    m_iface = uplink;
+    m_vlan = uplink_vlan;
+    m_prefix = uplink_prefix;
 }

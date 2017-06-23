@@ -290,7 +290,7 @@ namespace VPP
             HW::Item<handle_t> res(reply->sw_if_index,
                                    rc_t::from_vpp_retval(reply->retval));
 
-            cmd->complete(res);
+            cmd->fulfill(res);
 
             return (VAPI_OK);
         }

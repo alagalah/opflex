@@ -46,22 +46,27 @@ namespace VPP
                  const boost::asio::ip::address &ip,
                  uint16_t port);
 
+        /**
+         * make the control channel/interfaces
+         */
+        void configure();
+
     private:
         uplink_type_t m_type;
 
         VPP::VxlanTunnel::endpoint_t m_vxlan;
 
         /**
-         * make the control channel/interfaces
-         */
-        void mk_control(const std::string &uplink,
-                        uint16_t vlan,
-                        Route::prefix_t &uplink_prefix);
-
-        /**
          * A reference to the uplink physical insterface in the OM
          */
         std::shared_ptr<Interface> m_uplink;
+
+        /**
+         * Paramters saved from the set-properties call
+         */
+        std::string m_iface;
+        uint16_t m_vlan;
+        Route::prefix_t m_prefix;
     };
 };
 

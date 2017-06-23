@@ -320,6 +320,16 @@ private:
      */
     void handleInterfaceEvent(VPP::Interface::EventsCmd *e);
 
+    /**
+     * Handle the connect request to VPP
+     */
+    void handleInitConnection();
+
+    /**
+     * Handle the connect request to VPP
+     */
+    void handleUplinkConfigure();
+
     Agent& agent;
     IdGenerator& idGen;
     TaskQueue taskQueue;

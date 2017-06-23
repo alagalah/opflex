@@ -55,7 +55,7 @@ namespace VPP
          * A functor class that creates an Bridge-Domain
          */
         class CreateCmd: public RpcCmd<HW::Item<handle_t>,
-                                       HW::Item<handle_t>>
+                                       HW::Item<handle_t> >
         {
         public:
             CreateCmd(HW::Item<handle_t> &item,

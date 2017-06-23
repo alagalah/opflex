@@ -30,11 +30,14 @@ bool Connection::connected() const
 
 void Connection::connect()
 {
-    m_rv = vapi_connect(m_ctx,
-                        m_app_name.c_str(),
-                        NULL, //m_api_prefix.c_str(),
-                        32,
-                        VAPI_MODE_NONBLOCKING);
+    do
+    {
+        m_rv = vapi_connect(m_ctx,
+                            m_app_name.c_str(),
+                            NULL, //m_api_prefix.c_str(),
+                            32,
+                            VAPI_MODE_NONBLOCKING);
+    } while (VAPI_OK != m_rv);
 }
 
 vapi_ctx_t & Connection::ctx()
