@@ -15,7 +15,7 @@ using namespace VPP;
 L3Config::BindCmd::BindCmd(HW::Item<bool> &item,
                            const handle_t &itf,
                            const Route::prefix_t &pfx):
-    CmdT(item),
+    RpcCmd(item),
     m_itf(itf),
     m_pfx(pfx)
 {
@@ -27,10 +27,27 @@ bool L3Config::BindCmd::operator==(const BindCmd& other) const
             (m_pfx == other.m_pfx));
 }
 
-rc_t L3Config::BindCmd::exec()
+rc_t L3Config::BindCmd::issue(Connection &con)
 {
-    // finally... call VPP
-    return (rc_t::OK);
+    vapi_msg_sw_interface_add_del_address *req;
+
+    req = vapi_alloc_sw_interface_add_del_address(con.ctx());
+    req->payload.sw_if_index = m_itf.value();
+    req->payload.is_add = 1;
+
+    m_pfx.to_vpp(&req->payload.is_ipv6,
+                 req->payload.address,
+                 &req->payload.address_length);
+
+    vapi_sw_interface_add_del_address(
+        con.ctx(), req,
+        RpcCmd::callback<vapi_payload_sw_interface_add_del_address_reply>,
+        this);
+
+    HW::Item<bool> res(true, wait());
+    m_hw_item.update(res);
+
+    return rc_t::OK;
 }
 
 std::string L3Config::BindCmd::to_string() const
@@ -46,7 +63,7 @@ std::string L3Config::BindCmd::to_string() const
 L3Config::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
                                const handle_t &itf,
                                const Route::prefix_t &pfx):
-    CmdT(item),
+    RpcCmd(item),
     m_itf(itf),
     m_pfx(pfx)
 {
@@ -58,10 +75,27 @@ bool L3Config::UnbindCmd::operator==(const UnbindCmd& other) const
             (m_pfx == other.m_pfx));
 }
 
-rc_t L3Config::UnbindCmd::exec()
+rc_t L3Config::UnbindCmd::issue(Connection &con)
 {
-    // finally... call VPP
-    return (rc_t::OK);
+    vapi_msg_sw_interface_add_del_address *req;
+
+    req = vapi_alloc_sw_interface_add_del_address(con.ctx());
+    req->payload.sw_if_index = m_itf.value();
+    req->payload.is_add = 0;
+
+    m_pfx.to_vpp(&req->payload.is_ipv6,
+                 req->payload.address,
+                 &req->payload.address_length);
+
+    vapi_sw_interface_add_del_address(
+        con.ctx(), req,
+        RpcCmd::callback<vapi_payload_sw_interface_add_del_address_reply>,
+        this);
+
+    HW::Item<bool> res(true, wait());
+    m_hw_item.update(res);
+
+    return rc_t::OK;
 }
 
 std::string L3Config::UnbindCmd::to_string() const

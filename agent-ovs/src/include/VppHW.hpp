@@ -10,9 +10,14 @@
 #define __VPP_HW_H__
 
 #include <deque>
+#include <map>
+#include <thread>
+#include <mutex>
+#include <string>
+#include <sstream>
 
 #include "VppCmd.hpp"
-#include "VppConnection.h"
+#include "VppConnection.hpp"
 
 namespace VPP
 {
@@ -32,7 +37,7 @@ namespace VPP
              {
              }
             Item(const T &data,
-                rc_t rc):
+                 rc_t rc):
                 item_data(data),
                 item_rc(rc)
              {
@@ -115,29 +120,50 @@ namespace VPP
              */
             rc_t item_rc;
         };
-        
+
         /**
          * The pipe to VPP into which we write the commands
          */
         class CmdQ
         {
         public:
+            CmdQ(bool start);
             CmdQ();
             ~CmdQ();
             CmdQ& operator=(const CmdQ &f);
 
-            virtual void enqueue(Cmd *f);
+            virtual void enqueue(Cmd *c);
+            virtual void enqueue(std::shared_ptr<Cmd> c);
             virtual rc_t write();
         private:
-            /**
-             * The connection to VPP
-             */
-            std::unique_ptr<ovsagent::VppConnection> m_conn;
-
             /**
              * A queue of enqueued commands, ready to be written
              */
             std::deque<std::shared_ptr<Cmd>> m_queue;
+
+            /**
+             * A map of issued, but uncompleted, commands.
+             *  i.e. those that we are waiting, async stylee,
+             * for VPP to complete
+             */
+            std::map<Cmd*, std::shared_ptr<Cmd>> m_pending;
+
+            /**
+             * VPP Q poll function
+             */
+            void rx_run();
+
+            std::thread m_rx_thread;
+
+            /**
+             * The connection to VPP
+             */
+            Connection m_conn;
+
+            /**
+             * A flag for the thread to poll to see if the queue is still alive
+             */
+            bool m_alive;
         };
 
         /*
@@ -147,6 +173,7 @@ namespace VPP
         static void init();
 
         static void enqueue(Cmd *f);
+        static void enqueue(std::shared_ptr<Cmd> c);
         static rc_t write();
 
     private:

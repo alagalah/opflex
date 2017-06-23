@@ -17,64 +17,174 @@
 using namespace VPP;
 
 Interface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
-                                  const std::string &name,
-                                  Interface::type_t type):
-    CmdT<HW::Item<handle_t>>(item),
-    m_name(name),
-    m_type(type)
+                                const std::string &name):
+    RpcCmd(item),
+    m_name(name)
 {
 }
 
 bool Interface::CreateCmd::operator==(const CreateCmd& other) const
 {
-    return ((m_type == other.m_type) &&
-            (m_name == other.m_name));
+    return (m_name == other.m_name);
 }
 
-rc_t Interface::CreateCmd::exec()
+void Interface::CreateCmd::complete()
 {
-    // finally... call VPP
+    std::shared_ptr<Interface> sp = find(m_name);
+
+    if (sp)
+    {
+        add(m_hw_item.data(), sp);
+    }
+}
+
+void Interface::DeleteCmd::complete()
+{
+    remove(m_hw_item.data());
+}
+
+Interface::LoopbackCreateCmd::LoopbackCreateCmd(HW::Item<handle_t> &item,
+                                                const std::string &name):
+    CreateCmd(item, name)
+{
+}
+
+rc_t Interface::LoopbackCreateCmd::issue(Connection &con)
+{
+    vapi_msg_create_loopback *req;
+
+    req = vapi_alloc_create_loopback(con.ctx());
+    vapi_create_loopback(con.ctx(), req,
+                         Interface::create_callback<
+                           HW::Item<handle_t>,
+                           HW::Item<handle_t>,
+                           vapi_payload_create_loopback_reply>,
+                         this);
+
+    m_hw_item = wait();
+
     return rc_t::OK;
 }
-std::string Interface::CreateCmd::to_string() const
+std::string Interface::LoopbackCreateCmd::to_string() const
 {
     std::ostringstream s;
-    s << "itf-create: " << m_hw_item.to_string()
-      << " name:" << m_name
-      << " type:" << m_type.to_string();
+    s << "loopback-itf-create: " << m_hw_item.to_string()
+      << " name:" << m_name;
+
     return (s.str());
 }
 
-Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item,
-                                Interface::type_t type):
-    CmdT<HW::Item<handle_t>>(item),
-    m_type(type)
+bool Interface::LoopbackCreateCmd::operator==(const LoopbackCreateCmd& other) const
+{
+    return (CreateCmd::operator==(other));
+}
+
+Interface::AFPacketCreateCmd::AFPacketCreateCmd(HW::Item<handle_t> &item,
+                                                const std::string &name):
+    CreateCmd(item, name)
+{
+}
+
+rc_t Interface::AFPacketCreateCmd::issue(Connection &con)
+{
+    vapi_msg_af_packet_create *req;
+
+    req = vapi_alloc_af_packet_create(con.ctx());
+    memcpy(req->payload.host_if_name, m_name.c_str(),
+           std::min(m_name.length(),
+                    sizeof(req->payload.host_if_name)));
+    vapi_af_packet_create(con.ctx(), req,
+                          Interface::create_callback<
+                            HW::Item<handle_t>,
+                            HW::Item<handle_t>,
+                            vapi_payload_af_packet_create_reply>,
+                          this);
+    m_hw_item = wait();
+
+    if (m_hw_item.rc() == rc_t::OK)
+    {
+        complete();
+    }
+
+    return rc_t::OK;
+}
+std::string Interface::AFPacketCreateCmd::to_string() const
+{
+    std::ostringstream s;
+    s << "af-packet-itf-create: " << m_hw_item.to_string()
+      << " name:" << m_name;
+
+    return (s.str());
+}
+
+bool Interface::AFPacketCreateCmd::operator==(const AFPacketCreateCmd& other) const
+{
+    return (CreateCmd::operator==(other));
+}
+
+Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
+    RpcCmd(item)
 {
 }
 
 bool Interface::DeleteCmd::operator==(const DeleteCmd& other) const
 {
-    return ((m_type == other.m_type) &&
-            (m_hw_item == other.m_hw_item));
+    return (m_hw_item == other.m_hw_item);
 }
 
-rc_t Interface::DeleteCmd::exec()
+Interface::LoopbackDeleteCmd::LoopbackDeleteCmd(HW::Item<handle_t> &item):
+    DeleteCmd(item)
+{
+}
+
+rc_t Interface::LoopbackDeleteCmd::issue(Connection &con)
 {
     // finally... call VPP
-    return (rc_t::OK);
-}
 
-std::string Interface::DeleteCmd::to_string() const
+    complete();
+    return rc_t::OK;
+}
+std::string Interface::LoopbackDeleteCmd::to_string() const
 {
     std::ostringstream s;
-    s << "itf-delete: " << m_hw_item.to_string()
-      << " type:" << m_type.to_string();
+    s << "loopback-itf-delete: " << m_hw_item.to_string();
+
     return (s.str());
+}
+
+bool Interface::LoopbackDeleteCmd::operator==(const LoopbackDeleteCmd& other) const
+{
+    return (DeleteCmd::operator==(other));
+}
+
+Interface::AFPacketDeleteCmd::AFPacketDeleteCmd(HW::Item<handle_t> &item):
+    DeleteCmd(item)
+{
+}
+
+rc_t Interface::AFPacketDeleteCmd::issue(Connection &con)
+{
+    // finally... call VPP
+
+    complete();
+    return rc_t::OK;
+}
+std::string Interface::AFPacketDeleteCmd::to_string() const
+{
+    std::ostringstream s;
+    s << "af_packet-itf-delete: " << m_hw_item.to_string();
+
+    return (s.str());
+}
+
+bool Interface::AFPacketDeleteCmd::operator==(const AFPacketDeleteCmd& other) const
+{
+    return (DeleteCmd::operator==(other));
 }
 
 Interface::StateChangeCmd::StateChangeCmd(HW::Item<Interface::admin_state_t> &state,
                                             const HW::Item<handle_t> &hdl):
-    CmdT<HW::Item<Interface::admin_state_t> >(state),
+    RpcCmd(state),
     m_hdl(hdl)
 {
 }
@@ -85,10 +195,23 @@ bool Interface::StateChangeCmd::operator==(const StateChangeCmd& other) const
             (m_hw_item == other.m_hw_item));
 }
 
-rc_t Interface::StateChangeCmd::exec()
+rc_t Interface::StateChangeCmd::issue(Connection &con)
 {
-    // finally... call VPP
-    return (rc_t::OK);
+    vapi_msg_sw_interface_set_flags *req;
+
+    req = vapi_alloc_sw_interface_set_flags(con.ctx());
+    req->payload.sw_if_index = m_hdl.data().value();
+    req->payload.admin_up_down = m_hw_item.data().value();
+
+    vapi_sw_interface_set_flags(
+        con.ctx(), req,
+        RpcCmd::callback<vapi_payload_sw_interface_set_flags_reply>,
+        this);
+
+    HW::Item<admin_state_t> res(m_hw_item.data(), wait());
+    m_hw_item.update(res);
+
+    return rc_t::OK;
 }
 
 std::string Interface::StateChangeCmd::to_string() const
@@ -101,7 +224,7 @@ std::string Interface::StateChangeCmd::to_string() const
 
 Interface::SetTableCmd::SetTableCmd(HW::Item<Route::table_id_t> &table,
                                     const HW::Item<handle_t> &hdl):
-    CmdT<HW::Item<Route::table_id_t>>(table),
+    RpcCmd(table),
     m_hdl(hdl)
 {
 }
@@ -112,7 +235,7 @@ bool Interface::SetTableCmd::operator==(const SetTableCmd& other) const
             (m_hw_item == other.m_hw_item));
 }
 
-rc_t Interface::SetTableCmd::exec()
+rc_t Interface::SetTableCmd::issue(Connection &con)
 {
     // finally... call VPP
     return (rc_t::OK);
@@ -124,4 +247,60 @@ std::string Interface::SetTableCmd::to_string() const
     s << "itf-state-change: " << m_hw_item.to_string()
       << " hdl:" << m_hdl.to_string();
     return (s.str());
+}
+
+
+Interface::EventsCmd::EventsCmd(EventListener &el):
+    RpcCmd(el.status()),
+    EventCmd(),
+    m_listener(el)
+{
+}
+
+bool Interface::EventsCmd::operator==(const EventsCmd& other) const
+{
+    return (true);
+}
+
+rc_t Interface::EventsCmd::issue(Connection &con)
+{
+    vapi_msg_want_interface_events *req;
+
+    /*
+     * First set the clal back to handle the interface events
+     */
+    vapi_set_event_cb(con.ctx(),
+                      vapi_msg_id_sw_interface_set_flags,
+                      EventCmd::callback,
+                      this);
+
+    /*
+     * then send the request to enable them
+     */
+    req = vapi_alloc_want_interface_events(con.ctx());
+
+    req->payload.enable_disable = 1;
+    req->payload.pid = getpid();
+
+    vapi_want_interface_events(con.ctx(),
+                               req,
+                               RpcCmd::callback, //<vapi_msg_want_interface_events_reply>,
+                               this);
+    wait();
+
+    return (rc_t::INPROGRESS);
+}
+
+void Interface::EventsCmd::retire()
+{
+}
+
+void Interface::EventsCmd::notify(vapi_msg_sw_interface_set_flags *data)
+{
+    m_listener.handle_interface_event(this);
+}
+
+std::string Interface::EventsCmd::to_string() const
+{
+    return ("itf-events");
 }

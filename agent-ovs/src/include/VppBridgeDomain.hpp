@@ -16,7 +16,7 @@
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppHW.hpp"
-#include "VppCmd.hpp"
+#include "VppRpcCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppEnum.hpp"
 
@@ -52,15 +52,16 @@ namespace VPP
         static std::shared_ptr<BridgeDomain> find(const BridgeDomain &temp);
 
         /**
-         * A functor class that creates an interface
+         * A functor class that creates an Bridge-Domain
          */
-        class CreateCmd: public CmdT<HW::Item<handle_t>>
+        class CreateCmd: public RpcCmd<HW::Item<handle_t>,
+                                       HW::Item<handle_t>>
         {
         public:
             CreateCmd(HW::Item<handle_t> &item,
                       const std::string &name);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const CreateCmd&i) const;
@@ -69,14 +70,14 @@ namespace VPP
         };
 
         /**
-         * A cmd class that Delete an interface
+         * A cmd class that Delete an Bridge-Domain
          */
-        class DeleteCmd: public CmdT<HW::Item<handle_t>>
+        class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
         {
         public:
             DeleteCmd(HW::Item<handle_t> &item);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const DeleteCmd&i) const;

@@ -14,23 +14,52 @@
 
 using namespace VPP;
 
-/**
- * Initalse the connection to VPP
- */
 HW::CmdQ::CmdQ():
-    m_conn(new ovsagent::VppConnection())
+    m_alive(true),
+    m_conn(),
+    m_rx_thread(&HW::CmdQ::rx_run, this)
 {
-    /**
-     * Read all the existing state from VPP
-     */
+}
+
+/*
+ * A constructor variant, just for testing, that does not start the
+ * connect/dispatch thread
+ */
+HW::CmdQ::CmdQ(bool start):
+    m_alive(start),
+    m_conn(),
+    m_rx_thread()
+{
 }
 
 HW::CmdQ::~CmdQ()
 {
+    m_alive = false;
+
+    if (m_rx_thread.joinable())
+    {
+        m_rx_thread.join();
+    }
 }
 
 HW::CmdQ & HW::CmdQ::operator=(const HW::CmdQ &f)
 {
+}
+
+/**
+ * Run the connect/dispatch thread.
+ */
+void HW::CmdQ::rx_run()
+{
+    while (m_alive)
+    {
+        while (!m_conn.connected())
+        {
+            m_conn.connect();
+        }
+
+        vapi_dispatch(m_conn.ctx());
+    }
 }
 
 void HW::CmdQ::enqueue(Cmd *cmd)
@@ -40,9 +69,21 @@ void HW::CmdQ::enqueue(Cmd *cmd)
     m_queue.push_back(sp);
 }
 
+void HW::CmdQ::enqueue(std::shared_ptr<Cmd> cmd)
+{
+    m_queue.push_back(cmd);
+}
+
 rc_t HW::CmdQ::write()
 {
     rc_t rc = rc_t::OK;
+
+    /*
+     * if not connected to VPP at this time, the commands will remain
+     * in the queue, unissued.
+     */
+    if (!m_conn.connected())
+        return (rc_t::NOOP);
 
     /*
      * Execute each command in the queue. If one execution fails, abort the rest
@@ -51,28 +92,61 @@ rc_t HW::CmdQ::write()
 
     while (it != m_queue.end())
     {
-        LOG(ovsagent::INFO) << **it;
+        std::shared_ptr<Cmd> cmd = *it;
 
-        rc = (*it)->exec();
+        LOG(ovsagent::INFO) << *cmd;
 
-        if (rc_t::OK == rc)
+        /*
+         * before we issue the command we must move it to the pending store
+         * ince a async event can be recieved before the command completes
+         */
+        m_pending[cmd.get()] = cmd;
+
+        rc = cmd->issue(m_conn);
+
+        if (rc_t::INPROGRESS == rc)
         {
-            ++it;
+            /*
+             * this command completes asynchronously
+             * leave the command in the pending store
+             */
         }
         else
         {
-            break;
+            /*
+             * the command completed, remove from the pending store
+             */
+            m_pending.erase(cmd.get());
+
+            if (rc_t::OK == rc)
+            {
+                /*
+                 * move to the next
+                 */
+            }
+            else
+            {
+                /*
+                 * barf out without issuing the rest
+                 */
+                break;
+            }
         }
+
+        ++it;
     }
 
     /*
-     * erase all objects in the equeue
+     * erase all objects in the queue
      */
     m_queue.erase(m_queue.begin(), m_queue.end());
 
     return (rc);
 }
 
+/*
+ * The single Command Queue
+ */
 HW::CmdQ* HW::m_cmdQ;
 
 /**
@@ -91,9 +165,14 @@ void HW::init()
     m_cmdQ = new CmdQ();
 }
 
-void HW::enqueue(Cmd *f)
+void HW::enqueue(Cmd *cmd)
 {
-    m_cmdQ->enqueue(f);
+    m_cmdQ->enqueue(cmd);
+}
+
+void HW::enqueue(std::shared_ptr<Cmd> cmd)
+{
+    m_cmdQ->enqueue(cmd);
 }
 
 rc_t HW::write()

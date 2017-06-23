@@ -10,11 +10,15 @@
 #ifndef __VPP_UPLINK_H__
 #define __VPP_UPLINK_H__
 
-#include "VppInterface.hpp"
 #include "VppVxlanTunnel.hpp"
 
 namespace VPP
 {
+    /*
+     * forward declarations to reduce compile time coupling
+     */
+    class Interface;
+
     /**
      * A description of the uplink interface. 
      *  Can be one of VLAN< VXLAN or iVXLAN

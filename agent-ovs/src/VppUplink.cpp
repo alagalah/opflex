@@ -39,7 +39,7 @@ void Uplink::mk_control(const std::string &uplink,
      * Consruct the uplink physical, so we now 'own' it
      */
     Interface itf(uplink,
-                  Interface::type_t::ETHERNET,
+                  Interface::type_t::LOOPBACK,
                   Interface::admin_state_t::UP);
     VPP::OM::write(UPLINK_KEY, itf);
 
@@ -52,7 +52,9 @@ void Uplink::mk_control(const std::string &uplink,
      * now create the sub-interface on which control and data traffic from
      * the upstream leaf will arrive
      */
-    SubInterface subitf(itf, Interface::admin_state_t::UP, vlan);
+    SubInterface subitf(itf,
+                        Interface::admin_state_t::UP,
+                        vlan);
     VPP::OM::write(UPLINK_KEY, subitf);
 
     /**

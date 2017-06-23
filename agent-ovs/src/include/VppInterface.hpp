@@ -15,18 +15,24 @@
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppHW.hpp"
-#include "VppCmd.hpp"
+#include "VppRpcCmd.hpp"
+#include "VppEventCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppEnum.hpp"
 #include "VppRoute.hpp"
 #include "VppRouteDomain.hpp"
-#include "VppConnection.h"
+
+extern "C"
+{
+#include "vapi.h"
+#include "interface.api.vapi.h"
+#include "af_packet.api.vapi.h"
+}
 
 namespace VPP
 {
     /**
-     * A base class for all Object in the VPP Object-Model.
-     *  provides the abstract interface.
+     * A representation of an interface in VPP
      */
     class Interface: public Object
     {
@@ -42,11 +48,11 @@ namespace VPP
         struct type_t: Enum<type_t>
         {
             const static type_t UNKNWON;
-            const static type_t VHOST;
             const static type_t BVI;
             const static type_t VXLAN;
             const static type_t ETHERNET;
             const static type_t AFPACKET;
+            const static type_t LOOPBACK;
 
             static type_t from_string(const std::string &str);
         private:
@@ -67,12 +73,25 @@ namespace VPP
         };
 
         /**
+         * The oper state of the interface
+         */
+        struct oper_state_t: Enum<oper_state_t>
+        {            
+            const static oper_state_t DOWN;
+            const static oper_state_t UP;
+
+            static oper_state_t from_int(uint8_t val);
+        private:
+            oper_state_t(int v, const std::string &s);
+        };
+
+        /**
          * Construct a new object matching the desried state
          */
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state);
-        Interface(vl_api_sw_interface_details_t *vd);
+        Interface(vapi_payload_sw_interface_details *vd);
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state,
@@ -106,51 +125,95 @@ namespace VPP
         const key_type & key() const;
 
         /**
+         * Set the operational state of the interface, as reported by VPP
+         */
+        void set(const oper_state_t &state);
+
+        /**
          * A functor class that creates an interface
          */
-        class CreateCmd: public CmdT<HW::Item<handle_t> >
+        class CreateCmd: public RpcCmd<HW::Item<handle_t>,
+                                       HW::Item<handle_t>>
         {
         public:
             CreateCmd(HW::Item<handle_t> &item,
-                       const std::string &name,
-                       type_t type);
+                      const std::string &name);
 
-            rc_t exec();
+            virtual bool operator==(const CreateCmd&i) const;
+
+            void complete();
+        protected:
+            const std::string &m_name;
+        };
+
+        class LoopbackCreateCmd: public CreateCmd
+        {
+        public:
+            LoopbackCreateCmd(HW::Item<handle_t> &item,
+                              const std::string &name);
+
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
-            bool operator==(const CreateCmd&i) const;
-        private:
-            const std::string &m_name;
-            type_t m_type;
+            bool operator==(const LoopbackCreateCmd&i) const;
+        };
+
+        class AFPacketCreateCmd: public CreateCmd
+        {
+        public:
+            AFPacketCreateCmd(HW::Item<handle_t> &item,
+                              const std::string &name);
+
+            rc_t issue(Connection &con);
+            std::string to_string() const;
+
+            bool operator==(const AFPacketCreateCmd&i) const;
         };
 
         /**
          * A cmd class that Delete an interface
          */
-        class DeleteCmd: public CmdT<HW::Item<handle_t> >
+        class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
         {
         public:
-            DeleteCmd(HW::Item<handle_t> &item,
-                       type_t type);
+            DeleteCmd(HW::Item<handle_t> &item);
 
-            rc_t exec();
+            virtual bool operator==(const DeleteCmd&i) const;
+            void complete();
+        };
+
+        class LoopbackDeleteCmd: public DeleteCmd
+        {
+        public:
+            LoopbackDeleteCmd(HW::Item<handle_t> &item);
+
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
-            bool operator==(const DeleteCmd&i) const;
-        private:
-            type_t m_type;
+            bool operator==(const LoopbackDeleteCmd&i) const;
+        };
+
+        class AFPacketDeleteCmd: public DeleteCmd
+        {
+        public:
+            AFPacketDeleteCmd(HW::Item<handle_t> &item);
+
+            rc_t issue(Connection &con);
+            std::string to_string() const;
+
+            bool operator==(const AFPacketDeleteCmd&i) const;
         };
 
         /**
          * A cmd class that changes the admin state
          */
-        class StateChangeCmd: public CmdT<HW::Item<admin_state_t> >
+        class StateChangeCmd: public RpcCmd<HW::Item<admin_state_t>, rc_t>
         {
         public:
             StateChangeCmd(HW::Item<admin_state_t> &s,
                             const HW::Item<handle_t> &h);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const StateChangeCmd&i) const;
@@ -159,15 +222,15 @@ namespace VPP
         };
 
         /**
-         * A functor class that creates an interface
+         * A functor class that binds an interface to an L3 table
          */
-        class SetTableCmd: public CmdT<HW::Item<Route::table_id_t>>
+        class SetTableCmd: public RpcCmd<HW::Item<Route::table_id_t>, rc_t>
         {
         public:
             SetTableCmd(HW::Item<Route::table_id_t> &item,
                          const HW::Item<handle_t> &h);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const SetTableCmd&i) const;
@@ -176,9 +239,68 @@ namespace VPP
         };
 
         /**
+         * A class that listens to Interface Events
+         */
+        class EventsCmd;
+        class EventListener
+        {
+        public:
+            EventListener();
+            virtual void handle_interface_event(EventsCmd *cmd) = 0;
+
+            HW::Item<bool> & status();
+        protected:
+            HW::Item<bool> m_status;
+        };
+
+        /**
+         * A functor class represents our desire to recieve interface events
+         */
+        class EventsCmd: public RpcCmd<HW::Item<bool>, rc_t>,
+                         public EventCmd<vapi_msg_sw_interface_set_flags>
+        {
+        public:
+            EventsCmd(EventListener &el);
+
+            rc_t issue(Connection &con);
+            void retire();
+            std::string to_string() const;
+
+            bool operator==(const EventsCmd&i) const;
+
+            void notify(vapi_msg_sw_interface_set_flags *data);
+        private:
+            EventListener & m_listener;
+        };
+
+
+        /**
+         * A generic callback function for handling Interface crete complete
+         * callbacks from VPP
+         */
+        template <typename HWT, typename DATA, typename REPLY>
+        static vapi_error_e create_callback(vapi_ctx_t ctx,
+                                            void *callback_ctx,
+                                            vapi_error_e rv,
+                                            bool is_last,
+                                            REPLY *reply)
+        {
+            RpcCmd<HWT, DATA> *cmd = static_cast<RpcCmd<HWT, DATA>*>(callback_ctx);
+
+            HW::Item<handle_t> res(reply->sw_if_index,
+                                   rc_t::from_vpp_retval(reply->retval));
+
+            cmd->complete(res);
+
+            return (VAPI_OK);
+        }
+
+        /**
          * The the instance of the Interface in the Object-Model
          */
         static std::shared_ptr<Interface> find(const Interface &temp);
+        static std::shared_ptr<Interface> find(const handle_t &h);
+        static std::shared_ptr<Interface> find(const std::string &s);
 
     protected:
         /**
@@ -206,12 +328,10 @@ namespace VPP
          */
         void update(const Interface &obj);
 
-
         /*
          * It's the VPPHW class that updates the objects in HW
          */
         friend class VPP::OM;
-
 
         /**
          * The interfaces name
@@ -240,11 +360,26 @@ namespace VPP
          */
         HW::Item<Route::table_id_t> m_table_id;
 
+        /**
+         * Operational state of the interface
+         */
+        oper_state_t m_oper;
 
         /**
          * A map of all interfaces key against the interface's name
          */
         static InstDB<const std::string, Interface> m_db;
+
+        /**
+         * A map of all interfaces keyed against VPP's handle
+         */
+        static std::map<handle_t, std::weak_ptr<Interface>> m_hdl_db;
+
+        static void add(const handle_t &hdl, std::shared_ptr<Interface> sp);
+        static void remove(const handle_t &hdl);
+
+        friend class CreateCmd;
+        friend class DeleteCmd;
     };
 };
 #endif

@@ -60,6 +60,10 @@ namespace VPP
              */
             const static prefix_t ZERO;
 
+            /**
+             * Convert the prefix into VPP API parameters
+             */
+            void to_vpp(uint8_t *is_ip6, uint8_t *addr, uint8_t *len) const;
         private:
             boost::asio::ip::address m_addr;
             uint8_t m_len;

@@ -16,9 +16,14 @@
 using namespace VPP;
 
 /**
- * A DB of al the sub-interfaces, key on the name
+ * A DB of all the interfaces, key on the name
  */
 InstDB<const std::string, Interface> Interface::m_db;
+
+/**
+ * A DB of all the interfaces, key on VPP's handle
+ */
+std::map<handle_t, std::weak_ptr<Interface>> Interface::m_hdl_db;
 
 /**
  * Construct a new object matching the desried state
@@ -30,17 +35,19 @@ Interface::Interface(const std::string &name,
     m_state(itf_state),
     m_type(itf_type),
     m_hdl(handle_t::INVALID),
-    m_table_id(Route::DEFAULT_TABLE)
+    m_table_id(Route::DEFAULT_TABLE),
+    m_oper(oper_state_t::DOWN)
 {
 }
 
-Interface::Interface(vl_api_sw_interface_details_t *vd):
+Interface::Interface(vapi_payload_sw_interface_details *vd):
     m_name(reinterpret_cast<char*>(vd->interface_name)),
     m_state(Interface::admin_state_t::from_int(vd->link_up_down),
             rc_t::OK),
     m_type(Interface::type_t::from_string(m_name)),
     m_hdl(handle_t(vd->sw_if_index), rc_t::OK),
-    m_table_id(Route::DEFAULT_TABLE)
+    m_table_id(Route::DEFAULT_TABLE),
+    m_oper(oper_state_t::DOWN)
 {
 }
 
@@ -53,7 +60,8 @@ Interface::Interface(const std::string &name,
     m_type(itf_type),
     m_hdl(handle_t::INVALID),
     m_rd(RouteDomain::find(rd)),
-    m_table_id(m_rd->table_id())
+    m_table_id(m_rd->table_id()),
+    m_oper(oper_state_t::DOWN)
 {
 }
 
@@ -63,8 +71,19 @@ Interface::Interface(const Interface& o):
     m_type(o.m_type),
     m_table_id(o.m_table_id),
     m_rd(o.m_rd),
-    m_hdl(handle_t::INVALID)
+    m_hdl(handle_t::INVALID),
+    m_oper(o.m_oper)
 {
+}
+
+Interface::EventListener::EventListener():
+    m_status(rc_t::NOOP)
+{
+}
+
+HW::Item<bool> &Interface::EventListener::status()
+{
+    return (m_status);
 }
 
 /**
@@ -116,7 +135,8 @@ std::string Interface::to_string() const
     s << "interface: " << m_name
       << " type:" << m_type.to_string()
       << " hdl:" << m_hdl.to_string()
-      << " state:" << m_state.to_string();
+      << " admin-state:" << m_state.to_string()
+      << " oper-state:" << m_oper.to_string();
 
     return (s.str());
 }
@@ -133,12 +153,30 @@ const Interface::key_type &Interface::key() const
 
 Cmd* Interface::mk_create_cmd()
 {
-    return (new CreateCmd(m_hdl, m_name, m_type));
+    if ((type_t::LOOPBACK == m_type) ||
+        (type_t::BVI == m_type))
+    {
+        return (new LoopbackCreateCmd(m_hdl, m_name));
+    }
+    else if (type_t::AFPACKET == m_type)
+    {
+        return (new AFPacketCreateCmd(m_hdl, m_name));
+    }
+
+    return (nullptr);
 }
 
 Cmd* Interface::mk_delete_cmd()
 {
-    return (new DeleteCmd(m_hdl, m_type));
+    if ((type_t::LOOPBACK == m_type) ||
+        (type_t::BVI == m_type))
+    {
+        return (new LoopbackDeleteCmd(m_hdl));
+    }
+    else if (type_t::AFPACKET == m_type)
+    {
+        return (new AFPacketDeleteCmd(m_hdl));
+    }
 }
 
 
@@ -170,6 +208,11 @@ void Interface::update(const Interface &desired)
     }        
 }
 
+void Interface::set(const oper_state_t &state)
+{
+    m_oper = state;
+}
+
 std::shared_ptr<Interface> Interface::find_or_add(const Interface &temp)
 {
     return (m_db.find_or_add(temp.m_name, temp));
@@ -178,4 +221,25 @@ std::shared_ptr<Interface> Interface::find_or_add(const Interface &temp)
 std::shared_ptr<Interface> Interface::find(const Interface &temp)
 {
     return (m_db.find(temp.m_name));
+}
+
+std::shared_ptr<Interface> Interface::find(const std::string &name)
+{
+    return (m_db.find(name));
+}
+
+std::shared_ptr<Interface> Interface::find(const handle_t &handle)
+{
+    return (m_hdl_db[handle].lock());
+}
+
+void Interface::add(const handle_t &handle,
+                    std::shared_ptr<Interface> sp)
+{
+    m_hdl_db[handle] = sp;
+}
+
+void Interface::remove(const handle_t &handle)
+{
+    m_hdl_db.erase(handle);
 }

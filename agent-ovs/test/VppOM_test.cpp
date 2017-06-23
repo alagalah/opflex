@@ -42,7 +42,8 @@ public:
 class MockCmdQ : public HW::CmdQ
 {
 public:
-    MockCmdQ()
+    MockCmdQ():
+        CmdQ(false)
     {
     }
     ~MockCmdQ()
@@ -81,9 +82,21 @@ public:
                 throw ExpException();
             }
 
-            if (typeid(*f_exp) == typeid(Interface::CreateCmd))
+            if (typeid(*f_exp) == typeid(Interface::AFPacketCreateCmd))
             {
-                rc = handle_derived<Interface::CreateCmd>(f_exp, f_act);
+                rc = handle_derived<Interface::AFPacketCreateCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(Interface::LoopbackCreateCmd))
+            {
+                rc = handle_derived<Interface::LoopbackCreateCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(Interface::LoopbackDeleteCmd))
+            {
+                rc = handle_derived<Interface::LoopbackDeleteCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(Interface::AFPacketDeleteCmd))
+            {
+                rc = handle_derived<Interface::AFPacketDeleteCmd>(f_exp, f_act);
             }
             else if (typeid(*f_exp) == typeid(Interface::StateChangeCmd))
             {
@@ -92,10 +105,6 @@ public:
             else if (typeid(*f_exp) == typeid(Interface::SetTableCmd))
             {
                 rc = handle_derived<Interface::SetTableCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(Interface::DeleteCmd))
-            {
-                rc = handle_derived<Interface::DeleteCmd>(f_exp, f_act);
             }
             else if (typeid(*f_exp) == typeid(L3Config::BindCmd))
             {
@@ -244,17 +253,17 @@ BOOST_AUTO_TEST_CASE(interface) {
     /*
      * George creates and deletes the interface
      */
-    std::string itf1_name = "vhost1";
+    std::string itf1_name = "afpacket1";
     Interface itf1(itf1_name,
-                   Interface::type_t::VHOST,
+                   Interface::type_t::AFPACKET,
                    Interface::admin_state_t::UP);
 
     /*
-     * set the expectation for a vhost interface create.
+     * set the expectation for a afpacket interface create.
      *  2 is the interface handle VPP [mock] assigns
      */
     HW::Item<handle_t> hw_ifh(2, rc_t::OK);
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, itf1_name, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
 
     HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP, rc_t::OK);
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
@@ -263,7 +272,7 @@ BOOST_AUTO_TEST_CASE(interface) {
 
     HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN, rc_t::OK);
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
 
     TRY_CHECK(OM::remove(go));
 
@@ -272,10 +281,10 @@ BOOST_AUTO_TEST_CASE(interface) {
      * George's remove is a no-op, sice John also owns the interface
      */
     Interface itf1b(itf1_name,
-                    Interface::type_t::VHOST,
+                    Interface::type_t::AFPACKET,
                     Interface::admin_state_t::DOWN);
 
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, itf1_name, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
     TRY_CHECK_RC(OM::write(go, itf1));
 
@@ -284,27 +293,27 @@ BOOST_AUTO_TEST_CASE(interface) {
 
     TRY_CHECK(OM::remove(go));
 
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
     TRY_CHECK(OM::remove(js));
 
     /*
      * George adds an interface, then we flush all of Geroge's state
      */
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, itf1_name, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
     TRY_CHECK_RC(OM::write(go, itf1));
 
     TRY_CHECK(OM::mark(go));
 
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
     TRY_CHECK(OM::sweep(go));
 
     /*
      * George adds an interface. mark stale. update the same interface. sweep
      * and expect no delete
      */
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, itf1_name, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
     TRY_CHECK_RC(OM::write(go, itf1b));
 
@@ -316,37 +325,37 @@ BOOST_AUTO_TEST_CASE(interface) {
     TRY_CHECK(OM::sweep(go));
 
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
     TRY_CHECK(OM::remove(go));
 
     /*
      * George adds an insterface, then we mark that state. Add a second interface
      * an flush the first that is now stale.
      */
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, itf1_name, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
     TRY_CHECK_RC(OM::write(go, itf1));
 
     TRY_CHECK(OM::mark(go));
 
-    std::string itf2_name = "vhost2";
+    std::string itf2_name = "afpacket2";
     Interface itf2(itf2_name,
-                   Interface::type_t::VHOST,
+                   Interface::type_t::AFPACKET,
                    Interface::admin_state_t::UP);
     HW::Item<handle_t> hw_ifh2(3, rc_t::OK);
 
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh2, itf2_name, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh2, itf2_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh2));
     TRY_CHECK_RC(OM::write(go, itf2));
 
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
     TRY_CHECK(OM::sweep(go));
 
     TRY_CHECK(OM::mark(go));
 
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh2, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2));
     TRY_CHECK(OM::sweep(go));
 }
 
@@ -374,7 +383,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
     HW::Item<handle_t> hw_ifh(4, rc_t::OK);
     HW::Item<Route::prefix_t> hw_pfx_10(pfx_10, rc_t::OK);
 
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, bvi_name, Interface::type_t::BVI));
+    ADD_EXPECT(Interface::LoopbackCreateCmd(hw_ifh, bvi_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
     TRY_CHECK_RC(OM::write(ernest, itf));
 
@@ -387,7 +396,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
     delete l3;
     ADD_EXPECT(L3Config::UnbindCmd(hw_l3_unbind, hw_ifh.data(), pfx_10));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::BVI));
+    ADD_EXPECT(Interface::LoopbackDeleteCmd(hw_ifh));
     TRY_CHECK(OM::remove(ernest));
 
     /*
@@ -406,7 +415,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
                    rd);
     HW::Item<handle_t> hw_ifh2(5, rc_t::OK);
 
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh2, bvi2_name, Interface::type_t::BVI));
+    ADD_EXPECT(Interface::LoopbackCreateCmd(hw_ifh2, bvi2_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh2));
     ADD_EXPECT(Interface::SetTableCmd(hw_rd_bind, hw_ifh2));
 
@@ -421,7 +430,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
     ADD_EXPECT(L3Config::UnbindCmd(hw_l3_unbind, hw_ifh2.data(), pfx_10));
     ADD_EXPECT(Interface::SetTableCmd(hw_rd_unbind, hw_ifh2));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh2, Interface::type_t::BVI));
+    ADD_EXPECT(Interface::LoopbackDeleteCmd(hw_ifh2));
     TRY_CHECK(OM::remove(graham));
 }
 
@@ -436,15 +445,15 @@ BOOST_AUTO_TEST_CASE(bridge) {
      */
 
     // interface create
-    std::string itf1_name = "vhost1";
+    std::string itf1_name = "afpacket1";
     Interface itf1(itf1_name,
-                   Interface::type_t::VHOST,
+                   Interface::type_t::AFPACKET,
                    Interface::admin_state_t::UP);
 
     HW::Item<handle_t> hw_ifh(3, rc_t::OK);
     HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP,
                                                 rc_t::OK);
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, itf1_name, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
 
     TRY_CHECK_RC(OM::write(franz, itf1));
@@ -470,13 +479,13 @@ BOOST_AUTO_TEST_CASE(bridge) {
     /*
      * Dante adds an interface to the same BD
      */
-    std::string itf2_name = "vhost2";
+    std::string itf2_name = "afpacket2";
     Interface itf2(itf2_name,
-                   Interface::type_t::VHOST,
+                   Interface::type_t::AFPACKET,
                    Interface::admin_state_t::UP);
 
     HW::Item<handle_t> hw_ifh2(4, rc_t::OK);
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh2, itf2_name, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh2, itf2_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh2));
     TRY_CHECK_RC(OM::write(dante, itf2));
 
@@ -494,16 +503,16 @@ BOOST_AUTO_TEST_CASE(bridge) {
                                                   rc_t::OK);
     ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::VHOST));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
     TRY_CHECK(OM::remove(franz));
 
-    // flush Dante's state - the fact the BD is removed after the interface
+    // flush Dante's state - the order the interface and BD are deleted
     // is an uncontrollable artifact of the C++ object destruction.
     delete l2itf2;
     ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
-    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh2, Interface::type_t::VHOST));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2));
     TRY_CHECK(OM::remove(dante));
 }
 
@@ -566,7 +575,7 @@ BOOST_AUTO_TEST_CASE(vlan) {
                    Interface::admin_state_t::UP);
 
     HW::Item<handle_t> hw_ifh(2, rc_t::OK);
-    ADD_EXPECT(Interface::CreateCmd(hw_ifh, itf1_name, Interface::type_t::AFPACKET));
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
 
     HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP, rc_t::OK);
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
@@ -578,7 +587,7 @@ BOOST_AUTO_TEST_CASE(vlan) {
                                           33);
 
     HW::Item<handle_t> hw_vl33(3, rc_t::OK);
-    ADD_EXPECT(SubInterface::CreateCmd(hw_vl33, 2, 33));
+    ADD_EXPECT(SubInterface::CreateCmd(hw_vl33, hw_ifh.data(), 33));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_vl33));
 
     TRY_CHECK_RC(OM::write(noam, *vl33));
@@ -589,10 +598,9 @@ BOOST_AUTO_TEST_CASE(vlan) {
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_vl33));
     ADD_EXPECT(SubInterface::DeleteCmd(hw_vl33_down));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::DeleteCmd(hw_ifh, Interface::type_t::AFPACKET));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
 
     TRY_CHECK(OM::remove(noam));
-    
 }
 
 BOOST_AUTO_TEST_SUITE_END()
