@@ -12,6 +12,8 @@
 #include <cassert>
 #include <queue>
 #include <algorithm>
+#include <memory>
+#include <list>
 
 #include "VppKeyDB.hpp"
 #include "VppHW.hpp"

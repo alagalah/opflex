@@ -39,9 +39,17 @@ namespace VPP
         const static rc_t OK;
 
         /**
+         * HW write is in progress. Also used for the 'want' events
+         * that never complete
+         */
+        const static rc_t INPROGRESS;
+
+        /**
          * HW write reported invalid input
          */
         const static rc_t INVALID;
+
+        static const rc_t &from_vpp_retval(int32_t rv);
     };
 
     /**

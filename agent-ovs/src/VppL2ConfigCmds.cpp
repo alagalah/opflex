@@ -16,7 +16,7 @@ L2Config::BindCmd::BindCmd(HW::Item<bool> &item,
                            const handle_t &itf,
                            const handle_t &bd,
                            bool is_bvi):
-    CmdT(item),
+    RpcCmd(item),
     m_itf(itf),
     m_bd(bd),
     m_is_bvi(is_bvi)
@@ -30,7 +30,7 @@ bool L2Config::BindCmd::operator==(const BindCmd& other) const
             (m_is_bvi == other.m_is_bvi));
 }
 
-rc_t L2Config::BindCmd::exec()
+rc_t L2Config::BindCmd::issue(Connection &con)
 {
     // finally... call VPP
     return (rc_t::OK);
@@ -50,7 +50,7 @@ L2Config::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
                                const handle_t &itf,
                                const handle_t &bd,
                                bool is_bvi):
-    CmdT(item),
+    RpcCmd(item),
     m_itf(itf),
     m_bd(bd),
     m_is_bvi(is_bvi)
@@ -64,7 +64,7 @@ bool L2Config::UnbindCmd::operator==(const UnbindCmd& other) const
             (m_is_bvi == other.m_is_bvi));
 }
 
-rc_t L2Config::UnbindCmd::exec()
+rc_t L2Config::UnbindCmd::issue(Connection &con)
 {
     // finally... call VPP
     return (rc_t::OK);

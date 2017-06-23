@@ -17,7 +17,7 @@ using namespace VPP;
 
 BridgeDomain::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
                                    const std::string &name):
-    CmdT<HW::Item<handle_t>>(item),
+    RpcCmd(item),
     m_name(name)
 {
 }
@@ -27,7 +27,7 @@ bool BridgeDomain::CreateCmd::operator==(const CreateCmd& other) const
     return (m_name == other.m_name);
 }
 
-rc_t BridgeDomain::CreateCmd::exec()
+rc_t BridgeDomain::CreateCmd::issue(Connection &con)
 {
     // finally... call VPP
 }
@@ -40,7 +40,7 @@ std::string BridgeDomain::CreateCmd::to_string() const
 }
 
 BridgeDomain::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
-    CmdT<HW::Item<handle_t>>(item)
+    RpcCmd(item)
 {
 }
 
@@ -49,7 +49,7 @@ bool BridgeDomain::DeleteCmd::operator==(const DeleteCmd& other) const
     return (m_hw_item == other.m_hw_item);
 }
 
-rc_t BridgeDomain::DeleteCmd::exec()
+rc_t BridgeDomain::DeleteCmd::issue(Connection &con)
 {
     // finally... call VPP
 }

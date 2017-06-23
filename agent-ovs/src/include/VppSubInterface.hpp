@@ -36,31 +36,31 @@ namespace VPP
         /**
          * A functor class that creates an interface
          */
-        class CreateCmd: public CmdT<HW::Item<handle_t> >
+        class CreateCmd: public RpcCmd<HW::Item<handle_t>, HW::Item<handle_t>>
         {
         public:
             CreateCmd(HW::Item<handle_t> &item,
-                      handle_t parent,
+                      const handle_t &parent,
                       uint16_t vlan);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const CreateCmd&i) const;
         private:
-            handle_t m_parent;
+            const handle_t &m_parent;
             uint16_t m_vlan;
         };
 
         /**
          * A cmd class that Delete an interface
          */
-        class DeleteCmd: public CmdT<HW::Item<handle_t> >
+        class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
         {
         public:
             DeleteCmd(HW::Item<handle_t> &item);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const DeleteCmd&i) const;

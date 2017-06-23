@@ -18,10 +18,21 @@ rc_t::~rc_t()
 {
 }
 
+const rc_t &rc_t::from_vpp_retval(int32_t rv)
+{
+    if (0 == rv)
+    {
+        return (rc_t::OK);
+    }
+
+    return (rc_t::INVALID);
+}
+
 const rc_t rc_t::UNSET(0, "un-set");
 const rc_t rc_t::NOOP(1, "no-op");
 const rc_t rc_t::OK(2, "ok");
-const rc_t rc_t::INVALID(3, "invalid");
+const rc_t rc_t::INPROGRESS(3, "in-progess");
+const rc_t rc_t::INVALID(4, "invalid");
 
 const handle_t handle_t::INVALID(~0);
 

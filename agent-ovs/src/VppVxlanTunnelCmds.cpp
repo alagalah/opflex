@@ -19,7 +19,7 @@ VxlanTunnel::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
                                   const boost::asio::ip::address &src,
                                   const boost::asio::ip::address &dst,
                                   uint32_t vni):
-    CmdT<HW::Item<handle_t>>(item),
+    RpcCmd(item),
     m_src(src),
     m_dst(dst),
     m_vni(vni)
@@ -33,7 +33,7 @@ bool VxlanTunnel::CreateCmd::operator==(const CreateCmd& other) const
             (m_vni == other.m_vni));
 }
 
-rc_t VxlanTunnel::CreateCmd::exec()
+rc_t VxlanTunnel::CreateCmd::issue(Connection &con)
 {
     // finally... call VPP
 }
@@ -53,7 +53,7 @@ VxlanTunnel::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item,
                                   const boost::asio::ip::address &src,
                                   const boost::asio::ip::address &dst,
                                   uint32_t vni):
-    CmdT<HW::Item<handle_t>>(item),
+    RpcCmd(item),
     m_src(src),
     m_dst(dst),
     m_vni(vni)
@@ -67,7 +67,7 @@ bool VxlanTunnel::DeleteCmd::operator==(const DeleteCmd& other) const
             (m_vni == other.m_vni));
 }
 
-rc_t VxlanTunnel::DeleteCmd::exec()
+rc_t VxlanTunnel::DeleteCmd::issue(Connection &con)
 {
     // finally... call VPP
 }

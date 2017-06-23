@@ -37,9 +37,20 @@ namespace VPP
         {
             return (e.m_value != m_value);
         }
+
+        constexpr operator int() const
+        {
+            return (m_value);
+        }
+
+        constexpr int value() const
+        {
+            return (m_value);
+        }
+
     protected:
-        Enum(int value,
-             const std::string desc):
+        constexpr Enum(int value,
+                       const std::string desc):
             m_value(value),
             m_desc(desc)
         {

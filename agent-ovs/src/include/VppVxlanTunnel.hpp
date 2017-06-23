@@ -12,7 +12,7 @@
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppHW.hpp"
-#include "VppCmd.hpp"
+#include "VppRpcCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppRoute.hpp"
 #include "VppRouteDomain.hpp"
@@ -67,7 +67,8 @@ namespace VPP
         /**
          * A functor class that creates an VXLAN tunnel
          */
-        class CreateCmd: public CmdT<HW::Item<handle_t> >
+        class CreateCmd: public RpcCmd<HW::Item<handle_t>,
+                                       HW::Item<handle_t>>
         {
         public:
             CreateCmd(HW::Item<handle_t> &item,
@@ -75,7 +76,7 @@ namespace VPP
                       const boost::asio::ip::address &dst,
                       uint32_t vni);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const CreateCmd&i) const;
@@ -88,7 +89,7 @@ namespace VPP
         /**
          * A functor class that creates an VXLAN tunnel
          */
-        class DeleteCmd: public CmdT<HW::Item<handle_t> >
+        class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
         {
         public:
             DeleteCmd(HW::Item<handle_t> &item,
@@ -96,7 +97,7 @@ namespace VPP
                       const boost::asio::ip::address &dst,
                       uint32_t vni);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const DeleteCmd&i) const;

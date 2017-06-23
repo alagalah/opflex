@@ -16,7 +16,7 @@
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppHW.hpp"
-#include "VppCmd.hpp"
+#include "VppRpcCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppInterface.hpp"
 #include "VppBridgeDomain.hpp"
@@ -47,9 +47,9 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * A functor class that creates an interface
+         * A functor class that binds L2 configuration to an interface
          */
-        class BindCmd: public CmdT<HW::Item<bool>>
+        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             BindCmd(HW::Item<bool> &item,
@@ -57,7 +57,7 @@ namespace VPP
                     const handle_t &bd,
                     bool is_bvi);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const BindCmd&i) const;
@@ -68,9 +68,9 @@ namespace VPP
         };
 
         /**
-         * A cmd class that Unbind an interface
+         * A cmd class that Unbinds L2 configuration from an interface
          */
-        class UnbindCmd: public CmdT<HW::Item<bool>>
+        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             UnbindCmd(HW::Item<bool> &item,
@@ -78,7 +78,7 @@ namespace VPP
                       const handle_t &bd,
                       bool is_bvi);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const UnbindCmd&i) const;

@@ -8,6 +8,8 @@
 
 #include "VppCmd.hpp"
 
+using namespace VPP;
+
 /**
  * Free ostream function to print a command
  */
@@ -17,3 +19,8 @@ std::ostream & VPP::operator<<(std::ostream &os, const Cmd &cmd)
 
     return (os);
 }
+
+void Cmd::retire()
+{
+}
+

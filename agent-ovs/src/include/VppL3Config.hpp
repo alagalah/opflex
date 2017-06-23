@@ -16,10 +16,15 @@
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppHW.hpp"
-#include "VppCmd.hpp"
+#include "VppRpcCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppInterface.hpp"
 #include "VppSubInterface.hpp"
+
+extern "C"
+{
+    #include "interface.api.vapi.h"
+}
 
 namespace VPP
 {
@@ -45,35 +50,35 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * A functor class that creates an interface
+         * A functor class that binds the L3 config to the interface
          */
-        class BindCmd: public CmdT<HW::Item<bool>>
+        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
                     const Route::prefix_t &pfx);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const BindCmd&i) const;
         private:
-            const handle_t m_itf;
+            const handle_t &m_itf;
             const Route::prefix_t m_pfx;
         };
 
         /**
-         * A cmd class that Unbind an interface
+         * A cmd class that Unbinds L3 Config from an interface
          */
-        class UnbindCmd: public CmdT<HW::Item<bool>>
+        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             UnbindCmd(HW::Item<bool> &item,
                       const handle_t &itf,
                       const Route::prefix_t &pfx);
 
-            rc_t exec();
+            rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const UnbindCmd&i) const;

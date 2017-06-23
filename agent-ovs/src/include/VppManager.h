@@ -15,7 +15,6 @@
 #include "IdGenerator.h"
 #include "RDConfig.h"
 #include "TaskQueue.h"
-#include "VppApi.h"
 #include <opflex/ofcore/PeerStatusListener.h>
 
 #include <boost/asio/ip/address.hpp>
@@ -25,9 +24,17 @@
 #include <utility>
 #include <unordered_map>
 
-#include "VppInterface.hpp"
-#include "VppBridgeDomain.hpp"
 #include "VppUplink.hpp"
+#include "VppInterface.hpp"
+
+/*
+ * Fowrad delcare classes to reduce compile time couling
+ */
+namespace VPP {
+    class RouteDomain;
+    class BridgeDomain;
+    class Cmd;
+};
 
 namespace ovsagent {
 
@@ -43,6 +50,7 @@ class VppManager :     public EndpointListener,
                        public PolicyListener,
                        public PortStatusListener,
                        public opflex::ofcore::PeerStatusListener,
+                       public VPP::Interface::EventListener,
                        private boost::noncopyable {
 public:
     /**
@@ -302,8 +310,17 @@ private:
     typedef std::unordered_map<std::string,
                                std::pair<uint32_t, bool> > Ep2PortMap;
 
+    /**
+     * Event listener override to get Interface events
+     */
+    void handle_interface_event(VPP::Interface::EventsCmd *e);
+
+    /**
+     * Handle interface event in the task-queue context
+     */
+    void handleInterfaceEvent(VPP::Interface::EventsCmd *e);
+
     Agent& agent;
-    VppApi vppApi;
     IdGenerator& idGen;
     TaskQueue taskQueue;
 
@@ -318,6 +335,11 @@ private:
 
 
     VPP::Uplink m_uplink;
+
+    /**
+     * A list of interest/want commands
+     */
+    std::list<std::shared_ptr<VPP::Cmd>> m_cmds;
 
     /*
      * Map of flood-group URI to the endpoints associated with it.

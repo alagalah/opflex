@@ -94,6 +94,24 @@ std::string Route::prefix_t::to_string() const
     return (s.str());
 }
 
+void Route::prefix_t::to_vpp(uint8_t *is_ip6,
+                             uint8_t *addr,
+                             uint8_t *len) const
+{
+    *is_ip6 = m_addr.is_v6();
+    *len = m_len;
+    if (m_addr.is_v6())
+    {
+        *is_ip6 = 1;
+        memcpy(addr, m_addr.to_v6().to_bytes().data(), 16);
+    }
+    else
+    {
+        *is_ip6 = 0;
+        memcpy(addr, m_addr.to_v4().to_bytes().data(), 4);
+    }
+}
+
 Route::prefix_t Route::prefix_t::from_string(const std::string &str)
 {
     std::vector<std::string> strs;

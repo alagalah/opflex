@@ -13,13 +13,17 @@
 #include "VppSubInterface.hpp"
 #include "VppCmd.hpp"
 
+extern "C"
+{
+    #include "vpe.api.vapi.h"
+}
 
 using namespace VPP;
 
 SubInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
-                                   handle_t parent,
+                                   const handle_t &parent,
                                    uint16_t vlan):
-    CmdT<HW::Item<handle_t>>(item),
+    RpcCmd(item),
     m_parent(parent),
     m_vlan(vlan)
 {
@@ -31,9 +35,22 @@ bool SubInterface::CreateCmd::operator==(const CreateCmd& other) const
             (m_vlan == other.m_vlan));
 }
 
-rc_t SubInterface::CreateCmd::exec()
+rc_t SubInterface::CreateCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_create_vlan_subif *req;
+
+    req = vapi_alloc_create_vlan_subif(con.ctx());
+    req->payload.sw_if_index = m_parent.value();
+    req->payload.vlan_id = m_vlan;
+
+    vapi_create_vlan_subif(con.ctx(), req,
+                           Interface::create_callback<
+                             HW::Item<handle_t>,
+                             HW::Item<handle_t>,
+                             vapi_payload_create_vlan_subif_reply>,
+                           this);
+    m_hw_item = wait();
+
     return rc_t::OK;
 }
 
@@ -47,7 +64,7 @@ std::string SubInterface::CreateCmd::to_string() const
 }
 
 SubInterface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
-    CmdT<HW::Item<handle_t>>(item)
+    RpcCmd(item)
 {
 }
 
@@ -56,7 +73,7 @@ bool SubInterface::DeleteCmd::operator==(const DeleteCmd& other) const
     return (m_hw_item == other.m_hw_item);
 }
 
-rc_t SubInterface::DeleteCmd::exec()
+rc_t SubInterface::DeleteCmd::issue(Connection &con)
 {
     // finally... call VPP
     return (rc_t::OK);

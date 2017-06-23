@@ -76,9 +76,7 @@ if RENDERER_VPP
 
   VPPCLIENT_LIBS = \
 	-lvppinfra \
-	-lvlibmemoryclient \
-	-lvlibapi \
-	-lpneum \
+	-lvapiclient \
 	-lsvm \
 	-lpthread -lm -lrt
 
@@ -126,12 +124,8 @@ noinst_HEADERS = \
 	src/include/FlowReader.h \
 	src/include/SwitchStateHandler.h \
 	src/include/VppManager.h \
-	src/include/VppApi.h \
-	src/include/IVppConnection.h \
-	src/include/VppConnection.h \
 	src/include/VppTypes.h \
 	src/include/VppStruct.h \
-	src/include/pneum.h \
 	src/include/IntFlowManager.h \
 	src/include/AccessFlowManager.h \
 	src/include/ovs-shim.h \
@@ -219,6 +213,7 @@ endif
 if RENDERER_VPP
   libagent_ovs_la_SOURCES += \
 	src/VppRenderer.cpp \
+	src/VppConnection.cpp \
 	src/VppUplink.cpp \
 	src/VppObjectDB.cpp \
 	src/VppObject.cpp \
@@ -243,9 +238,7 @@ if RENDERER_VPP
 	src/Vpp.cpp \
 	src/VppOM.cpp \
 	src/VppKeyDB.cpp \
-	src/VppRoute.cpp \
-	src/VppApi.cpp \
-	src/VppConnection.cpp
+	src/VppRoute.cpp
 endif
 
 bin_PROGRAMS=agent_ovs gbp_inspect mcast_daemon
@@ -327,8 +320,6 @@ endif
 VPP_TEST_SOURCES=
 if RENDERER_VPP
   VPP_TEST_SOURCES += \
-	test/include/MockVppConnection.h \
-	test/MockVppConnection.cpp \
 	test/VppOM_test.cpp \
 	test/VppManager_test.cpp
 endif
