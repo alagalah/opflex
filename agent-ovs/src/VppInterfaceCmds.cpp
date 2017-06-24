@@ -56,9 +56,8 @@ rc_t Interface::LoopbackCreateCmd::issue(Connection &con)
     req = vapi_alloc_create_loopback(con.ctx());
     vapi_create_loopback(con.ctx(), req,
                          Interface::create_callback<
-                           HW::Item<handle_t>,
-                           HW::Item<handle_t>,
-                           vapi_payload_create_loopback_reply>,
+                           vapi_payload_create_loopback_reply,
+                           LoopbackCreateCmd>,
                          this);
 
     m_hw_item = wait();
@@ -100,9 +99,8 @@ rc_t Interface::AFPacketCreateCmd::issue(Connection &con)
                     sizeof(req->payload.host_if_name)));
     vapi_af_packet_create(con.ctx(), req,
                           Interface::create_callback<
-                            HW::Item<handle_t>,
-                            HW::Item<handle_t>,
-                            vapi_payload_af_packet_create_reply>,
+                          vapi_payload_af_packet_create_reply,
+                          AFPacketCreateCmd>,
                           this);
     m_hw_item = wait();
 

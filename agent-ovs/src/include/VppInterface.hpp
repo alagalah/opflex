@@ -278,14 +278,14 @@ namespace VPP
          * A generic callback function for handling Interface crete complete
          * callbacks from VPP
          */
-        template <typename HWT, typename DATA, typename REPLY>
+        template <typename REPLY, typename CMD_TYPE>
         static vapi_error_e create_callback(vapi_ctx_t ctx,
                                             void *callback_ctx,
                                             vapi_error_e rv,
                                             bool is_last,
                                             REPLY *reply)
         {
-            RpcCmd<HWT, DATA> *cmd = static_cast<RpcCmd<HWT, DATA>*>(callback_ctx);
+            CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
 
             HW::Item<handle_t> res(reply->sw_if_index,
                                    rc_t::from_vpp_retval(reply->retval));
