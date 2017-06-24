@@ -402,7 +402,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
      * Graham creates a BVI with address 10.10.10.10/24 in Routing Domain
      */
 
-    RouteDomain rd("red");
+    RouteDomain rd(1);
     HW::Item<Route::table_id_t> hw_rd_bind(true, rc_t::OK);
     HW::Item<Route::table_id_t> hw_rd_unbind(false, rc_t::OK);
     TRY_CHECK_RC(OM::write(graham, rd));
@@ -458,11 +458,10 @@ BOOST_AUTO_TEST_CASE(bridge) {
     TRY_CHECK_RC(OM::write(franz, itf1));
 
     // bridge-domain create
-    std::string bd1_name = "bd1";
-    BridgeDomain bd1(bd1_name);
+    BridgeDomain bd1(33);
 
-    HW::Item<handle_t> hw_bd(33, rc_t::OK);
-    ADD_EXPECT(BridgeDomain::CreateCmd(hw_bd, bd1_name));
+    HW::Item<uint32_t> hw_bd(33, rc_t::OK);
+    ADD_EXPECT(BridgeDomain::CreateCmd(hw_bd));
 
     TRY_CHECK_RC(OM::write(franz, bd1));
 
@@ -537,11 +536,10 @@ BOOST_AUTO_TEST_CASE(vxlan) {
     TRY_CHECK_RC(OM::write(franz, vxt));
 
     // bridge-domain create
-    std::string bd1_name = "bd1";
-    BridgeDomain bd1(bd1_name);
+    BridgeDomain bd1(33);
 
-    HW::Item<handle_t> hw_bd(33, rc_t::OK);
-    ADD_EXPECT(BridgeDomain::CreateCmd(hw_bd, bd1_name));
+    HW::Item<uint32_t> hw_bd(33, rc_t::OK);
+    ADD_EXPECT(BridgeDomain::CreateCmd(hw_bd));
 
     TRY_CHECK_RC(OM::write(franz, bd1));
 

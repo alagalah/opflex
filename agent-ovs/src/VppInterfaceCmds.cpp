@@ -212,8 +212,7 @@ rc_t Interface::StateChangeCmd::issue(Connection &con)
                          StateChangeCmd>,
         this);
 
-    HW::Item<admin_state_t> res(m_hw_item.data(), wait());
-    m_hw_item.update(res);
+    m_hw_item.set(wait());
 
     return rc_t::OK;
 }

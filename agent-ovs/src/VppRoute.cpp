@@ -121,22 +121,30 @@ Route::prefix_t::prefix_t(uint8_t is_ip6,
     }
 }
 
-void Route::prefix_t::to_vpp(uint8_t *is_ip6,
-                             uint8_t *addr,
-                             uint8_t *len) const
+void VPP::to_bytes(const boost::asio::ip::address &addr,
+                   uint8_t *is_ip6,
+                   uint8_t *array)
 {
-    *is_ip6 = m_addr.is_v6();
-    *len = m_len;
-    if (m_addr.is_v6())
+    *is_ip6 = addr.is_v6();
+    if (addr.is_v6())
     {
         *is_ip6 = 1;
-        memcpy(addr, m_addr.to_v6().to_bytes().data(), 16);
+        memcpy(array, addr.to_v6().to_bytes().data(), 16);
     }
     else
     {
         *is_ip6 = 0;
-        memcpy(addr, m_addr.to_v4().to_bytes().data(), 4);
+        memcpy(array, addr.to_v4().to_bytes().data(), 4);
     }
+   
+}
+
+void Route::prefix_t::to_vpp(uint8_t *is_ip6,
+                             uint8_t *addr,
+                             uint8_t *len) const
+{
+    *len = m_len;
+    to_bytes(m_addr, is_ip6, addr);
 }
 
 Route::prefix_t Route::prefix_t::from_string(const std::string &str)

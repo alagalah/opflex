@@ -29,7 +29,7 @@ namespace VPP
         /**
          * Construct a new object matching the desried state
          */
-        RouteDomain(const std::string &name);
+        RouteDomain(Route::table_id_t id);
         ~RouteDomain();
         RouteDomain(const RouteDomain& o);
 
@@ -42,8 +42,6 @@ namespace VPP
          * Get the table ID
          */
         Route::table_id_t table_id() const;
-
-        virtual void bless();
 
         static std::shared_ptr<RouteDomain> find(const RouteDomain &temp);
 
@@ -66,11 +64,6 @@ namespace VPP
         void sweep(void);
 
         /**
-         * The RouteDomain's name
-         */
-        const std::string m_name;
-
-        /**
          * VPP understands Table-IDs not table names.
          *  The table IDs for V4 and V6 are the same.
          */
@@ -79,13 +72,7 @@ namespace VPP
         /**
          * A map of all interfaces key against the interface's name
          */
-        static InstDB<const std::string, RouteDomain> m_db;
-
-        /**
-         * A crude unique ID Dgeneratoer, with a complex algorithem
-         * of 'the-next-one'.
-         */
-        static Route::table_id_t m_id_generator;
+        static InstDB<Route::table_id_t, RouteDomain> m_db;
     };
 };
 

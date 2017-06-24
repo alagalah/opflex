@@ -32,34 +32,31 @@ namespace VPP
         {
             auto search = m_map.find(key);
 
-            if (search == m_map.end() ||
-                search->second.expired())
+            if (search == m_map.end())
             {
                 std::shared_ptr<OBJ> sp = std::make_shared<OBJ>(obj);
 
                 m_map[key] = sp;
-                sp->bless();
 
                 LOG(ovsagent::INFO) << *sp;
                 return (sp);
             }
 
-            return ((*search).second.lock());
+            return (search->second.lock());
         }
 
         std::shared_ptr<OBJ> find(const KEY &key)
         {
             auto search = m_map.find(key);
 
-            if (search == m_map.end() ||
-                search->second.expired())
+            if (search == m_map.end())
             {
                 std::shared_ptr<OBJ> sp(NULL);
 
                 return (sp);
             }
 
-            return ((*search).second.lock());
+            return (search->second.lock());
         }
 
         /*
@@ -67,10 +64,32 @@ namespace VPP
          */
         void release(const KEY &key, const OBJ *obj)
         {
-            if (obj->is_blessed())
+            auto search = m_map.find(key);
+
+            if (search != m_map.end())
             {
-                m_map[key].reset();
+                if (search->second.expired())
+                {
+                    m_map.erase(key);
+                }
+                else
+                {
+                    std::shared_ptr<OBJ> sp = m_map[key].lock();
+
+                    if (sp.get() == obj)
+                    {
+                        m_map.erase(key);
+                    }
+                }
             }
+        }
+
+        /*
+         * Release the object from the DB store, if it's the one we have stored
+         */
+        void add(const KEY &key, std::shared_ptr<OBJ> sp)
+        {
+            m_map[key] = sp;
         }
 
     private:

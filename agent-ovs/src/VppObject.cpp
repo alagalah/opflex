@@ -14,8 +14,7 @@ using namespace VPP;
 /**
  * Construct a new object matching the desried state
  */
-Object::Object():
-    m_flags(0)
+Object::Object()
 {
     ObjectDB::add(this);
 }
@@ -23,16 +22,6 @@ Object::Object():
 Object::~Object()
 {
     ObjectDB::remove(this);
-}
-
-void Object::bless()
-{
-    m_flags = OBJECT_FLAG_BLESSED;
-}
-
-bool Object::is_blessed() const
-{
-    return (m_flags == OBJECT_FLAG_BLESSED);
 }
 
 ObjectRef::ObjectRef(std::shared_ptr<Object> obj):

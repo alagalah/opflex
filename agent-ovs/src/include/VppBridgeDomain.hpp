@@ -32,7 +32,7 @@ namespace VPP
         /**
          * Construct a new object matching the desried state
          */
-        BridgeDomain(const std::string &name);
+        BridgeDomain(uint32_t id);
         ~BridgeDomain();
         BridgeDomain(const BridgeDomain& o);
 
@@ -44,7 +44,7 @@ namespace VPP
         /**
          * Return VPP's handle for this obejct
          */
-        const handle_t & handle() const;
+        uint32_t id() const;
 
         /**
          * Static function to find the BridgeDomain in the model
@@ -54,34 +54,29 @@ namespace VPP
         /**
          * A functor class that creates an Bridge-Domain
          */
-        class CreateCmd: public RpcCmd<HW::Item<handle_t>,
-                                       HW::Item<handle_t> >
+        class CreateCmd: public RpcCmd<HW::Item<uint32_t>, rc_t>
         {
         public:
-            CreateCmd(HW::Item<handle_t> &item,
-                      const std::string &name);
+            CreateCmd(HW::Item<uint32_t> &item);
 
             rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const CreateCmd&i) const;
-        private:
-            const std::string &m_name;
         };
 
         /**
          * A cmd class that Delete an Bridge-Domain
          */
-        class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
+        class DeleteCmd: public RpcCmd<HW::Item<uint32_t>, rc_t>
         {
         public:
-            DeleteCmd(HW::Item<handle_t> &item);
+            DeleteCmd(HW::Item<uint32_t> &item);
 
             rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const DeleteCmd&i) const;
-        private:
         };
 
     private:
@@ -101,21 +96,16 @@ namespace VPP
          * Sweep/reap the object if still stale
          */
         void sweep(void);
-
-        /**
-         * The BridgeDomain's name
-         */
-        const std::string m_name;
     
         /**
-         * The SW interface handle VPP has asigned to the interface
+         * The ID we assign to this BD and the HW result in VPP
          */
-        HW::Item<handle_t> m_hdl;
+        HW::Item<uint32_t> m_id;
 
         /**
          * A map of all interfaces key against the interface's name
          */
-        static InstDB<const std::string, BridgeDomain> m_db;
+        static InstDB<uint32_t, BridgeDomain> m_db;
     };
 };
 

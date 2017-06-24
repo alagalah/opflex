@@ -54,7 +54,7 @@ namespace VPP
         public:
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
-                    const handle_t &bd,
+                    uint32_t bd,
                     bool is_bvi);
 
             rc_t issue(Connection &con);
@@ -63,7 +63,7 @@ namespace VPP
             bool operator==(const BindCmd&i) const;
         private:
             const handle_t m_itf;
-            const handle_t m_bd;
+            uint32_t m_bd;
             bool m_is_bvi;
         };
 
@@ -75,7 +75,7 @@ namespace VPP
         public:
             UnbindCmd(HW::Item<bool> &item,
                       const handle_t &itf,
-                      const handle_t &bd,
+                      uint32_t bd,
                       bool is_bvi);
 
             rc_t issue(Connection &con);
@@ -84,7 +84,7 @@ namespace VPP
             bool operator==(const UnbindCmd&i) const;
         private:
             const handle_t m_itf;
-            const handle_t m_bd;
+            uint32_t m_bd;
             bool m_is_bvi;
         };
 

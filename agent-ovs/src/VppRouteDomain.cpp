@@ -14,45 +14,26 @@
 
 using namespace VPP;
 
-/**
+ /**
  * A DB of al the interfaces, key on the name
  */
-InstDB<const std::string, RouteDomain> RouteDomain::m_db;
-
-/**
- * Instantiate the ID generator
- */
-Route::table_id_t RouteDomain::m_id_generator;
+InstDB<Route::table_id_t, RouteDomain> RouteDomain::m_db;
 
 /**
  * Construct a new object matching the desried state
  */
-RouteDomain::RouteDomain(const std::string &name):
-    m_name(name),
-    m_table_id(Route::DEFAULT_TABLE)
+RouteDomain::RouteDomain(Route::table_id_t id):
+    m_table_id(id)
 {
 }
 
 RouteDomain::RouteDomain(const RouteDomain& o):
-    m_name(o.m_name),
     m_table_id(o.m_table_id)
 {
 }
 
-void RouteDomain::bless()
-{
-    Object::bless();
-
-    /*
-     * assign a unique-ID for this RouteDomain for VPP
-     */
-    m_table_id = ++m_id_generator;
-}
-
 Route::table_id_t RouteDomain::table_id() const
 {
-    assert(is_blessed());
-
     return (m_table_id);
 }
 
@@ -63,13 +44,13 @@ void RouteDomain::sweep()
 RouteDomain::~RouteDomain()
 {
     // not in the DB anymore.
-    m_db.release(m_name, this);
+    m_db.release(m_table_id, this);
 }
 
 std::string RouteDomain::to_string() const
 {
     std::ostringstream s;
-    s << "route-domain: " << m_name
+    s << "route-domain: "
       << " ID:" << m_table_id;
 
     return (s.str());
@@ -84,10 +65,10 @@ void RouteDomain::update(const RouteDomain &desired)
 
 std::shared_ptr<RouteDomain> RouteDomain::find_or_add(const RouteDomain &temp)
 {
-    return (m_db.find_or_add(temp.m_name, temp));
+    return (m_db.find_or_add(temp.m_table_id, temp));
 }
 
 std::shared_ptr<RouteDomain> RouteDomain::find(const RouteDomain &temp)
 {
-    return (m_db.find(temp.m_name));
+    return (m_db.find(temp.m_table_id));
 }

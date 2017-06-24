@@ -309,6 +309,8 @@ namespace VPP
         HW::Item<handle_t> m_hdl;
 
         static std::shared_ptr<Interface> find_or_add(const Interface &temp);
+        static void insert(const Interface &temp, std::shared_ptr<Interface> sp);
+        void release();
 
         /**
          * Virtual functions to construct an interface create/delete commands.
