@@ -23,6 +23,7 @@
 #include "VppEnum.hpp"
 #include "VppRoute.hpp"
 #include "VppRouteDomain.hpp"
+#include "VppDumpCmd.hpp"
 
 extern "C"
 {
@@ -49,7 +50,7 @@ namespace VPP
          */
         struct type_t: Enum<type_t>
         {
-            const static type_t UNKNWON;
+            const static type_t UNKNOWN;
             const static type_t BVI;
             const static type_t VXLAN;
             const static type_t ETHERNET;
@@ -275,6 +276,21 @@ namespace VPP
             EventListener & m_listener;
         };
 
+        /**
+         * A cmd class that Dumps all the Vpp Interfaces
+         */
+        class DumpInterfaceCmd: public DumpCmd<vapi_payload_sw_interface_details>
+        {
+        public:
+            DumpInterfaceCmd();
+
+            rc_t issue(Connection &con);
+            std::string to_string() const;
+
+            bool operator==(const DumpInterfaceCmd&i) const;
+        private:
+            HW::Item<bool> item;
+        };
 
         /**
          * A generic callback function for handling Interface crete complete

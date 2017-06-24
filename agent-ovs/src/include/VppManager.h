@@ -27,6 +27,7 @@
 #include "VppUplink.hpp"
 #include "VppInterface.hpp"
 #include "VppDhcpConfig.hpp"
+#include "VppBoot.hpp"
 
 /*
  * Fowrad delcare classes to reduce compile time couling
@@ -209,6 +210,9 @@ public:
 
     VPP::Uplink &uplink();
 
+    VPP::Boot &boot();
+
+
 private:
     /**
      * Compare and update changes in an endpoint.
@@ -335,6 +339,11 @@ private:
      */
     void handleUplinkConfigure();
 
+    /**
+     * Handle the Vpp Boot Dump request
+     */
+    void handleBootDump();
+
     Agent& agent;
     IdGenerator& idGen;
     TaskQueue taskQueue;
@@ -348,6 +357,7 @@ private:
     uint8_t dhcpMac[6];
     std::string mcastGroupFile;
 
+    VPP::Boot m_boot;
 
     VPP::Uplink m_uplink;
 
