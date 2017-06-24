@@ -73,6 +73,11 @@ namespace VPP
                  return (item_rc);
             }
 
+            void set(const rc_t &rc)
+            {
+                item_rc = rc;
+            }
+
             /**
              * Return true if the HW Item is configred in HW
              */

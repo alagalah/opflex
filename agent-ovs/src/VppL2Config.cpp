@@ -51,7 +51,7 @@ void L2Config::sweep()
     {
         HW::enqueue(new UnbindCmd(m_binding,
                                   m_itf->handle(),
-                                  m_bd->handle(),
+                                  m_bd->id(),
                                   Interface::type_t::BVI == m_itf->type()));
     }
     HW::write();
@@ -84,7 +84,7 @@ void L2Config::update(const L2Config &desired)
     {
         HW::enqueue(new BindCmd(m_binding,
                                 m_itf->handle(),
-                                m_bd->handle(),
+                                m_bd->id(),
                                 Interface::type_t::BVI == m_itf->type()));
     }
 }

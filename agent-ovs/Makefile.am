@@ -220,6 +220,7 @@ if RENDERER_VPP
   libagent_ovs_la_SOURCES += \
 	src/VppRenderer.cpp \
 	src/VppConnection.cpp \
+	src/VppInspect.cpp \
 	src/VppUplink.cpp \
 	src/VppObjectDB.cpp \
 	src/VppObject.cpp \

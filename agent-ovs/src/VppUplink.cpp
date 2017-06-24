@@ -20,14 +20,27 @@ Uplink::Uplink()
 {
 }
 
-VPP::Interface Uplink::makeInterface(uint32_t vnid)
+VPP::Interface* Uplink::mk_interface(const std::string &uuid,
+                                     uint32_t vnid)
 {
     switch (m_type)
     {
     case VXLAN:
-        return VxlanTunnel(m_vxlan.src, m_vxlan.dst, vnid);
+    {
+        VxlanTunnel *vt = new VxlanTunnel(m_vxlan.src, m_vxlan.dst, vnid);
+
+        VPP::OM::write(uuid, *vt);
+
+        return (vt);
+    }
     case VLAN:
-        return SubInterface(*m_uplink, Interface::admin_state_t::UP, vnid);
+    {
+        SubInterface *sb = new SubInterface(*m_uplink, Interface::admin_state_t::UP, vnid);
+
+        VPP::OM::write(uuid, *sb);
+
+        return (sb);
+    }
     }
 }
 
@@ -86,7 +99,9 @@ void Uplink::set(const std::string &uplink,
                  const boost::asio::ip::address &remote_ip,
                  uint16_t port)
 {
-    m_vxlan.src = remote_ip;
+    m_type = VXLAN;
+    m_vxlan.dst = remote_ip;
+    m_vxlan.src = uplink_prefix.address();
     m_iface = uplink;
     m_vlan = uplink_vlan;
     m_prefix = uplink_prefix;

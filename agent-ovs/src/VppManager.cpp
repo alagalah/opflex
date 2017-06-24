@@ -117,6 +117,10 @@ namespace ovsagent {
                            bind(&VppManager::handleInitConnection, this));
 
         /**
+         * DO BOOT
+         */
+        
+        /**
          * ... followed by uplink configuration
          */
         taskQueue.dispatch("uplink-configure",
@@ -398,7 +402,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         bcastFloodMode = fd.get()
             ->getBcastFloodMode(BcastFloodModeEnumT::CONST_NORMAL);
 
-        VPP::BridgeDomain bd(fd.get()->getName().get());
+        VPP::BridgeDomain bd(fgrpId);
 
         if (VPP::rc_t::OK != VPP::OM::write(uuid, bd))
         {
@@ -554,6 +558,12 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             VPP::OM::remove(epg_uuid);
             return;
         }
+        uint32_t epgVnid, rdId, bdId, fgrpId;
+        optional<URI> fgrpURI, bdURI, rdURI;
+        if (!getGroupForwardingInfo(epgURI, epgVnid, rdURI,
+                                    rdId, bdURI, bdId, fgrpURI, fgrpId)) {
+            return;
+        }
 
         /*
          * Mark all of this EPG's state stale.
@@ -563,28 +573,19 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         /*
          * Construct the BridgeDomain
          */
-        optional<shared_ptr<FloodDomain>> fd = pm.getFDForGroup(epgURI);
-
-        VPP::BridgeDomain bd(fd.get()->getName().get());
+        VPP::BridgeDomain bd(fgrpId);
 
         VPP::OM::write(epg_uuid, bd);
 
         /*
-         * Construct the uplink
+         * Construct the encap-link
          */
-        optional<uint32_t> epgVnid = pm.getVnidForGroup(epgURI);
-        if (!epgVnid) {
-            return;
-        }
-
-        VPP::Interface up_link = m_uplink.makeInterface(epgVnid.get());
-
-        VPP::OM::write(epg_uuid, up_link);
+        std::shared_ptr<VPP::Interface> encap_link(m_uplink.mk_interface(epg_uuid, epgVnid));
 
         /*
-         * Add the uplink to the BD
+         * Add the encap-link to the BD
          */
-        VPP::L2Config l2(up_link, bd);
+        VPP::L2Config l2(*encap_link, bd);
         VPP::OM::write(epg_uuid, l2);
 
         /*
@@ -592,7 +593,9 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
          */
         optional<shared_ptr<RoutingDomain>> epgRd = pm.getRDForGroup(epgURI);
 
-        VPP::RouteDomain rd(epgRd.get()->getURI().toString());
+        VPP::RouteDomain rd(rdId);
+        VPP::OM::write(epg_uuid, rd);
+
         updateBVIs(epgURI, bd, rd);
 
         /*
@@ -611,20 +614,20 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         PolicyManager::subnet_vector_t subnets;
         agent.getPolicyManager().getSubnetsForGroup(epgURI, subnets);
 
-        VPP::Interface bvi("bvi-" + bd.to_string(),
+        VPP::Interface bvi("bvi-" + std::to_string(bd.id()),
                            VPP::Interface::type_t::BVI,
                            VPP::Interface::admin_state_t::UP,
                            rd);
         VPP::OM::write(epg_uuid, bvi);
 
         VPP::L2Config l2(bvi, bd);
-        VPP::OM::write(epg_uuid, bvi);
+        VPP::OM::write(epg_uuid, l2);
 
         for (shared_ptr<Subnet>& sn : subnets)
         {
             optional<address> routerIp =
                 PolicyManager::getRouterIpForSubnet(*sn);
-            
+
             if (routerIp)
             {
                 VPP::Route::prefix_t pfx(routerIp.get(), sn->getPrefixLen().get());

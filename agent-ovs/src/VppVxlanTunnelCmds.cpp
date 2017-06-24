@@ -12,6 +12,10 @@
 
 #include "VppVxlanTunnel.hpp"
 
+extern "C"
+{
+    #include "vxlan.api.vapi.h"
+}
 
 using namespace VPP;
 
@@ -35,7 +39,28 @@ bool VxlanTunnel::CreateCmd::operator==(const CreateCmd& other) const
 
 rc_t VxlanTunnel::CreateCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_vxlan_add_del_tunnel *req;
+
+    req = vapi_alloc_vxlan_add_del_tunnel(con.ctx());
+    req->payload.is_add = 1;
+    req->payload.is_ipv6 = 0;
+    to_bytes(m_src, &req->payload.is_ipv6, req->payload.src_address);
+    to_bytes(m_dst, &req->payload.is_ipv6, req->payload.dst_address);
+    req->payload.mcast_sw_if_index = ~0;
+    req->payload.encap_vrf_id = 0;
+    req->payload.decap_next_index = ~0;
+    req->payload.vni = m_vni;
+
+    vapi_vxlan_add_del_tunnel(con.ctx(),
+                              req,
+                              Interface::create_callback<
+                                 vapi_payload_vxlan_add_del_tunnel_reply,
+                                 CreateCmd>,
+                              this);
+
+    m_hw_item = wait();
+
+    return rc_t::OK;
 }
 
 std::string VxlanTunnel::CreateCmd::to_string() const
@@ -69,7 +94,29 @@ bool VxlanTunnel::DeleteCmd::operator==(const DeleteCmd& other) const
 
 rc_t VxlanTunnel::DeleteCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_vxlan_add_del_tunnel *req;
+
+    req = vapi_alloc_vxlan_add_del_tunnel(con.ctx());
+    req->payload.is_add = 0;
+    req->payload.is_ipv6 = 0;
+    to_bytes(m_src, &req->payload.is_ipv6, req->payload.src_address);
+    to_bytes(m_dst, &req->payload.is_ipv6, req->payload.dst_address);
+    req->payload.mcast_sw_if_index = ~0;
+    req->payload.encap_vrf_id = 0;
+    req->payload.decap_next_index = ~0;
+    req->payload.vni = m_vni;
+
+    vapi_vxlan_add_del_tunnel(con.ctx(),
+                              req,
+                              Interface::create_callback<
+                                 vapi_payload_vxlan_add_del_tunnel_reply,
+                                 CreateCmd>,
+                              this);
+
+    wait();
+    m_hw_item.set(rc_t::NOOP);
+
+    return (rc_t::OK);
 }
 
 std::string VxlanTunnel::DeleteCmd::to_string() const

@@ -45,8 +45,7 @@ rc_t L3Config::BindCmd::issue(Connection &con)
                          BindCmd>,
         this);
 
-    HW::Item<bool> res(true, wait());
-    m_hw_item.update(res);
+    m_hw_item.set(wait());
 
     return rc_t::OK;
 }
@@ -94,8 +93,8 @@ rc_t L3Config::UnbindCmd::issue(Connection &con)
                          UnbindCmd>,
         this);
 
-    HW::Item<bool> res(true, wait());
-    m_hw_item.update(res);
+    wait();
+    m_hw_item.set(rc_t::NOOP);
 
     return rc_t::OK;
 }

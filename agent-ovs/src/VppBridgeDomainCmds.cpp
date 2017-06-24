@@ -13,24 +13,48 @@
 #include "VppBridgeDomain.hpp"
 #include "VppCmd.hpp"
 
+extern "C"
+{
+    #include "l2.api.vapi.h"
+}
+
 using namespace VPP;
 
-BridgeDomain::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
-                                   const std::string &name):
-    RpcCmd(item),
-    m_name(name)
+BridgeDomain::CreateCmd::CreateCmd(HW::Item<uint32_t> &item):
+    RpcCmd(item)
 {
 }
 
 bool BridgeDomain::CreateCmd::operator==(const CreateCmd& other) const
 {
-    return (m_name == other.m_name);
+    return (m_hw_item.data() == other.m_hw_item.data());
 }
 
 rc_t BridgeDomain::CreateCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_bridge_domain_add_del* req;
+
+    req = vapi_alloc_bridge_domain_add_del(con.ctx());
+    req->payload.bd_id = m_hw_item.data();
+    req->payload.flood = 1;
+    req->payload.uu_flood = 1;
+    req->payload.forward = 1;
+    req->payload.learn = 1;
+    req->payload.arp_term= 1;
+    req->payload.mac_age = 1;
+    req->payload.is_add = 1;
+
+    vapi_bridge_domain_add_del(con.ctx(),
+                               req,
+                               RpcCmd::callback<vapi_payload_bridge_domain_add_del_reply,
+                               CreateCmd>,
+                               this);
+
+    m_hw_item.set(wait());
+                                            
+    return (rc_t::OK);
 }
+
 std::string BridgeDomain::CreateCmd::to_string() const
 {
     std::ostringstream s;
@@ -39,7 +63,7 @@ std::string BridgeDomain::CreateCmd::to_string() const
     return (s.str());
 }
 
-BridgeDomain::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
+BridgeDomain::DeleteCmd::DeleteCmd(HW::Item<uint32_t> &item):
     RpcCmd(item)
 {
 }
@@ -51,8 +75,24 @@ bool BridgeDomain::DeleteCmd::operator==(const DeleteCmd& other) const
 
 rc_t BridgeDomain::DeleteCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_bridge_domain_add_del* req;
+
+    req = vapi_alloc_bridge_domain_add_del(con.ctx());
+    req->payload.bd_id = m_hw_item.data();
+    req->payload.is_add = 0;
+
+    vapi_bridge_domain_add_del(con.ctx(),
+                               req,
+                               RpcCmd::callback<vapi_payload_bridge_domain_add_del_reply,
+                               CreateCmd>,
+                               this);
+
+    wait();
+    m_hw_item.set(rc_t::NOOP);
+                                            
+    return (rc_t::OK);
 }
+
 std::string BridgeDomain::DeleteCmd::to_string() const
 {
     std::ostringstream s;

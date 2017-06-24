@@ -17,33 +17,31 @@ using namespace VPP;
 /**
  * A DB of al the interfaces, key on the name
  */
-InstDB<const std::string, BridgeDomain> BridgeDomain::m_db;
+InstDB<uint32_t, BridgeDomain> BridgeDomain::m_db;
 
 /**
  * Construct a new object matching the desried state
  */
-BridgeDomain::BridgeDomain(const std::string &name):
-    m_name(name),
-    m_hdl(handle_t::INVALID)
+BridgeDomain::BridgeDomain(uint32_t id):
+    m_id(id)
 {
 }
 
 BridgeDomain::BridgeDomain(const BridgeDomain& o):
-    m_name(o.m_name),
-    m_hdl(handle_t::INVALID)
+    m_id(o.m_id)
 {
 }
 
-const handle_t & BridgeDomain::handle() const
+uint32_t BridgeDomain::id() const
 {
-    return (m_hdl.data());
+    return (m_id.data());
 }
 
 void BridgeDomain::sweep()
 {
-    if (m_hdl)
+    if (rc_t::OK == m_id.rc())
     {
-        HW::enqueue(new DeleteCmd(m_hdl));
+        HW::enqueue(new DeleteCmd(m_id));
     }
     HW::write();
 }
@@ -53,14 +51,14 @@ BridgeDomain::~BridgeDomain()
     sweep();
 
     // not in the DB anymore.
-    m_db.release(m_name, this);
+    m_db.release(m_id.data(), this);
 }
 
 std::string BridgeDomain::to_string() const
 {
     std::ostringstream s;
-    s << "ridge-domain: " << m_name
-      << " hdl:" << m_hdl.to_string();
+    s << "bridge-domain: "
+      << m_id.to_string();
 
     return (s.str());
 }
@@ -70,18 +68,18 @@ void BridgeDomain::update(const BridgeDomain &desired)
     /*
      * the desired state is always that the interface should be created
      */
-    if (rc_t::OK != m_hdl.rc())
+    if (rc_t::OK != m_id.rc())
     {
-        HW::enqueue(new CreateCmd(m_hdl, m_name));
+        HW::enqueue(new CreateCmd(m_id));
     }
 }
 
 std::shared_ptr<BridgeDomain> BridgeDomain::find_or_add(const BridgeDomain &temp)
 {
-    return (m_db.find_or_add(temp.m_name, temp));
+    return (m_db.find_or_add(temp.m_id.data(), temp));
 }
 
 std::shared_ptr<BridgeDomain> BridgeDomain::find(const BridgeDomain &temp)
 {
-    return (m_db.find(temp.m_name));
+    return (m_db.find(temp.m_id.data()));
 }

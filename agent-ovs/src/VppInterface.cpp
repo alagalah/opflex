@@ -43,9 +43,9 @@ Interface::Interface(const std::string &name,
 Interface::Interface(vapi_payload_sw_interface_details *vd):
     m_name(reinterpret_cast<char*>(vd->interface_name)),
     m_state(Interface::admin_state_t::from_int(vd->link_up_down),
-            rc_t::OK),
+            rc_t::NOOP),
     m_type(Interface::type_t::from_string(m_name)),
-    m_hdl(handle_t(vd->sw_if_index), rc_t::OK),
+    m_hdl(handle_t(vd->sw_if_index), rc_t::NOOP),
     m_table_id(Route::DEFAULT_TABLE),
     m_oper(oper_state_t::DOWN)
 {
@@ -124,7 +124,11 @@ void Interface::sweep()
 Interface::~Interface()
 {
     sweep();
+    release();
+}
 
+void Interface::release()
+{
     // not in the DB anymore.
     m_db.release(m_name, this);
 }
@@ -216,6 +220,11 @@ void Interface::set(const oper_state_t &state)
 std::shared_ptr<Interface> Interface::find_or_add(const Interface &temp)
 {
     return (m_db.find_or_add(temp.m_name, temp));
+}
+
+void Interface::insert(const Interface &temp, std::shared_ptr<Interface> sp)
+{
+    return (m_db.add(temp.m_name, sp));
 }
 
 std::shared_ptr<Interface> Interface::find(const Interface &temp)

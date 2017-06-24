@@ -33,33 +33,14 @@ namespace VPP
          */
         virtual void sweep(void) = 0;
 
-        virtual void bless();
-        bool is_blessed() const;
-
     protected:
         /**
          * Constructable by derived classes only
          */
         Object();
-        ~Object();
+        virtual ~Object();
 
     private:
-        /**
-         * object flags
-         */
-        enum obj_flags_t
-        {
-            OBJECT_FLAG_NONE = 0,
-
-            /**
-             * Is this the single 'blessed' instance in the OM
-             */
-            OBJECT_FLAG_BLESSED,
-        };
-
-        uint32_t m_flags;
-
-
         /**
          * note we are not maintaining dependencies back to the
          * keys. i.e. this object does not know all the keys that

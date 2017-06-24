@@ -116,6 +116,7 @@ VxlanTunnel::~VxlanTunnel()
     sweep();
 
     // not in the DB anymore.
+    Interface::release();
     m_db.release(m_tep, this);
 }
 
@@ -124,6 +125,7 @@ std::string VxlanTunnel::to_string() const
     std::ostringstream s;
     s << "vxlan-tunnel: "
       << m_hdl.to_string()
+      << " "
       << m_tep.to_string();
 
     return (s.str());
@@ -142,7 +144,11 @@ void VxlanTunnel::update(const VxlanTunnel &desired)
 
 std::shared_ptr<VxlanTunnel> VxlanTunnel::find_or_add(const VxlanTunnel &temp)
 {
-    return (m_db.find_or_add(temp.m_tep, temp));
+    std::shared_ptr<VxlanTunnel> sp = m_db.find_or_add(temp.m_tep, temp);
+
+    Interface::insert(temp, sp);
+
+    return (sp);
 }
 
 std::shared_ptr<VxlanTunnel> VxlanTunnel::find(const VxlanTunnel &temp)
