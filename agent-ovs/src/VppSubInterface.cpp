@@ -32,6 +32,7 @@ SubInterface::~SubInterface()
     sweep();
 
     // not in the DB anymore.
+    Interface::release();
     m_db.release(name(), this);
 }
 
@@ -50,7 +51,11 @@ std::string SubInterface::mk_name(const Interface &parent,
 
 std::shared_ptr<SubInterface> SubInterface::find_or_add(const SubInterface &temp)
 {
-    return (m_db.find_or_add(temp.name(), temp));
+    std::shared_ptr<SubInterface> sp = m_db.find_or_add(temp.key(), temp);
+
+    Interface::insert(temp, sp);
+
+    return (sp);
 }
 
 std::shared_ptr<SubInterface> SubInterface::find(const SubInterface &temp)

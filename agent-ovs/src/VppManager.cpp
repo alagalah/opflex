@@ -40,6 +40,7 @@
 #include "VppL3Config.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppInterface.hpp"
+#include "VppDhcpConfig.hpp"
 
 #include "arp.h"
 #include "eth.h"
@@ -132,12 +133,20 @@ namespace ovsagent {
         VPP::HW::connect();
 
         /**
-         * We are insterested in getting interface evnets from VPP
+         * We are insterested in getting interface events from VPP
          */
         std::shared_ptr<VPP::Cmd> itf(new VPP::Interface::EventsCmd(*this));
 
         VPP::HW::enqueue(itf);
         m_cmds.push_back(itf);
+
+        /**
+         * We are insterested in getting DHCP events from VPP
+         */
+        std::shared_ptr<VPP::Cmd> dc(new VPP::DhcpConfig::EventsCmd(*this));
+
+        VPP::HW::enqueue(dc);
+        m_cmds.push_back(dc);
     }
 
     void VppManager::handleUplinkConfigure()
@@ -232,11 +241,20 @@ namespace ovsagent {
                            bind(&VppManager::handleContractUpdate,
                                 this, contractURI));
     }
+
     void VppManager::handle_interface_event(VPP::Interface::EventsCmd *e)
     {
         if (stopping) return;
         taskQueue.dispatch("InterfaceEvent",
                            bind(&VppManager::handleInterfaceEvent,
+                                this, e));
+    }
+
+    void VppManager::handle_dhcp_event(VPP::DhcpConfig::EventsCmd *e)
+    {
+        if (stopping) return;
+        taskQueue.dispatch("dhcp-config-event",
+                           bind(&VppManager::handleDhcpEvent,
                                 this, e));
     }
 
@@ -662,7 +680,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     void
     VppManager::handleInterfaceEvent(VPP::Interface::EventsCmd *e)
     {
-        LOG(INFO) << "Interface Event: " << *e;
+        LOG(DEBUG) << "Interface Event: " << *e;
 
         vapi_msg_sw_interface_set_flags event;
 
@@ -682,6 +700,13 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                 sp->set(oper_state);
             }
         }
+    }
+    
+    void
+    VppManager::handleDhcpEvent(VPP::DhcpConfig::EventsCmd *e)
+    {
+        LOG(INFO) << "Interface Event: " << *e;
+        m_uplink.handle_dhcp_event(e);
     }
 
     void

@@ -12,6 +12,8 @@
 #include <queue>
 #include <mutex>
 
+#include "logging.h"
+
 #include "VppCmd.hpp"
 
 namespace VPP
@@ -54,6 +56,7 @@ namespace VPP
         {
             CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
 
+            LOG(ovsagent::INFO) << cmd->to_string();
             {
                 std::lock_guard<std::mutex> s(cmd->m_mutex);
                 cmd->m_events.push(*reply);
@@ -71,6 +74,7 @@ namespace VPP
         {
             CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
 
+            LOG(ovsagent::INFO) << cmd->to_string();
             {
                 std::lock_guard<std::mutex> s(cmd->m_mutex);
                 T *data = static_cast<T*>(reply);

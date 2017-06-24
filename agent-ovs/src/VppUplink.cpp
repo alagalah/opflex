@@ -44,13 +44,17 @@ VPP::Interface* Uplink::mk_interface(const std::string &uuid,
     }
 }
 
+void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
+{
+}
+
 void Uplink::configure()
 {
     /*
      * Consruct the uplink physical, so we now 'own' it
      */
     Interface itf(m_iface,
-                  Interface::type_t::LOOPBACK,
+                  Interface::type_t::AFPACKET,
                   Interface::admin_state_t::UP);
     VPP::OM::write(UPLINK_KEY, itf);
 
@@ -69,10 +73,16 @@ void Uplink::configure()
     VPP::OM::write(UPLINK_KEY, subitf);
 
     /**
+     * Configure DHCP on the uplink subinterface
+     */
+    DhcpConfig dc(itf, "agent-opflex");
+    VPP::OM::write(UPLINK_KEY, dc);
+    
+    /**
      * Add the prefix to the control interface
      */
-    L3Config l3(subitf, m_prefix);
-    VPP::OM::write(UPLINK_KEY, l3);
+    /* L3Config l3(itf, m_prefix); */
+    /* VPP::OM::write(UPLINK_KEY, l3); */
 
     /*
      * Just for fun... dump configs

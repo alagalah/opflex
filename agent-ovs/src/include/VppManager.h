@@ -26,6 +26,7 @@
 
 #include "VppUplink.hpp"
 #include "VppInterface.hpp"
+#include "VppDhcpConfig.hpp"
 
 /*
  * Fowrad delcare classes to reduce compile time couling
@@ -51,6 +52,7 @@ class VppManager :     public EndpointListener,
                        public PortStatusListener,
                        public opflex::ofcore::PeerStatusListener,
                        public VPP::Interface::EventListener,
+                       public VPP::DhcpConfig::EventListener,                       
                        private boost::noncopyable {
 public:
     /**
@@ -319,6 +321,9 @@ private:
      * Handle interface event in the task-queue context
      */
     void handleInterfaceEvent(VPP::Interface::EventsCmd *e);
+
+    void handle_dhcp_event(VPP::DhcpConfig::EventsCmd *cmd);
+    void handleDhcpEvent(VPP::DhcpConfig::EventsCmd *e);
 
     /**
      * Handle the connect request to VPP

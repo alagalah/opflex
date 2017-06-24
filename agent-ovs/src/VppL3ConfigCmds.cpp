@@ -34,6 +34,7 @@ rc_t L3Config::BindCmd::issue(Connection &con)
     req = vapi_alloc_sw_interface_add_del_address(con.ctx());
     req->payload.sw_if_index = m_itf.value();
     req->payload.is_add = 1;
+    req->payload.del_all = 0;
 
     m_pfx.to_vpp(&req->payload.is_ipv6,
                  req->payload.address,
@@ -82,6 +83,7 @@ rc_t L3Config::UnbindCmd::issue(Connection &con)
     req = vapi_alloc_sw_interface_add_del_address(con.ctx());
     req->payload.sw_if_index = m_itf.value();
     req->payload.is_add = 0;
+    req->payload.del_all = 0;
 
     m_pfx.to_vpp(&req->payload.is_ipv6,
                  req->payload.address,
