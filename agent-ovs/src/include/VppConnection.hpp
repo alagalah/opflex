@@ -13,6 +13,7 @@
 #define __VPP_CONNECTION_H__
 
 #include <string>
+#include <mutex>
 
 extern "C"
 {
@@ -33,12 +34,16 @@ namespace VPP {
 
         void connect();
 
+        std::mutex& get_lock();
+
         vapi_ctx_t & ctx();
     private:
         vapi_ctx_t m_ctx;
         vapi_error_e m_rv;
         const std::string m_app_name;
         const std::string m_app_prefix;
+
+        std::mutex m_mutex;
     };
 };
 

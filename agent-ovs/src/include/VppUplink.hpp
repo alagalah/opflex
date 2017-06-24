@@ -11,6 +11,7 @@
 #define __VPP_UPLINK_H__
 
 #include "VppVxlanTunnel.hpp"
+#include "VppDhcpConfig.hpp"
 
 namespace VPP
 {
@@ -50,6 +51,8 @@ namespace VPP
          * make the control channel/interfaces
          */
         void configure();
+
+        void handle_dhcp_event(DhcpConfig::EventsCmd *cmd);
 
     private:
         uplink_type_t m_type;

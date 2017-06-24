@@ -12,6 +12,7 @@
 #include <future>
 
 #include "VppCmd.hpp"
+#include "logging.h"
 
 namespace VPP
 {
@@ -62,6 +63,7 @@ namespace VPP
         {
             CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
 
+            LOG(ovsagent::INFO) << cmd->to_string() << " " << reply->retval;
             cmd->fulfill(rc_t::from_vpp_retval(reply->retval));
 
             return (VAPI_OK);     

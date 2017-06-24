@@ -12,6 +12,8 @@
 #include <string>
 #include <stdint.h>
 
+#include "logging.h"
+
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppHW.hpp"
@@ -286,6 +288,8 @@ namespace VPP
                                             REPLY *reply)
         {
             CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
+
+            LOG(ovsagent::INFO) << cmd->to_string() << " " << reply->retval;
 
             HW::Item<handle_t> res(reply->sw_if_index,
                                    rc_t::from_vpp_retval(reply->retval));
