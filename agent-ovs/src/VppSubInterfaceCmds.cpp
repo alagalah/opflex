@@ -45,9 +45,8 @@ rc_t SubInterface::CreateCmd::issue(Connection &con)
 
     vapi_create_vlan_subif(con.ctx(), req,
                            Interface::create_callback<
-                             HW::Item<handle_t>,
-                             HW::Item<handle_t>,
-                             vapi_payload_create_vlan_subif_reply>,
+                             vapi_payload_create_vlan_subif_reply,
+                             CreateCmd>,
                            this);
     m_hw_item = wait();
 
