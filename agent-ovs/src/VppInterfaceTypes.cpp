@@ -15,7 +15,7 @@ using namespace VPP;
 /*
  * constants and enums
  */
-const Interface::type_t Interface::type_t::UNKNWON(0, "nuknown");
+const Interface::type_t Interface::type_t::UNKNOWN(0, "unknown");
 const Interface::type_t Interface::type_t::BVI(1, "BVI");
 const Interface::type_t Interface::type_t::ETHERNET(2, "Ehternet");
 const Interface::type_t Interface::type_t::VXLAN(3, "VXLAN");
@@ -33,9 +33,18 @@ Interface::type_t Interface::type_t::from_string(const std::string &str)
     if (str.find("Ethernet") != std::string::npos)
     {
         return Interface::type_t::ETHERNET;
+    } else if (str.find("vxlan") != std::string::npos)
+    {
+        return Interface::type_t::VXLAN;
+    } else if (str.find("loop") != std::string::npos)
+    {
+        return Interface::type_t::LOOPBACK;
+    } else if (str.find("host-") != std::string::npos)
+    {
+        return Interface::type_t::AFPACKET;
     }
 
-    return Interface::type_t::UNKNWON;
+    return Interface::type_t::UNKNOWN;
 }
 
 Interface::type_t::type_t(int v, const std::string &s):
