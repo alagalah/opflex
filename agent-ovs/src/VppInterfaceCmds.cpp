@@ -326,3 +326,30 @@ std::string Interface::EventsCmd::to_string() const
 {
     return ("itf-events");
 }
+
+Interface::DumpInterfaceCmd::DumpInterfaceCmd()
+{
+}
+
+bool Interface::DumpInterfaceCmd::operator==(const DumpInterfaceCmd& other) const
+{
+    return (true);
+}
+
+rc_t Interface::DumpInterfaceCmd::issue(Connection &con)
+{
+    vapi_msg_sw_interface_dump *req;
+
+    req = vapi_alloc_sw_interface_dump(con.ctx());
+
+    vapi_sw_interface_dump(con.ctx(), req, DumpCmd::callback<DumpInterfaceCmd>, this);
+
+    wait();
+
+    return rc_t::OK;
+}
+
+std::string Interface::DumpInterfaceCmd::to_string() const
+{
+    return ("Vpp-Interfaces-dump");
+}
