@@ -39,7 +39,7 @@
 #include "VppL2Config.hpp"
 #include "VppL3Config.hpp"
 #include "VppBridgeDomain.hpp"
-#include "VppInterface.hpp"
+#include "VppBoot.hpp"
 
 #include "arp.h"
 #include "eth.h"
@@ -121,6 +121,12 @@ namespace ovsagent {
          */
         
         /**
+         * ... followed by vpp boot dump
+         */
+        taskQueue.dispatch("boot-dump",
+                           bind(&VppManager::handleBootDump, this));
+
+        /**
          * ... followed by uplink configuration
          */
         taskQueue.dispatch("uplink-configure",
@@ -143,6 +149,12 @@ namespace ovsagent {
     void VppManager::handleUplinkConfigure()
     {
         m_uplink.configure();
+    }
+
+
+    void VppManager::handleBootDump() {
+
+        m_boot.dump();
     }
 
     void VppManager::registerModbListeners() {
@@ -818,5 +830,11 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     {
         return m_uplink;
     }
+
+    VPP::Boot &VppManager::boot()
+    {
+        return m_boot;
+    }
+
 
 } // namespace ovsagent

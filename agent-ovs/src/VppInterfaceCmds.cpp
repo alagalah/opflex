@@ -333,5 +333,5 @@ rc_t Interface::DumpInterfaceCmd::issue(Connection &con)
 
 std::string Interface::DumpInterfaceCmd::to_string() const
 {
-    return ("Vpp-Interfaces-dump");
+    return ("Vpp-Interfaces-Dump");
 }
