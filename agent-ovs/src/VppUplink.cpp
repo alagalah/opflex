@@ -83,23 +83,6 @@ void Uplink::configure()
      */
     /* L3Config l3(itf, m_prefix); */
     /* VPP::OM::write(UPLINK_KEY, l3); */
-
-    /*
-     * Just for fun... dump configs
-     */
-    std::shared_ptr<L3Config::DumpV4Cmd> cmd(new L3Config::DumpV4Cmd());
-
-    HW::enqueue(cmd);
-    HW::write();
-
-    L3Config::DumpV4Cmd::details_type data;
-
-    while (cmd->pop(data))
-    {
-        Route::prefix_t pfx(0, data.address, data.address_length);
-
-        LOG(ovsagent::INFO) << "dump: " << pfx.to_string();
-    }
 }
 
 void Uplink::set(const std::string &uplink,

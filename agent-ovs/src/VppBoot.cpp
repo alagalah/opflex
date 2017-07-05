@@ -2,6 +2,7 @@
 #include "VppInterface.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppBoot.hpp"
+#include "VppL3Config.hpp"
 
 using namespace VPP;
 
@@ -16,19 +17,39 @@ void Boot::dump() {
     if (completed)
         return;
 
-    std::shared_ptr<Interface::DumpInterfaceCmd> cmd(new Interface::DumpInterfaceCmd());
+    /*
+     * dump VPP current states
+     */
+    {
+        std::shared_ptr<L3Config::DumpV4Cmd> cmd(new L3Config::DumpV4Cmd());
 
-    HW::enqueue(cmd);
-    HW::write();
+        HW::enqueue(cmd);
+        HW::write();
 
-    Interface::DumpInterfaceCmd::details_type data;
+        L3Config::DumpV4Cmd::details_type data;
 
-    while (cmd->pop(data)) {
-        Interface itf(&data);
-//        VPP::OM::write(BOOT_KEY, itf);
-        LOG(ovsagent::INFO) << "dump: " << itf.to_string();
+        while (cmd->pop(data))
+        {
+            Route::prefix_t pfx(0, data.address, data.address_length);
+
+            LOG(ovsagent::INFO) << "dump: " << pfx.to_string();
+        }
     }
 
+    {
+        std::shared_ptr<Interface::DumpInterfaceCmd> cmd(new Interface::DumpInterfaceCmd());
+
+        HW::enqueue(cmd);
+        HW::write();
+
+        Interface::DumpInterfaceCmd::details_type data;
+
+        while (cmd->pop(data)) {
+            Interface itf(&data);
+//          VPP::OM::write(BOOT_KEY, itf);
+            LOG(ovsagent::INFO) << "dump: " << itf.to_string();
+        }
+    }
 
     completed = true;
 }
