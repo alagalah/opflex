@@ -44,8 +44,3 @@ vapi_ctx_t & Connection::ctx()
 {
     return (m_ctx);
 }
-
-std::mutex& Connection::get_lock()
-{
-    return (m_mutex);
-}

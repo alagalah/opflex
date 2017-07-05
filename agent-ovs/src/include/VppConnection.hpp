@@ -34,8 +34,6 @@ namespace VPP {
 
         void connect();
 
-        std::mutex& get_lock();
-
         vapi_ctx_t & ctx();
     private:
         vapi_ctx_t m_ctx;

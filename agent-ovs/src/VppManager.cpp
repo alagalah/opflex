@@ -696,7 +696,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
         vapi_msg_sw_interface_set_flags event;
 
-        while (e->process(event))
+        while (e->pop(event))
         {
             VPP::handle_t handle(event.payload.sw_if_index);
             std::shared_ptr<VPP::Interface> sp = VPP::Interface::find(handle);

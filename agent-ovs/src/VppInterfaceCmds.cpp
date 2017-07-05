@@ -92,28 +92,20 @@ Interface::AFPacketCreateCmd::AFPacketCreateCmd(HW::Item<handle_t> &item,
 rc_t Interface::AFPacketCreateCmd::issue(Connection &con)
 {
     vapi_msg_af_packet_create *req;
-    vapi_error_e rv;
 
-    {
-        //std::lock_guard<std::mutex> lg(con.get_lock());
+    req = vapi_alloc_af_packet_create(con.ctx());
 
-        req = vapi_alloc_af_packet_create(con.ctx());
+    memset(req->payload.host_if_name, 0,
+           sizeof(req->payload.host_if_name));
+    memcpy(req->payload.host_if_name, m_name.c_str(),
+           std::min(m_name.length(),
+                    sizeof(req->payload.host_if_name)));
 
-        memset(req->payload.host_if_name, 0,
-               sizeof(req->payload.host_if_name));
-        memcpy(req->payload.host_if_name, m_name.c_str(),
-               std::min(m_name.length(),
-                        sizeof(req->payload.host_if_name)));
-
-        do
-        {        
-            rv = vapi_af_packet_create(con.ctx(), req,
-                                       Interface::create_callback<
-                                       vapi_payload_af_packet_create_reply,
-                                       AFPacketCreateCmd>,
-                                       this);
-        } while (VAPI_EAGAIN == rv);
-    }
+    vapi_af_packet_create(con.ctx(), req,
+                          Interface::create_callback<
+                            vapi_payload_af_packet_create_reply,
+                            AFPacketCreateCmd>,
+                          this);
 
     m_hw_item = wait();
 
@@ -155,10 +147,10 @@ rc_t Interface::TapCreateCmd::issue(Connection &con)
            std::min(m_name.length(),
                     sizeof(req->payload.tap_name)));
     vapi_tap_connect(con.ctx(), req,
-                          Interface::create_callback<
+                     Interface::create_callback<
                           vapi_payload_tap_connect_reply,
                           TapCreateCmd>,
-                          this);
+                     this);
     m_hw_item = wait();
 
     if (m_hw_item.rc() == rc_t::OK)
@@ -351,31 +343,27 @@ rc_t Interface::EventsCmd::issue(Connection &con)
 {
     vapi_msg_want_interface_events *req;
 
-    {
-        //std::lock_guard<std::mutex> lg(con.get_lock());
+    /*
+     * First set the clal back to handle the interface events
+     */
+    vapi_set_event_cb(con.ctx(),
+                      vapi_msg_id_sw_interface_set_flags,
+                      EventCmd::callback<EventsCmd>,
+                      this);
 
-        /*
-         * First set the clal back to handle the interface events
-         */
-        vapi_set_event_cb(con.ctx(),
-                          vapi_msg_id_sw_interface_set_flags,
-                          EventCmd::callback<EventsCmd>,
-                          this);
+    /*
+     * then send the request to enable them
+     */
+    req = vapi_alloc_want_interface_events(con.ctx());
 
-        /*
-         * then send the request to enable them
-         */
-        req = vapi_alloc_want_interface_events(con.ctx());
+    req->payload.enable_disable = 1;
+    req->payload.pid = getpid();
 
-        req->payload.enable_disable = 1;
-        req->payload.pid = getpid();
-
-        vapi_want_interface_events(con.ctx(),
-                                   req,
-                                   RpcCmd::callback<vapi_payload_want_interface_events_reply,
-                                                EventsCmd>,
-                                   this);
-    }
+    vapi_want_interface_events(con.ctx(),
+                               req,
+                               RpcCmd::callback<vapi_payload_want_interface_events_reply,
+                                               EventsCmd>,
+                               this);
 
     wait();
 
