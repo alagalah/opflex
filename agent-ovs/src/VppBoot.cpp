@@ -72,7 +72,8 @@ void Boot::createControlInterface(std::string &interfaceName) {
 
     Interface itf(interfaceName,
                   Interface::type_t::TAP,
-                  Interface::admin_state_t::UP);
+                  Interface::admin_state_t::UP,
+                  Route::prefix_t("192.168.0.10", 24));
 
     VPP::OM::write(BOOT_KEY, itf);
 
