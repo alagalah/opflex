@@ -166,6 +166,10 @@ Cmd* Interface::mk_create_cmd()
     {
         return (new AFPacketCreateCmd(m_hdl, m_name));
     }
+    else if (type_t::TAP == m_type)
+    {
+        return (new TapCreateCmd(m_hdl, m_name));
+    }
 
     return (nullptr);
 }
@@ -180,6 +184,10 @@ Cmd* Interface::mk_delete_cmd()
     else if (type_t::AFPACKET == m_type)
     {
         return (new AFPacketDeleteCmd(m_hdl));
+    }
+    else if (type_t::TAP == m_type)
+    {
+        return (new TapDeleteCmd(m_hdl));
     }
 }
 

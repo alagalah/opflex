@@ -8,13 +8,11 @@ using namespace VPP;
 static const std::string BOOT_KEY = "__boot__";
 
 Boot::Boot():
-    completed(false)
-{
+    completed(false) {
 
 }
 
-void Boot::dump()
-{
+void Boot::dump() {
     if (completed)
         return;
 
@@ -25,10 +23,9 @@ void Boot::dump()
 
     Interface::DumpInterfaceCmd::details_type data;
 
-    while (cmd->pop(data))
-    {
+    while (cmd->pop(data)) {
         Interface itf(&data);
-       // VPP::OM::write(BOOT_KEY, itf);
+//        VPP::OM::write(BOOT_KEY, itf);
         LOG(ovsagent::INFO) << "dump: " << itf.to_string();
     }
 
@@ -36,3 +33,13 @@ void Boot::dump()
     completed = true;
 }
 
+void Boot::createControlInterface(std::string &interfaceName) {
+
+    Interface itf(interfaceName,
+                  Interface::type_t::TAP,
+                  Interface::admin_state_t::UP);
+
+    VPP::OM::write(BOOT_KEY, itf);
+
+    controlInterface = Interface::find(itf);
+}

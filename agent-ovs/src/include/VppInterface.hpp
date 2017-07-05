@@ -30,6 +30,7 @@ extern "C"
 #include "vapi.h"
 #include "interface.api.vapi.h"
 #include "af_packet.api.vapi.h"
+#include "tap.api.vapi.h"
 }
 
 namespace VPP
@@ -56,6 +57,8 @@ namespace VPP
             const static type_t ETHERNET;
             const static type_t AFPACKET;
             const static type_t LOOPBACK;
+            const static type_t LOCAL;
+            const static type_t TAP;
 
             static type_t from_string(const std::string &str);
         private:
@@ -173,6 +176,18 @@ namespace VPP
             bool operator==(const AFPacketCreateCmd&i) const;
         };
 
+        class TapCreateCmd: public CreateCmd
+        {
+        public:
+            TapCreateCmd(HW::Item<handle_t> &item,
+                              const std::string &name);
+
+            rc_t issue(Connection &con);
+            std::string to_string() const;
+
+            bool operator==(const TapCreateCmd&i) const;
+        };
+
         /**
          * A cmd class that Delete an interface
          */
@@ -205,6 +220,17 @@ namespace VPP
             std::string to_string() const;
 
             bool operator==(const AFPacketDeleteCmd&i) const;
+        };
+
+        class TapDeleteCmd: public DeleteCmd
+        {
+        public:
+            TapDeleteCmd(HW::Item<handle_t> &item);
+
+            rc_t issue(Connection &con);
+            std::string to_string() const;
+
+            bool operator==(const TapDeleteCmd&i) const;
         };
 
         /**

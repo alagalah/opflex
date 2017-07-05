@@ -126,7 +126,7 @@ namespace ovsagent {
          * ... followed by vpp boot dump
          */
         taskQueue.dispatch("boot-dump",
-                           bind(&VppManager::handleBootDump, this));
+                           bind(&VppManager::handleBoot, this));
 
         /**
          * ... followed by uplink configuration
@@ -162,9 +162,10 @@ namespace ovsagent {
     }
 
 
-    void VppManager::handleBootDump() {
-
+    void VppManager::handleBoot() {
+        std::string intfName{"tap0"};
         m_boot.dump();
+        m_boot.createControlInterface(intfName);
     }
 
     void VppManager::registerModbListeners() {
