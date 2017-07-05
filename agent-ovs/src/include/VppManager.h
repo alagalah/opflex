@@ -339,9 +339,9 @@ private:
     void handleUplinkConfigure();
 
     /**
-     * Handle the Vpp Boot Dump request
+     * Handle the Vpp Boot request
      */
-    void handleBootDump();
+    void handleBoot();
 
     Agent& agent;
     IdGenerator& idGen;
