@@ -138,6 +138,51 @@ bool Interface::AFPacketCreateCmd::operator==(const AFPacketCreateCmd& other) co
     return (CreateCmd::operator==(other));
 }
 
+Interface::TapCreateCmd::TapCreateCmd(HW::Item<handle_t> &item,
+                                                const std::string &name):
+    CreateCmd(item, name)
+{
+}
+
+rc_t Interface::TapCreateCmd::issue(Connection &con)
+{
+    vapi_msg_tap_connect *req;
+
+    req = vapi_alloc_tap_connect(con.ctx());
+    memset(req->payload.tap_name, 0,
+                    sizeof(req->payload.tap_name));
+    memcpy(req->payload.tap_name, m_name.c_str(),
+           std::min(m_name.length(),
+                    sizeof(req->payload.tap_name)));
+    vapi_tap_connect(con.ctx(), req,
+                          Interface::create_callback<
+                          vapi_payload_tap_connect_reply,
+                          TapCreateCmd>,
+                          this);
+    m_hw_item = wait();
+
+    if (m_hw_item.rc() == rc_t::OK)
+    {
+        complete();
+    }
+
+    return rc_t::OK;
+}
+
+std::string Interface::TapCreateCmd::to_string() const
+{
+    std::ostringstream s;
+    s << "tap-intf-create: " << m_hw_item.to_string()
+      << " name:" << m_name;
+
+    return (s.str());
+}
+
+bool Interface::TapCreateCmd::operator==(const TapCreateCmd& other) const
+{
+    return (CreateCmd::operator==(other));
+}
+
 Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
     RpcCmd(item)
 {
@@ -194,6 +239,31 @@ std::string Interface::AFPacketDeleteCmd::to_string() const
 }
 
 bool Interface::AFPacketDeleteCmd::operator==(const AFPacketDeleteCmd& other) const
+{
+    return (DeleteCmd::operator==(other));
+}
+
+Interface::TapDeleteCmd::TapDeleteCmd(HW::Item<handle_t> &item):
+    DeleteCmd(item)
+{
+}
+
+rc_t Interface::TapDeleteCmd::issue(Connection &con)
+{
+    // finally... call VPP
+
+    complete();
+    return rc_t::OK;
+}
+std::string Interface::TapDeleteCmd::to_string() const
+{
+    std::ostringstream s;
+    s << "tap-itf-delete: " << m_hw_item.to_string();
+
+    return (s.str());
+}
+
+bool Interface::TapDeleteCmd::operator==(const TapDeleteCmd& other) const
 {
     return (DeleteCmd::operator==(other));
 }

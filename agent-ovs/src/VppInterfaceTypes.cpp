@@ -21,6 +21,8 @@ const Interface::type_t Interface::type_t::ETHERNET(2, "Ehternet");
 const Interface::type_t Interface::type_t::VXLAN(3, "VXLAN");
 const Interface::type_t Interface::type_t::AFPACKET(4, "AFPACKET");
 const Interface::type_t Interface::type_t::LOOPBACK(5, "LOOPBACK");
+const Interface::type_t Interface::type_t::LOCAL(6, "LOCAL");
+const Interface::type_t Interface::type_t::TAP(7, "TAP");
 
 const Interface::oper_state_t Interface::oper_state_t::DOWN(0, "down");
 const Interface::oper_state_t Interface::oper_state_t::UP(1, "up");
@@ -30,18 +32,24 @@ const Interface::admin_state_t Interface::admin_state_t::UP(1, "up");
 
 Interface::type_t Interface::type_t::from_string(const std::string &str)
 {
-    if (str.find("Ethernet") != std::string::npos)
-    {
+    if (str.find("Ethernet") != std::string::npos) {
+
         return Interface::type_t::ETHERNET;
-    } else if (str.find("vxlan") != std::string::npos)
-    {
+    } else if (str.find("vxlan") != std::string::npos) {
+
         return Interface::type_t::VXLAN;
-    } else if (str.find("loop") != std::string::npos)
-    {
+    } else if (str.find("loop") != std::string::npos) {
+
         return Interface::type_t::LOOPBACK;
-    } else if (str.find("host-") != std::string::npos)
-    {
+    } else if (str.find("host-") != std::string::npos) {
+
         return Interface::type_t::AFPACKET;
+    } else if (str.find("local") != std::string::npos) {
+
+        return Interface::type_t::LOCAL;
+    } else if (str.find("tap") != std::string::npos) {
+
+        return Interface::type_t::TAP;
     }
 
     return Interface::type_t::UNKNOWN;
