@@ -131,8 +131,10 @@ bool Interface::AFPacketCreateCmd::operator==(const AFPacketCreateCmd& other) co
 }
 
 Interface::TapCreateCmd::TapCreateCmd(HW::Item<handle_t> &item,
-                                                const std::string &name):
-    CreateCmd(item, name)
+                                      const std::string &name,
+                                      ip_addr_t &ip):
+    CreateCmd(item, name),
+    m_ip(ip)
 {
 }
 
@@ -146,6 +148,20 @@ rc_t Interface::TapCreateCmd::issue(Connection &con)
     memcpy(req->payload.tap_name, m_name.c_str(),
            std::min(m_name.length(),
                     sizeof(req->payload.tap_name)));
+
+    if (m_ip != ip_addr_t::ZERO) {
+        if (m_ip.address().is_v6()) {
+            m_ip.to_vpp(&req->payload.ip6_address_set,
+                 req->payload.ip6_address,
+                 &req->payload.ip6_mask_width);
+        } else {
+            m_ip.to_vpp(&req->payload.ip4_address_set,
+                 req->payload.ip4_address,
+                 &req->payload.ip4_mask_width);
+           req->payload.ip4_address_set = 1;
+       }
+    }
+
     vapi_tap_connect(con.ctx(), req,
                      Interface::create_callback<
                           vapi_payload_tap_connect_reply,
