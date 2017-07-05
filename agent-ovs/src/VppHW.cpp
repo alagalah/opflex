@@ -41,8 +41,6 @@ void HW::CmdQ::rx_run()
 {
     while (m_alive)
     {
-        //std::lock_guard<std::mutex> lg(m_conn.get_lock());
-
         vapi_dispatch_one(m_conn.ctx());
     }
 }

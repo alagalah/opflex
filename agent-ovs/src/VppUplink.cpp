@@ -46,6 +46,26 @@ VPP::Interface* Uplink::mk_interface(const std::string &uuid,
 
 void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
 {
+    vapi_payload_dhcp_compl_event dhcp_data;
+
+    /*
+     * Apply the DHCP assigned address onto the uplink sub-interface
+     */
+    SubInterface subitf(*m_uplink,
+                        Interface::admin_state_t::UP,
+                        m_vlan);
+
+
+    while (cmd->pop(dhcp_data))
+    {
+        Route::prefix_t pfx(dhcp_data.is_ipv6,
+                            dhcp_data.host_address,
+                            24); //dhcp_data.netmask);
+
+        LOG(ovsagent::INFO) << "DHCP-prefix: " << pfx.to_string();
+        //L3Config l3(subitf, pfx);
+        //VPP::OM::write(UPLINK_KEY, l3);
+    }
 }
 
 void Uplink::configure()

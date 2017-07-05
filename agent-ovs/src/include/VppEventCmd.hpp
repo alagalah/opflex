@@ -32,7 +32,7 @@ namespace VPP
 
         virtual void notify(T *data) = 0;
 
-        bool process(T &data)
+        bool pop(T &data)
         {
             std::lock_guard<std::mutex> lg(m_mutex);
 
