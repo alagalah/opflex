@@ -149,6 +149,8 @@ rc_t Interface::TapCreateCmd::issue(Connection &con)
     vapi_msg_tap_connect *req;
 
     req = vapi_alloc_tap_connect(con.ctx());
+    memset(req->payload.tap_name, 0,
+                    sizeof(req->payload.tap_name));
     memcpy(req->payload.tap_name, m_name.c_str(),
            std::min(m_name.length(),
                     sizeof(req->payload.tap_name)));
@@ -256,8 +258,7 @@ rc_t Interface::TapDeleteCmd::issue(Connection &con)
 std::string Interface::TapDeleteCmd::to_string() const
 {
     std::ostringstream s;
-    s << "af_packet-itf-delete: " << m_hw_item.to_string();
-
+    s << "tap-itf-delete: " << m_hw_item.to_string();
     return (s.str());
 }
 
