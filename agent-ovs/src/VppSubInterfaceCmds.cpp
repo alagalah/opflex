@@ -43,11 +43,11 @@ rc_t SubInterface::CreateCmd::issue(Connection &con)
     req->payload.sw_if_index = m_parent.value();
     req->payload.vlan_id = m_vlan;
 
-    vapi_create_vlan_subif(con.ctx(), req,
-                           Interface::create_callback<
-                             vapi_payload_create_vlan_subif_reply,
-                             CreateCmd>,
-                           this);
+    VAPI_CALL(vapi_create_vlan_subif(con.ctx(), req,
+                                     Interface::create_callback<
+                                         vapi_payload_create_vlan_subif_reply,
+                                         CreateCmd>,
+                                     this));
     m_hw_item = wait();
 
     return rc_t::OK;
@@ -74,7 +74,20 @@ bool SubInterface::DeleteCmd::operator==(const DeleteCmd& other) const
 
 rc_t SubInterface::DeleteCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_delete_subif *req;
+
+    req = vapi_alloc_delete_subif(con.ctx());
+    req->payload.sw_if_index = m_hw_item.data().value();
+
+    VAPI_CALL(vapi_delete_subif(con.ctx(), req,
+                                RpcCmd::callback<
+                                    vapi_payload_delete_subif_reply,
+                                    DeleteCmd>,
+                                this));
+
+    wait();
+    m_hw_item.set(rc_t::NOOP);
+
     return (rc_t::OK);
 }
 

@@ -183,7 +183,7 @@ Cmd* Interface::mk_delete_cmd()
     }
     else if (type_t::AFPACKET == m_type)
     {
-        return (new AFPacketDeleteCmd(m_hdl));
+        return (new AFPacketDeleteCmd(m_hdl, m_name));
     }
     else if (type_t::TAP == m_type)
     {

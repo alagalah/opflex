@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(interface) {
 
     HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN, rc_t::OK);
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
 
     TRY_CHECK(OM::remove(go));
 
@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE(interface) {
 
     TRY_CHECK(OM::remove(go));
 
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
     TRY_CHECK(OM::remove(js));
 
     /*
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE(interface) {
     TRY_CHECK(OM::mark(go));
 
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
     TRY_CHECK(OM::sweep(go));
 
     /*
@@ -324,7 +324,7 @@ BOOST_AUTO_TEST_CASE(interface) {
     TRY_CHECK(OM::sweep(go));
 
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
     TRY_CHECK(OM::remove(go));
 
     /*
@@ -348,13 +348,13 @@ BOOST_AUTO_TEST_CASE(interface) {
     TRY_CHECK_RC(OM::write(go, itf2));
 
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
     TRY_CHECK(OM::sweep(go));
 
     TRY_CHECK(OM::mark(go));
 
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2, itf2_name));
     TRY_CHECK(OM::sweep(go));
 }
 
@@ -501,7 +501,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
                                                   rc_t::OK);
     ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
     TRY_CHECK(OM::remove(franz));
 
     // flush Dante's state - the order the interface and BD are deleted
@@ -510,7 +510,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
     ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2, itf1_name));
     TRY_CHECK(OM::remove(dante));
 }
 
@@ -595,7 +595,7 @@ BOOST_AUTO_TEST_CASE(vlan) {
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_vl33));
     ADD_EXPECT(SubInterface::DeleteCmd(hw_vl33_down));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
-    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
 
     TRY_CHECK(OM::remove(noam));
 }

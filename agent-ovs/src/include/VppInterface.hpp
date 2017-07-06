@@ -195,9 +195,13 @@ namespace VPP
         {
         public:
             DeleteCmd(HW::Item<handle_t> &item);
+            DeleteCmd(HW::Item<handle_t> &item,
+                      const std::string &name);
 
             virtual bool operator==(const DeleteCmd&i) const;
             void complete();
+        protected:
+            const std::string m_name;
         };
 
         class LoopbackDeleteCmd: public DeleteCmd
@@ -214,7 +218,8 @@ namespace VPP
         class AFPacketDeleteCmd: public DeleteCmd
         {
         public:
-            AFPacketDeleteCmd(HW::Item<handle_t> &item);
+            AFPacketDeleteCmd(HW::Item<handle_t> &item,
+                              const std::string &name);
 
             rc_t issue(Connection &con);
             std::string to_string() const;

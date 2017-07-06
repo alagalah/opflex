@@ -35,7 +35,7 @@ void Connection::connect()
         m_rv = vapi_connect(m_ctx,
                             m_app_name.c_str(),
                             NULL, //m_api_prefix.c_str(),
-                            32,
+                            128,
                             VAPI_MODE_NONBLOCKING);
     } while (VAPI_OK != m_rv);
 }

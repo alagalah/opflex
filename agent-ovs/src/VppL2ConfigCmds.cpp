@@ -41,11 +41,12 @@ rc_t L2Config::BindCmd::issue(Connection &con)
     req->payload.bvi = m_is_bvi;
     req->payload.enable = 1;
 
-    vapi_sw_interface_set_l2_bridge(con.ctx(),
-                                    req,
-                                    RpcCmd::callback<vapi_payload_sw_interface_set_l2_bridge_reply,
-                                                     BindCmd>,
-                                    this);
+    VAPI_CALL(vapi_sw_interface_set_l2_bridge(
+                  con.ctx(),
+                  req,
+                  RpcCmd::callback<vapi_payload_sw_interface_set_l2_bridge_reply,
+                  BindCmd>,
+                  this));
 
     m_hw_item.set(wait());
                                             
@@ -82,7 +83,25 @@ bool L2Config::UnbindCmd::operator==(const UnbindCmd& other) const
 
 rc_t L2Config::UnbindCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_sw_interface_set_l2_bridge* req;
+
+    req = vapi_alloc_sw_interface_set_l2_bridge(con.ctx());
+    req->payload.rx_sw_if_index = m_itf.value();
+    req->payload.bd_id = m_bd;
+    req->payload.shg = 0;
+    req->payload.bvi = m_is_bvi;
+    req->payload.enable = 0;
+
+    VAPI_CALL(vapi_sw_interface_set_l2_bridge(
+                  con.ctx(),
+                  req,
+                  RpcCmd::callback<vapi_payload_sw_interface_set_l2_bridge_reply,
+                  BindCmd>,
+                  this));
+
+    wait();
+    m_hw_item.set(rc_t::NOOP);
+
     return (rc_t::OK);
 }
 
