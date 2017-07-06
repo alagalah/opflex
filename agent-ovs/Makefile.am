@@ -228,6 +228,7 @@ if RENDERER_VPP
 	src/VppL3ConfigCmds.cpp \
 	src/VppDhcpConfig.cpp \
 	src/VppDhcpConfigCmds.cpp \
+        src/VppControlInterface.cpp \
 	src/VppSubInterface.cpp \
 	src/VppSubInterfaceCmds.cpp \
 	src/VppBridgeDomain.cpp \

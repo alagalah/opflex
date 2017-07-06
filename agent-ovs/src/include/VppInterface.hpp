@@ -47,11 +47,6 @@ namespace VPP
         typedef std::string key_type;
 
         /**
-         * An ip address
-         */
-        typedef Route::prefix_t ip_addr_t;
-
-        /**
          * An interface type
          */
         struct type_t: Enum<type_t>
@@ -107,10 +102,6 @@ namespace VPP
                   type_t type,
                   admin_state_t state,
                   const RouteDomain &rd);
-        Interface(const std::string &name,
-                  type_t type,
-                  admin_state_t state,
-                  ip_addr_t ip);
         virtual ~Interface();
         Interface(const Interface& o);
 
@@ -133,11 +124,6 @@ namespace VPP
          * Return the interface type
          */
         const std::string & name() const;
-
-        /**
-         * Return the interface ip
-         */
-        const ip_addr_t & ipaddress() const;
 
         /**
          * Return the interface type
@@ -194,15 +180,12 @@ namespace VPP
         {
         public:
             TapCreateCmd(HW::Item<handle_t> &item,
-                         const std::string &name,
-                         ip_addr_t &ip);
+                         const std::string &name);
 
             rc_t issue(Connection &con);
             std::string to_string() const;
 
             bool operator==(const TapCreateCmd&i) const;
-        private:
-            ip_addr_t &m_ip;
         };
 
         /**
@@ -413,12 +396,6 @@ namespace VPP
          * The state of the interface
          */
         HW::Item<admin_state_t> m_state;
-
-
-        /**
-         *
-         */
-        ip_addr_t m_ip;
 
         /**
          * shared pointer to the RouteDoamin the interface is in.

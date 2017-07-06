@@ -65,10 +65,11 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
         LOG(ovsagent::INFO) << "DHCP-prefix: " << pfx.to_string();
         //L3Config l3(subitf, pfx);
         //VPP::OM::write(UPLINK_KEY, l3);
+        //createControlInterface(std::string &interfaceName)
     }
 }
 
-void Uplink::configure()
+void Uplink::configure(std::string &interfaceName)
 {
     /*
      * Consruct the uplink physical, so we now 'own' it
@@ -97,6 +98,7 @@ void Uplink::configure()
      */
     DhcpConfig dc(subitf, "agent-opflex");
     VPP::OM::write(UPLINK_KEY, dc);
+    createControlInterface(interfaceName);
 }
 
 void Uplink::set(const std::string &uplink,
@@ -118,4 +120,16 @@ void Uplink::set(const std::string &uplink,
     m_type = VLAN;
     m_iface = uplink;
     m_vlan = uplink_vlan;
+}
+
+void Uplink::createControlInterface(std::string &interfaceName) {
+
+    ControlInterface itf(interfaceName,
+                  Interface::type_t::TAP,
+                  Interface::admin_state_t::UP,
+                  Route::prefix_t("192.168.0.10", 24));
+
+    VPP::OM::write(UPLINK_KEY, itf);
+
+    controlInterface = ControlInterface::find(itf);
 }

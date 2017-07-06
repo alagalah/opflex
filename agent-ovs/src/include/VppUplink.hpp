@@ -12,6 +12,7 @@
 
 #include "VppVxlanTunnel.hpp"
 #include "VppDhcpConfig.hpp"
+#include "VppControlInterface.hpp"
 
 namespace VPP
 {
@@ -53,11 +54,16 @@ namespace VPP
         /**
          * make the control channel/interfaces
          */
-        void configure();
+        void configure(std::string &interfaceName);
 
         void handle_dhcp_event(DhcpConfig::EventsCmd *cmd);
 
     private:
+        /**
+         * It will create the control interface at the Linux side
+         */
+        void createControlInterface(std::string &interfaceName);
+
         uplink_type_t m_type;
 
         VPP::VxlanTunnel::endpoint_t m_vxlan;
@@ -66,6 +72,11 @@ namespace VPP
          * A reference to the uplink physical insterface in the OM
          */
         std::shared_ptr<Interface> m_uplink;
+
+        /**
+         * A reference to the control Interface at Linux side
+         */
+        std::shared_ptr<ControlInterface>  controlInterface;
 
         /**
          * Paramters saved from the set-properties call

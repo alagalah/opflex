@@ -65,20 +65,6 @@ Interface::Interface(const std::string &name,
 {
 }
 
-Interface::Interface(const std::string &name,
-                     Interface::type_t itf_type,
-                     Interface::admin_state_t itf_state,
-                     Interface::ip_addr_t ip):
-    m_name(name),
-    m_state(itf_state),
-    m_type(itf_type),
-    m_hdl(handle_t::INVALID),
-    m_table_id(Route::DEFAULT_TABLE),
-    m_oper(oper_state_t::DOWN),
-    m_ip(ip)
-{
-}
-
 Interface::Interface(const Interface& o):
     m_name(o.m_name),
     m_state(o.m_state),
@@ -86,8 +72,7 @@ Interface::Interface(const Interface& o):
     m_table_id(o.m_table_id),
     m_rd(o.m_rd),
     m_hdl(handle_t::INVALID),
-    m_oper(o.m_oper),
-    m_ip(o.m_ip)
+    m_oper(o.m_oper)
 {
 }
 
@@ -165,11 +150,6 @@ const std::string &Interface::name() const
     return (m_name);
 }
 
-const Interface::ip_addr_t &Interface::ipaddress() const
-{
-    return (m_ip);
-}
-
 const Interface::key_type &Interface::key() const
 {
     return (name());
@@ -188,7 +168,7 @@ Cmd* Interface::mk_create_cmd()
     }
     else if (type_t::TAP == m_type)
     {
-        return (new TapCreateCmd(m_hdl, m_name, m_ip));
+        return (new TapCreateCmd(m_hdl, m_name));
     }
 
     return (nullptr);

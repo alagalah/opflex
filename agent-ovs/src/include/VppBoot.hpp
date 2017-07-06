@@ -24,11 +24,8 @@ namespace VPP
 
         void dump();
 
-        void createControlInterface(std::string &interfaceName);
-
     private:
         bool completed;
-        std::shared_ptr<Interface>  controlInterface;
 
     };
 }
