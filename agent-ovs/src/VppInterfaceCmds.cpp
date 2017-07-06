@@ -399,8 +399,11 @@ rc_t Interface::DumpInterfaceCmd::issue(Connection &con)
     vapi_msg_sw_interface_dump *req;
 
     req = vapi_alloc_sw_interface_dump(con.ctx());
+    req->payload.name_filter_valid = 0;
 
-    vapi_sw_interface_dump(con.ctx(), req, DumpCmd::callback<DumpInterfaceCmd>, this);
+    vapi_sw_interface_dump(con.ctx(), req,
+                           DumpCmd::callback<DumpInterfaceCmd>,
+                           this);
 
     wait();
 

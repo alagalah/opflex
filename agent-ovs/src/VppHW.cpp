@@ -15,6 +15,7 @@
 using namespace VPP;
 
 HW::CmdQ::CmdQ():
+    m_enabled(true),
     m_alive(true),
     m_conn()
 {
@@ -64,6 +65,16 @@ void HW::CmdQ::connect()
     m_rx_thread.reset(new std::thread(&HW::CmdQ::rx_run, this));
 }
 
+void HW::CmdQ::enable()
+{
+    m_enabled = true;
+}
+
+void HW::CmdQ::disable()
+{
+    m_enabled = false;
+}
+
 rc_t HW::CmdQ::write()
 {
     rc_t rc = rc_t::OK;
@@ -76,7 +87,8 @@ rc_t HW::CmdQ::write()
         return (rc_t::NOOP);
 
     /*
-     * Execute each command in the queue. If one execution fails, abort the rest
+     * The queue is enabled, Execute each command in the queue.
+     * If one execution fails, abort the rest
      */
     auto it = m_queue.begin();
 
@@ -86,41 +98,51 @@ rc_t HW::CmdQ::write()
 
         LOG(ovsagent::INFO) << *cmd;
 
-        /*
-         * before we issue the command we must move it to the pending store
-         * ince a async event can be recieved before the command completes
-         */
-        m_pending[cmd.get()] = cmd;
-
-        rc = cmd->issue(m_conn);
-
-        if (rc_t::INPROGRESS == rc)
+        if (m_enabled)
         {
             /*
-             * this command completes asynchronously
-             * leave the command in the pending store
+             * before we issue the command we must move it to the pending store
+             * ince a async event can be recieved before the command completes
              */
-        }
-        else
-        {
-            /*
-             * the command completed, remove from the pending store
-             */
-            m_pending.erase(cmd.get());
+            m_pending[cmd.get()] = cmd;
 
-            if (rc_t::OK == rc)
+            rc = cmd->issue(m_conn);
+
+            if (rc_t::INPROGRESS == rc)
             {
                 /*
-                 * move to the next
+                 * this command completes asynchronously
+                 * leave the command in the pending store
                  */
             }
             else
             {
                 /*
-                 * barf out without issuing the rest
+                 * the command completed, remove from the pending store
                  */
-                break;
+                m_pending.erase(cmd.get());
+
+                if (rc_t::OK == rc)
+                {
+                    /*
+                     * move to the next
+                     */
+                }
+                else
+                {
+                    /*
+                     * barf out without issuing the rest
+                     */
+                    break;
+                }
             }
+        }
+        else
+        {
+            /*
+             * The HW is disabled, so set each command as succeeded
+             */
+            cmd->succeeded();
         }
 
         ++it;
@@ -168,6 +190,16 @@ void HW::enqueue(std::shared_ptr<Cmd> cmd)
 void HW::connect()
 {
     m_cmdQ->connect();
+}
+
+void HW::enable()
+{
+    m_cmdQ->enable();
+}
+
+void HW::disable()
+{
+    m_cmdQ->disable();
 }
 
 rc_t HW::write()

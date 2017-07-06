@@ -47,6 +47,11 @@ namespace VPP
             return true;
         }
 
+        void succeeded()
+        {
+            // shouldn'T call an event command with HW disabled
+        }
+
     protected:
 
         template <typename CMD_TYPE>
