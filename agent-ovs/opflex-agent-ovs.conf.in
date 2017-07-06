@@ -260,13 +260,13 @@
         //         // Encapsulate traffic with a locally-significant VLAN
         //         // tag
         //         "vlan" : {
-        //              "encap-iface": "team0"
+        //              "encap-iface": "team0",
         //             // The name of the interface VPP will consue for uplink
         //             "uplink-iface": "team0",
         //
         //             // The vlan tag, used on the uplink interface.
         //             // for control traffic.
-        //             "uplink-vlan": 4093,
+        //             "uplink-vlan": 4093
         //         }
         //    }
         //}
