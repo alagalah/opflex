@@ -42,11 +42,12 @@ rc_t DhcpConfig::BindCmd::issue(Connection &con)
            std::min(sizeof(req->payload.hostname),
                            m_hostname.length()));
     
-    vapi_dhcp_client_config(con.ctx(),
-                            req,
-                            RpcCmd::callback<vapi_payload_dhcp_client_config_reply,
-                                             BindCmd>,
-                            this);
+    VAPI_CALL(vapi_dhcp_client_config(
+                  con.ctx(),
+                  req,
+                  RpcCmd::callback<vapi_payload_dhcp_client_config_reply,
+                                   BindCmd>,
+                  this));
 
     m_hw_item.set(wait());
 
@@ -93,11 +94,12 @@ rc_t DhcpConfig::UnbindCmd::issue(Connection &con)
            std::min(sizeof(req->payload.hostname),
                            m_hostname.length()));
     
-    vapi_dhcp_client_config(con.ctx(),
-                            req,
-                            RpcCmd::callback<vapi_payload_dhcp_client_config_reply,
-                                             BindCmd>,
-                            this);
+    VAPI_CALL(vapi_dhcp_client_config(
+                  con.ctx(),
+                  req,
+                  RpcCmd::callback<vapi_payload_dhcp_client_config_reply,
+                                   BindCmd>,
+                  this));
 
     wait();
     m_hw_item.set(rc_t::NOOP);

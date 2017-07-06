@@ -13,6 +13,18 @@
 
 #include "VppEnum.hpp"
 
+/**
+ * Convenince wrapper macro for error handling in VAPI sends
+ */
+#define VAPI_CALL(_stmt)                        \
+{                                               \
+    vapi_error_e _rv;                           \
+    do                                          \
+    {                                           \
+        _rv = (_stmt);                          \
+    } while (VAPI_OK != _rv);                   \
+}
+
 namespace VPP
 {
    /**

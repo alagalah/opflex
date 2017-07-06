@@ -51,12 +51,13 @@ rc_t VxlanTunnel::CreateCmd::issue(Connection &con)
     req->payload.decap_next_index = ~0;
     req->payload.vni = m_vni;
 
-    vapi_vxlan_add_del_tunnel(con.ctx(),
-                              req,
-                              Interface::create_callback<
-                                 vapi_payload_vxlan_add_del_tunnel_reply,
-                                 CreateCmd>,
-                              this);
+    VAPI_CALL(vapi_vxlan_add_del_tunnel(
+                  con.ctx(),
+                  req,
+                  Interface::create_callback<
+                      vapi_payload_vxlan_add_del_tunnel_reply,
+                      CreateCmd>,
+                  this));
 
     m_hw_item = wait();
 
@@ -106,12 +107,13 @@ rc_t VxlanTunnel::DeleteCmd::issue(Connection &con)
     req->payload.decap_next_index = ~0;
     req->payload.vni = m_vni;
 
-    vapi_vxlan_add_del_tunnel(con.ctx(),
-                              req,
-                              Interface::create_callback<
-                                 vapi_payload_vxlan_add_del_tunnel_reply,
-                                 CreateCmd>,
-                              this);
+    VAPI_CALL(vapi_vxlan_add_del_tunnel(
+                  con.ctx(),
+                  req,
+                  Interface::create_callback<
+                      vapi_payload_vxlan_add_del_tunnel_reply,
+                      CreateCmd>,
+                  this));
 
     wait();
     m_hw_item.set(rc_t::NOOP);

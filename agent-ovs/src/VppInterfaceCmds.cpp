@@ -54,11 +54,12 @@ rc_t Interface::LoopbackCreateCmd::issue(Connection &con)
     vapi_msg_create_loopback *req;
 
     req = vapi_alloc_create_loopback(con.ctx());
-    vapi_create_loopback(con.ctx(), req,
-                         Interface::create_callback<
-                           vapi_payload_create_loopback_reply,
-                           LoopbackCreateCmd>,
-                         this);
+
+    VAPI_CALL(vapi_create_loopback(con.ctx(), req,
+                                   Interface::create_callback<
+                                       vapi_payload_create_loopback_reply,
+                                       LoopbackCreateCmd>,
+                                   this));
 
     m_hw_item = wait();
 
@@ -101,11 +102,11 @@ rc_t Interface::AFPacketCreateCmd::issue(Connection &con)
            std::min(m_name.length(),
                     sizeof(req->payload.host_if_name)));
 
-    vapi_af_packet_create(con.ctx(), req,
-                          Interface::create_callback<
-                            vapi_payload_af_packet_create_reply,
-                            AFPacketCreateCmd>,
-                          this);
+    VAPI_CALL(vapi_af_packet_create(con.ctx(), req,
+                                    Interface::create_callback<
+                                        vapi_payload_af_packet_create_reply,
+                                        AFPacketCreateCmd>,
+                                    this));
 
     m_hw_item = wait();
 
@@ -147,11 +148,12 @@ rc_t Interface::TapCreateCmd::issue(Connection &con)
            std::min(m_name.length(),
                     sizeof(req->payload.tap_name)));
 
-    vapi_tap_connect(con.ctx(), req,
-                     Interface::create_callback<
-                          vapi_payload_tap_connect_reply,
-                          TapCreateCmd>,
-                     this);
+    VAPI_CALL(vapi_tap_connect(con.ctx(), req,
+                               Interface::create_callback<
+                                   vapi_payload_tap_connect_reply,
+                                   TapCreateCmd>,
+                               this));
+
     m_hw_item = wait();
 
     if (m_hw_item.rc() == rc_t::OK)
@@ -181,6 +183,13 @@ Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
 {
 }
 
+Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item,
+                                const std::string &name):
+    RpcCmd(item),
+    m_name(name)
+{
+}
+
 bool Interface::DeleteCmd::operator==(const DeleteCmd& other) const
 {
     return (m_hw_item == other.m_hw_item);
@@ -193,7 +202,18 @@ Interface::LoopbackDeleteCmd::LoopbackDeleteCmd(HW::Item<handle_t> &item):
 
 rc_t Interface::LoopbackDeleteCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_delete_loopback *req;
+
+    req = vapi_alloc_delete_loopback(con.ctx());
+
+    VAPI_CALL(vapi_delete_loopback(
+                  con.ctx(), req,
+                  RpcCmd::callback<vapi_payload_delete_loopback_reply,
+                                   LoopbackDeleteCmd>,
+                  this));
+
+    wait();
+    m_hw_item.set(rc_t::NOOP);
 
     complete();
     return rc_t::OK;
@@ -211,14 +231,32 @@ bool Interface::LoopbackDeleteCmd::operator==(const LoopbackDeleteCmd& other) co
     return (DeleteCmd::operator==(other));
 }
 
-Interface::AFPacketDeleteCmd::AFPacketDeleteCmd(HW::Item<handle_t> &item):
-    DeleteCmd(item)
+Interface::AFPacketDeleteCmd::AFPacketDeleteCmd(HW::Item<handle_t> &item,
+                                                const std::string &name):
+    DeleteCmd(item, name)
 {
 }
 
 rc_t Interface::AFPacketDeleteCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_af_packet_delete *req;
+
+    req = vapi_alloc_af_packet_delete(con.ctx());
+    memset(req->payload.host_if_name, 0,
+           sizeof(req->payload.host_if_name));
+    memcpy(req->payload.host_if_name, m_name.c_str(),
+           std::min(m_name.length(),
+                    sizeof(req->payload.host_if_name)));
+
+    VAPI_CALL(vapi_af_packet_delete(
+                  con.ctx(),
+                  req,
+                  RpcCmd::callback<vapi_payload_af_packet_delete_reply,
+                                   AFPacketDeleteCmd>,
+                  this));
+
+    wait();
+    m_hw_item.set(rc_t::NOOP);
 
     complete();
     return rc_t::OK;
@@ -282,11 +320,11 @@ rc_t Interface::StateChangeCmd::issue(Connection &con)
     req->payload.sw_if_index = m_hdl.data().value();
     req->payload.admin_up_down = m_hw_item.data().value();
 
-    vapi_sw_interface_set_flags(
-        con.ctx(), req,
-        RpcCmd::callback<vapi_payload_sw_interface_set_flags_reply,
-                         StateChangeCmd>,
-        this);
+    VAPI_CALL(vapi_sw_interface_set_flags(
+                  con.ctx(), req,
+                  RpcCmd::callback<vapi_payload_sw_interface_set_flags_reply,
+                                   StateChangeCmd>,
+                  this));
 
     m_hw_item.set(wait());
 
@@ -361,11 +399,12 @@ rc_t Interface::EventsCmd::issue(Connection &con)
     req->payload.enable_disable = 1;
     req->payload.pid = getpid();
 
-    vapi_want_interface_events(con.ctx(),
-                               req,
-                               RpcCmd::callback<vapi_payload_want_interface_events_reply,
-                                               EventsCmd>,
-                               this);
+    VAPI_CALL(vapi_want_interface_events(
+                  con.ctx(),
+                  req,
+                  RpcCmd::callback<vapi_payload_want_interface_events_reply,
+                                   EventsCmd>,
+                  this));
 
     wait();
 
@@ -402,9 +441,9 @@ rc_t Interface::DumpInterfaceCmd::issue(Connection &con)
     req = vapi_alloc_sw_interface_dump(con.ctx());
     req->payload.name_filter_valid = 0;
 
-    vapi_sw_interface_dump(con.ctx(), req,
-                           DumpCmd::callback<DumpInterfaceCmd>,
-                           this);
+    VAPI_CALL(vapi_sw_interface_dump(con.ctx(), req,
+                                     DumpCmd::callback<DumpInterfaceCmd>,
+                                     this));
 
     wait();
 

@@ -158,8 +158,7 @@ namespace ovsagent {
 
     void VppManager::handleUplinkConfigure()
     {
-        std::string intfName{"tap0"};
-        m_uplink.configure(intfName);
+        m_uplink.configure();
     }
 
     void VppManager::handleBoot() {
@@ -717,7 +716,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     void
     VppManager::handleDhcpEvent(VPP::DhcpConfig::EventsCmd *e)
     {
-        LOG(INFO) << "Interface Event: " << *e;
+        LOG(INFO) << "DHCP Event: " << *e;
         m_uplink.handle_dhcp_event(e);
     }
 

@@ -44,11 +44,12 @@ rc_t BridgeDomain::CreateCmd::issue(Connection &con)
     req->payload.mac_age = 1;
     req->payload.is_add = 1;
 
-    vapi_bridge_domain_add_del(con.ctx(),
-                               req,
-                               RpcCmd::callback<vapi_payload_bridge_domain_add_del_reply,
-                               CreateCmd>,
-                               this);
+    VAPI_CALL(vapi_bridge_domain_add_del(
+                  con.ctx(),
+                  req,
+                  RpcCmd::callback<vapi_payload_bridge_domain_add_del_reply,
+                                   CreateCmd>,
+                  this));
 
     m_hw_item.set(wait());
                                             
@@ -81,11 +82,12 @@ rc_t BridgeDomain::DeleteCmd::issue(Connection &con)
     req->payload.bd_id = m_hw_item.data();
     req->payload.is_add = 0;
 
-    vapi_bridge_domain_add_del(con.ctx(),
-                               req,
-                               RpcCmd::callback<vapi_payload_bridge_domain_add_del_reply,
-                               CreateCmd>,
-                               this);
+    VAPI_CALL(vapi_bridge_domain_add_del(
+                  con.ctx(),
+                  req,
+                  RpcCmd::callback<vapi_payload_bridge_domain_add_del_reply,
+                  CreateCmd>,
+                  this));
 
     wait();
     m_hw_item.set(rc_t::NOOP);

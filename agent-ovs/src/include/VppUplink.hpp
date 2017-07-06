@@ -54,15 +54,11 @@ namespace VPP
         /**
          * make the control channel/interfaces
          */
-        void configure(std::string &interfaceName);
+        void configure();
 
         void handle_dhcp_event(DhcpConfig::EventsCmd *cmd);
 
     private:
-        /**
-         * It will create the control interface at the Linux side
-         */
-        void createControlInterface(std::string &interfaceName);
 
         uplink_type_t m_type;
 
