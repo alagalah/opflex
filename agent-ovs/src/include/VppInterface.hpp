@@ -97,7 +97,7 @@ namespace VPP
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state);
-        Interface(vapi_payload_sw_interface_details *vd);
+        Interface(const vapi_payload_sw_interface_details &vd);
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state,

@@ -95,7 +95,7 @@ void Uplink::configure()
     /**
      * Configure DHCP on the uplink subinterface
      */
-    DhcpConfig dc(itf, "agent-opflex");
+    DhcpConfig dc(subitf, "agent-opflex");
     VPP::OM::write(UPLINK_KEY, dc);
     
     /**

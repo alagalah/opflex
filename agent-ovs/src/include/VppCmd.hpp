@@ -40,6 +40,7 @@ namespace VPP
         }
 
         virtual rc_t issue(Connection &con) = 0;
+        virtual void  succeeded() = 0;
         virtual void retire();
 
         virtual std::string to_string() const = 0;

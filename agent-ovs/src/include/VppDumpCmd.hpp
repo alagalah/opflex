@@ -48,6 +48,10 @@ namespace VPP
             return (m_promise.get_future().get());
         }
 
+        void succeeded()
+        {
+        }
+
         typedef T details_type;
 
     protected:

@@ -49,6 +49,11 @@ namespace VPP
             return (m_promise.get_future().get());
         }
 
+        void succeeded()
+        {
+            m_hw_item.set(rc_t::OK);
+        }
+
     protected:
         HWITEM &m_hw_item;
 

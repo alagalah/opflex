@@ -190,6 +190,11 @@ namespace VPP
              * A flag for the thread to poll to see if the queue is still alive
              */
             bool m_alive;
+
+            /**
+             * A flag indicating the client has disabled the Cmd Q.
+             */
+            bool m_enabled;
         };
 
         /*
