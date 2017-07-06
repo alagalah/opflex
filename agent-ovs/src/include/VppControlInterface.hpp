@@ -41,9 +41,18 @@ namespace VPP
                       const std::string &name,
                       Route::prefix_t &prefix);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const CreateCmd&i) const;
         private:
             const std::string &m_name;
@@ -58,9 +67,18 @@ namespace VPP
         public:
             DeleteCmd(HW::Item<handle_t> &item);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const DeleteCmd&i) const;
         };
 

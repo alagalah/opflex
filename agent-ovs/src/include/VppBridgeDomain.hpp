@@ -37,7 +37,7 @@ namespace VPP
         BridgeDomain(const BridgeDomain& o);
 
         /**
-         * Debug rpint function
+         * convert to string format for debug purposes
          */
         std::string to_string(void) const;
 
@@ -59,9 +59,18 @@ namespace VPP
         public:
             CreateCmd(HW::Item<uint32_t> &item);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const CreateCmd&i) const;
         };
 
@@ -73,9 +82,18 @@ namespace VPP
         public:
             DeleteCmd(HW::Item<uint32_t> &item);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const DeleteCmd&i) const;
         };
 

@@ -32,16 +32,45 @@ namespace VPP
          */
         struct endpoint_t
         {
+            /**
+             * Default constructor
+             */
             endpoint_t();
+            /**
+             * Constructor taking endpoint values
+             */
             endpoint_t(const boost::asio::ip::address &src,
-                        const boost::asio::ip::address &dst,
-                        uint32_t vni);
+                       const boost::asio::ip::address &dst,
+                       uint32_t vni);
 
+            /**
+             * less-than operator for map storage
+             */
             bool operator<(const endpoint_t &o) const;
+
+            /**
+             * Comparison operator
+             */
+            bool operator==(const endpoint_t &o) const;
+
+            /**
+             * Debug print function
+             */
             std::string to_string() const;
 
+            /**
+             * The src IP address of the endpoint
+             */
             boost::asio::ip::address src;
+
+            /**
+             * The destination IP address of the endpoint
+             */
             boost::asio::ip::address dst;
+
+            /**
+             * The VNI of the endpoint
+             */
             uint32_t vni;
         };
 
@@ -51,7 +80,14 @@ namespace VPP
         VxlanTunnel(const boost::asio::ip::address &src,
                     const boost::asio::ip::address &dst,
                     uint32_t vni);
+        /*
+         * Destructor
+         */
         ~VxlanTunnel();
+
+        /**
+         * Copy constructor
+         */
         VxlanTunnel(const VxlanTunnel& o);
 
         /**
@@ -65,25 +101,37 @@ namespace VPP
         const handle_t & handle() const;
 
         /**
-         * A functor class that creates an VXLAN tunnel
+         * A Command class that creates an VXLAN tunnel
          */
         class CreateCmd: public RpcCmd<HW::Item<handle_t>,
                                        HW::Item<handle_t>>
         {
         public:
+            /**
+             * Create command constructor taking HW item to update and the
+             * endpoint values
+             */
             CreateCmd(HW::Item<handle_t> &item,
-                      const boost::asio::ip::address &src,
-                      const boost::asio::ip::address &dst,
-                      uint32_t vni);
+                      const endpoint_t &ep);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const CreateCmd&i) const;
         private:
-            const boost::asio::ip::address m_src;
-            const boost::asio::ip::address m_dst;
-            uint32_t m_vni;
+            /**
+             * Enpoint values of the tunnel to be created
+             */
+            const endpoint_t m_ep;
         };
 
         /**
@@ -92,19 +140,32 @@ namespace VPP
         class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
         {
         public:
+            /**
+             * delete command constructor taking HW item to update and the
+             * endpoint values
+             */
             DeleteCmd(HW::Item<handle_t> &item,
-                      const boost::asio::ip::address &src,
-                      const boost::asio::ip::address &dst,
-                      uint32_t vni);
+                      const endpoint_t &ep);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const DeleteCmd&i) const;
         private:
-            const boost::asio::ip::address m_src;
-            const boost::asio::ip::address m_dst;
-            uint32_t m_vni;
+            /**
+             * Enpoint values of the tunnel to be deleted
+             */            
+            const endpoint_t m_ep;
         };
 
         /**

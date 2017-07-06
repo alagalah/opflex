@@ -44,7 +44,7 @@ namespace VPP
         DhcpConfig(const DhcpConfig& o);
 
         /**
-         * Debug print function
+         * convert to string format for debug purposes
          */
         std::string to_string() const;
 
@@ -58,9 +58,18 @@ namespace VPP
                     const handle_t &itf,
                     const std::string &hostname);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const BindCmd&i) const;
         private:
             const handle_t &m_itf;
@@ -77,9 +86,18 @@ namespace VPP
                       const handle_t &itf,
                       const std::string &hostname);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const UnbindCmd&i) const;
         private:
             const handle_t m_itf;
@@ -110,10 +128,19 @@ namespace VPP
         public:
             EventsCmd(EventListener &el);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
             void retire();
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const EventsCmd&i) const;
 
             void notify(vapi_payload_dhcp_compl_event *data);

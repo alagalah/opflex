@@ -41,7 +41,7 @@ namespace VPP
         ~Subnet();
 
         /**
-         * Debug print function
+         * convert to string format for debug purposes
          */
         std::string to_string() const;
 

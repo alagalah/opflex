@@ -13,10 +13,20 @@
 
 namespace VPP
 {
+    /**
+     * Atemplate base class for all Enum types.
+     * This Enum type exists to associate an enum value with a string for
+     * display/debug purposes.
+     * Concrete Enum types use the CRTP. Derived classes thus inherit this
+     * base's function, but are not polymorphic.
+     */
     template <typename T>
     class Enum
     {
     public:
+        /**
+         * convert to string format for debug purposes
+         */
         const std::string &to_string() const
         {
             return (m_desc);

@@ -51,17 +51,46 @@ namespace VPP
          */
         struct type_t: Enum<type_t>
         {
+            /**
+             * Unkown type
+             */
             const static type_t UNKNOWN;
+            /**
+             * A brideged Virtual interface (aka SVI or IRB)
+             */
             const static type_t BVI;
+            /**
+             * VXLAN interface
+             */
             const static type_t VXLAN;
+            /**
+             * Ethernet interface type
+             */
             const static type_t ETHERNET;
+            /**
+             * AF-Packet interface type
+             */
             const static type_t AFPACKET;
+            /**
+             * loopback interface type
+             */
             const static type_t LOOPBACK;
+            /**
+             * Local interface type (specific to VPP)
+             */
             const static type_t LOCAL;
-            const static type_t TAP;
+            /**
+             * TAP interface type
+             */const static type_t TAP;
 
+            /**
+             * Convert VPP's name of the interface to a type
+             */
             static type_t from_string(const std::string &str);
         private:
+            /**
+             * Private constructor taking the value and the string name
+             */
             type_t(int v, const std::string &s);
         };
 
@@ -69,12 +98,24 @@ namespace VPP
          * The admin state of the interface
          */
         struct admin_state_t: Enum<admin_state_t>
-        {            
+        {
+            /**
+             * Admin DOWN state
+             */
             const static admin_state_t DOWN;
+            /**
+             * Admin UP state
+             */
             const static admin_state_t UP;
 
+            /**
+             * Convert VPP's numerical value to Enum type
+             */
             static admin_state_t from_int(uint8_t val);
         private:
+            /**
+             * Private constructor taking the value and the string name
+             */
             admin_state_t(int v, const std::string &s);
         };
 
@@ -83,11 +124,23 @@ namespace VPP
          */
         struct oper_state_t: Enum<oper_state_t>
         {            
+            /**
+             * Operational DOWN state
+             */
             const static oper_state_t DOWN;
+            /**
+             * Operational UP state
+             */
             const static oper_state_t UP;
 
+            /**
+             * Convert VPP's numerical value to Enum type
+             */
             static oper_state_t from_int(uint8_t val);
         private:
+            /**
+             * Private constructor taking the value and the string name
+             */
             oper_state_t(int v, const std::string &s);
         };
 
@@ -97,16 +150,30 @@ namespace VPP
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state);
+        /**
+         * Construct an interface object from a representation read from VPP
+         */
         Interface(const vapi_payload_sw_interface_details &vd);
+        /**
+         * Construct a new object matching the desried state mapped
+         * to a specific RouteDomain
+         */
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state,
                   const RouteDomain &rd);
+        /**
+         * Destructor
+         */
         virtual ~Interface();
+
+        /**
+         * Copy Constructor
+         */
         Interface(const Interface& o);
 
         /**
-         * Debug rpint function
+         * convert to string format for debug purposes
          */
         virtual std::string to_string(void) const;
 
@@ -136,55 +203,121 @@ namespace VPP
         void set(const oper_state_t &state);
 
         /**
-         * A functor class that creates an interface
+         * A base command class that creates an interface
          */
         class CreateCmd: public RpcCmd<HW::Item<handle_t>,
                                        HW::Item<handle_t>>
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             * and the name of the interface to create
+             */
             CreateCmd(HW::Item<handle_t> &item,
-                      const std::string &name);
+                         const std::string &name);
+            /**
+             * Destructor
+             */virtual ~CreateCmd();
 
+            /**
+             * Comparison operator - only used for UT
+             */
             virtual bool operator==(const CreateCmd&i) const;
 
+            /**
+             * Indiate the command is complete and the interface can be
+             * added to the DB based on VPP's handle
+             */
             void complete();
         protected:
+            /**
+             * The name of the interface to be created
+             */
             const std::string &m_name;
         };
 
+        /**
+         * A command class to create Loopback interfaces in VPP
+         */
         class LoopbackCreateCmd: public CreateCmd
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             * and the name of the interface to create
+             */
             LoopbackCreateCmd(HW::Item<handle_t> &item,
                               const std::string &name);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const LoopbackCreateCmd&i) const;
         };
 
+        /**
+         * A command class to create af_packet interfaces in VPP
+         */
         class AFPacketCreateCmd: public CreateCmd
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             * and the name of the interface to create
+             */
             AFPacketCreateCmd(HW::Item<handle_t> &item,
                               const std::string &name);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const AFPacketCreateCmd&i) const;
         };
 
+        /**
+         * A command class to create TAP interfaces in VPP
+         */
         class TapCreateCmd: public CreateCmd
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             * and the name of the interface to create
+             */
             TapCreateCmd(HW::Item<handle_t> &item,
                          const std::string &name);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const TapCreateCmd&i) const;
         };
 
@@ -197,44 +330,94 @@ namespace VPP
             DeleteCmd(HW::Item<handle_t> &item);
             DeleteCmd(HW::Item<handle_t> &item,
                       const std::string &name);
+            virtual ~DeleteCmd();
 
+            /**
+             * Comparison operator - only used for UT
+             */
             virtual bool operator==(const DeleteCmd&i) const;
             void complete();
         protected:
             const std::string m_name;
         };
 
+        /**
+         * A command class to delete loopback interfaces in VPP
+         */
         class LoopbackDeleteCmd: public DeleteCmd
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             */
             LoopbackDeleteCmd(HW::Item<handle_t> &item);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const LoopbackDeleteCmd&i) const;
         };
 
+        /**
+         * A command class to delete af-packet interfaces in VPP
+         */
         class AFPacketDeleteCmd: public DeleteCmd
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             * and the name of the interface to delete
+             */
             AFPacketDeleteCmd(HW::Item<handle_t> &item,
                               const std::string &name);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const AFPacketDeleteCmd&i) const;
         };
 
+        /**
+         * A command class to delete TAP interfaces in VPP
+         */
         class TapDeleteCmd: public DeleteCmd
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             */
             TapDeleteCmd(HW::Item<handle_t> &item);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const TapDeleteCmd&i) const;
         };
 
@@ -244,66 +427,141 @@ namespace VPP
         class StateChangeCmd: public RpcCmd<HW::Item<admin_state_t>, rc_t>
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             * and the name handle of the interface whose state is to change
+             */
             StateChangeCmd(HW::Item<admin_state_t> &s,
-                            const HW::Item<handle_t> &h);
+                           const HW::Item<handle_t> &h);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const StateChangeCmd&i) const;
         private:
+            /**
+             * the handle of the interface to update
+             */
             const HW::Item<handle_t> &m_hdl;
         };
 
         /**
-         * A functor class that binds an interface to an L3 table
+         * A command class that binds an interface to an L3 table
          */
         class SetTableCmd: public RpcCmd<HW::Item<Route::table_id_t>, rc_t>
         {
         public:
+            /**
+             * Constructor taking the HW::Item to update
+             * and the name handle of the interface whose table is to change
+             */
             SetTableCmd(HW::Item<Route::table_id_t> &item,
                          const HW::Item<handle_t> &h);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const SetTableCmd&i) const;
         private:
+            /**
+             * the handle of the interface to update
+             */
             const HW::Item<handle_t> &m_hdl;
         };
 
         /**
-         * A class that listens to Interface Events
+         * Forward declaration of the Evnet command
          */
         class EventsCmd;
+
+        /**
+         * A class that listens to Interface Events
+         */
         class EventListener
         {
         public:
+            /**
+             * Default Constructor
+             */
             EventListener();
+
+            /**
+             * Virtual function called on the listener when the command has data
+             * ready to process
+             */
             virtual void handle_interface_event(EventsCmd *cmd) = 0;
 
-            HW::Item<bool> & status();
+            /**
+             * Return the HW::item representing the status
+             */
+            HW::Item<bool> &status();
+
         protected:
+            /**
+             * The status of the subscription
+             */
             HW::Item<bool> m_status;
         };
 
         /**
-         * A functor class represents our desire to recieve interface events
+         * A command class represents our desire to recieve interface events
          */
         class EventsCmd: public RpcCmd<HW::Item<bool>, rc_t>,
                          public EventCmd<vapi_msg_sw_interface_set_flags>
         {
         public:
+            /**
+             * Constructor taking the listner to notify
+             */
             EventsCmd(EventListener &el);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+
+            /**
+             * Retires the command - unsubscribe from the events.
+             */
             void retire();
+
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const EventsCmd&i) const;
 
+            /**
+             * Called when it's time to poke the listeners
+             */
             void notify(vapi_msg_sw_interface_set_flags *data);
         private:
+            /**
+             * The listeners to notify when data/events arrive
+             */
             EventListener & m_listener;
         };
 
@@ -313,14 +571,24 @@ namespace VPP
         class DumpInterfaceCmd: public DumpCmd<vapi_payload_sw_interface_details>
         {
         public:
+            /**
+             * Default Constructor
+             */
             DumpInterfaceCmd();
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const DumpInterfaceCmd&i) const;
-        private:
-            HW::Item<bool> item;
         };
 
         /**
@@ -350,7 +618,15 @@ namespace VPP
          * The the instance of the Interface in the Object-Model
          */
         static std::shared_ptr<Interface> find(const Interface &temp);
+
+        /**
+         * The the instance of the Interface in the Object-Model by handle
+         */
         static std::shared_ptr<Interface> find(const handle_t &h);
+
+        /**
+         * The the instance of the Interface in the Object-Model by name
+         */
         static std::shared_ptr<Interface> find(const std::string &s);
 
     protected:
@@ -359,15 +635,31 @@ namespace VPP
          */
         HW::Item<handle_t> m_hdl;
 
+        /**
+         * Find or Add an interface to the instance store
+         */
         static std::shared_ptr<Interface> find_or_add(const Interface &temp);
+
+        /**
+         * Insert an interface into the instance store
+         */
         static void insert(const Interface &temp, std::shared_ptr<Interface> sp);
+
+        /**
+         * release/remove an interface form the instance store
+         */
         void release();
 
         /**
-         * Virtual functions to construct an interface create/delete commands.
+         * Virtual functions to construct an interface create commands.
          * Overridden in derived classes like the SubInterface
          */
         virtual Cmd* mk_create_cmd();
+
+        /**
+         * Virtual functions to construct an interface delete commands.
+         * Overridden in derived classes like the SubInterface
+         */
         virtual Cmd* mk_delete_cmd();
 
         /**
@@ -428,10 +720,26 @@ namespace VPP
          */
         static std::map<handle_t, std::weak_ptr<Interface>> m_hdl_db;
 
+        /**
+         * Add an interface to the DB keyed on handle
+         */
         static void add(const handle_t &hdl, std::shared_ptr<Interface> sp);
+
+        /**
+         * remove an interface from the DB keyed on handle
+         */
         static void remove(const handle_t &hdl);
 
+        /**
+         * Create commands are firends so they can add interfaces to the
+         * handle store.
+         */
         friend class CreateCmd;
+
+        /**
+         * Create commands are firends so they can remove interfaces from the
+         * handle store.
+         */
         friend class DeleteCmd;
     };
 };

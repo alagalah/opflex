@@ -14,22 +14,39 @@
 #include "logging.h"
 
 #include "VppCmd.hpp"
+#include "VppHW.hpp"
 
 namespace VPP
 {
+    /**
+     * A base class for VPP dump commands.
+     * Dump commands are one of the sub-set of command types to VPP. Here the client
+     * makes a read request on the resource and VPP responds with all the records.
+     * This command is executed synchronously. Once complete the client can 'pop'
+     * the records from the command object
+     */
     template <typename T>
     class DumpCmd: public Cmd
     {
     public:
+        /**
+         * Default Constructor
+         */
         DumpCmd():
             Cmd()
         {
         }
 
+        /**
+         * Destructor
+         */
         virtual ~DumpCmd()
         {
         }
 
+        /**
+         * Pop one of the recieved records
+         */
         bool pop(T &data)
         {
             if (!m_events.size())
@@ -43,20 +60,32 @@ namespace VPP
             return true;
         }
 
+        /**
+         * Wait for the issue of the command to complete
+         */
         rc_t wait()
         {
             return (m_promise.get_future().get());
         }
 
-        void succeeded()
-        {
-        }
-
+        /**
+         * convenient typedef of the reacord type
+         */
         typedef T details_type;
 
     protected:
+        /**
+         * The underlying promise that implements the synchornous nature
+         * of the command issue
+         */
         std::promise<rc_t> m_promise;
 
+        /**
+         * Callback function registered with the VPP API that will be invoked for
+         * each record recieved.
+         * the callback context passed is always the command object that issued
+         * the command.
+         */
         template <typename DERIVED>
         static vapi_error_e callback(vapi_ctx_t ctx,
                                      void *callback_ctx,
@@ -64,7 +93,6 @@ namespace VPP
                                      bool is_last,
                                      T *reply)
         {
-            //Cmd *c = static_cast<Cmd*>(callback_ctx);
             DERIVED *cmd = static_cast<DERIVED*>(callback_ctx);
 
             LOG(ovsagent::INFO) << "last:" << is_last << " " << cmd->to_string();
@@ -85,6 +113,18 @@ namespace VPP
          * completes. save them in the order they arrived.
          */
         std::queue<T> m_events;
+
+        /**
+         * Dump commands should not be issued whilst the HW is disabled
+         */
+        void succeeded()
+        {
+        }
+
+        /**
+         * The HW::CmdQ is a friend so it can call suceedded.
+         */
+        friend class HW::CmdQ;
    };
 };
 

@@ -39,6 +39,13 @@ VxlanTunnel::endpoint_t::endpoint_t():
 {
 }
 
+bool VxlanTunnel::endpoint_t::operator==(const endpoint_t& other) const
+{
+    return ((src == other.src) &&
+            (dst == other.dst) &&
+            (vni == other.vni));
+}
+
 bool VxlanTunnel::endpoint_t::operator<(const VxlanTunnel::endpoint_t &o) const
 {
     if (src < o.src) return true;
@@ -106,7 +113,7 @@ void VxlanTunnel::sweep()
 {
     if (m_hdl)
     {
-        HW::enqueue(new DeleteCmd(m_hdl, m_tep.src, m_tep.dst, m_tep.vni));
+        HW::enqueue(new DeleteCmd(m_hdl, m_tep));
     }
     HW::write();
 }
@@ -138,7 +145,7 @@ void VxlanTunnel::update(const VxlanTunnel &desired)
      */
     if (!m_hdl)
     {
-        HW::enqueue(new CreateCmd(m_hdl, m_tep.src, m_tep.dst, m_tep.vni));
+        HW::enqueue(new CreateCmd(m_hdl, m_tep));
     }
 }
 

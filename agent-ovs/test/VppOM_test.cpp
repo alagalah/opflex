@@ -524,14 +524,14 @@ BOOST_AUTO_TEST_CASE(vxlan) {
      */
 
     // VXLAN create
-    boost::asio::ip::address src = boost::asio::ip::address::from_string("10.10.10.10");
-    boost::asio::ip::address dst = boost::asio::ip::address::from_string("10.10.10.11");
-    uint32_t vni;
+    VxlanTunnel::endpoint_t ep(boost::asio::ip::address::from_string("10.10.10.10"),
+                               boost::asio::ip::address::from_string("10.10.10.11"),
+                               322);
 
-    VxlanTunnel vxt(src, dst, vni);
+    VxlanTunnel vxt(ep.src, ep.dst, ep.vni);
 
     HW::Item<handle_t> hw_vxt(3, rc_t::OK);
-    ADD_EXPECT(VxlanTunnel::CreateCmd(hw_vxt, src, dst, vni));
+    ADD_EXPECT(VxlanTunnel::CreateCmd(hw_vxt, ep));
 
     TRY_CHECK_RC(OM::write(franz, vxt));
 
@@ -557,7 +557,7 @@ BOOST_AUTO_TEST_CASE(vxlan) {
     HW::Item<handle_t> hw_vxtdel(3, rc_t::NOOP);
     ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
-    ADD_EXPECT(VxlanTunnel::DeleteCmd(hw_vxtdel, src, dst, vni));
+    ADD_EXPECT(VxlanTunnel::DeleteCmd(hw_vxtdel, ep));
     TRY_CHECK(OM::remove(franz));
 }
 

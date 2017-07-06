@@ -70,6 +70,10 @@ namespace VPP
     struct handle_t
     {
         handle_t(int value);
+
+        /**
+         * convert to string format for debug purposes
+         */
         std::string to_string() const;
         bool operator==(const handle_t &other) const;
 

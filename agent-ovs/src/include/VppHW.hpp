@@ -106,6 +106,9 @@ namespace VPP
                 return (need_hw_update);
             }
 
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const
             {
                 std::ostringstream os;
