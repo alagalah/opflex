@@ -156,14 +156,12 @@ namespace ovsagent {
 
     void VppManager::handleUplinkConfigure()
     {
-        m_uplink.configure();
+        std::string intfName{"tap0"};
+        m_uplink.configure(intfName);
     }
 
-
     void VppManager::handleBoot() {
-        std::string intfName{"tap0"};
         m_boot.dump();
-        m_boot.createControlInterface(intfName);
     }
 
     void VppManager::registerModbListeners() {
