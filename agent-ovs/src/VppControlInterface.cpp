@@ -33,7 +33,6 @@ ControlInterface::ControlInterface(const std::string &name,
                                    admin_state_t state,
                                    Route::prefix_t prefix):
     Interface(name, type, state),
-    m_interface(Interface(name, type, state)),
     m_prefix(prefix)
 {
 }
@@ -49,25 +48,10 @@ ControlInterface::~ControlInterface()
 
 ControlInterface::ControlInterface(const ControlInterface& o):
     Interface(o),
-    m_interface(o.m_interface),
     m_prefix(o.m_prefix)
 {
 }
-/*
-ControlInterface::ControlInterface(const std::string &name,
-                  type_t type,
-                  admin_state_t state,
-                  ip_addr_t ip):
-    m_name(name),
-    m_state(state),
-    m_type(type),
-    m_hdl(handle_t::INVALID),
-    m_table_id(Route::DEFAULT_TABLE),
-    m_oper(oper_state_t::DOWN)
-    m_ip(ip)
-{
-}
-*/
+
 std::shared_ptr<ControlInterface> ControlInterface::find_or_add(const ControlInterface &temp)
 {
     std::shared_ptr<ControlInterface> sp = m_db.find_or_add(temp.key(), temp);
@@ -84,7 +68,7 @@ std::shared_ptr<ControlInterface> ControlInterface::find(const ControlInterface 
 
 Cmd* ControlInterface::mk_create_cmd()
 {
-    return (new CreateCmd(m_hdl, m_interface, m_prefix));
+    return (new CreateCmd(m_hdl, name(), m_prefix));
 }
 
 Cmd* ControlInterface::mk_delete_cmd()
@@ -93,10 +77,10 @@ Cmd* ControlInterface::mk_delete_cmd()
 }
 
 ControlInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
-                                       Interface &interface,
+                                       const std::string &name,
                                        Route::prefix_t &prefix):
     RpcCmd(item),
-    m_interface(interface),
+    m_name(name),
     m_prefix(prefix)
 {
 }
@@ -108,8 +92,8 @@ rc_t ControlInterface::CreateCmd::issue(Connection &con)
     req = vapi_alloc_tap_connect(con.ctx());
     memset(req->payload.tap_name, 0,
                     sizeof(req->payload.tap_name));
-    memcpy(req->payload.tap_name, m_interface.name().c_str(),
-           std::min(m_interface.name().length(),
+    memcpy(req->payload.tap_name, m_name.c_str(),
+           std::min(m_name.length(),
                     sizeof(req->payload.tap_name)));
     if (m_prefix != Route::prefix_t::ZERO) {
         if (m_prefix.address().is_v6()) {
@@ -138,7 +122,6 @@ std::string ControlInterface::CreateCmd::to_string() const
 {
     std::ostringstream s;
     s << "tap-intf-create: " << m_hw_item.to_string()
-      << " interface:" << m_interface
       << " ip-prefix:" << m_prefix.to_string(); 
 
     return (s.str());
