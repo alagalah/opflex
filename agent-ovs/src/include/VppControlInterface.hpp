@@ -38,7 +38,7 @@ namespace VPP
         {
         public:
             CreateCmd(HW::Item<handle_t> &item,
-                      Interface &interface,       
+                      const std::string &name,
                       Route::prefix_t &prefix);
 
             rc_t issue(Connection &con);
@@ -46,7 +46,7 @@ namespace VPP
 
             bool operator==(const CreateCmd&i) const;
         private:
-            Interface &m_interface;
+            const std::string &m_name;
             Route::prefix_t &m_prefix;
         };
 
@@ -89,11 +89,6 @@ namespace VPP
          */
         Route::prefix_t m_prefix;
 
-        /**
-         * Interface
-         */
-        Interface m_interface;
-         
         /**
          * A map of all control-interfaces key against the control-interface's name
          */
