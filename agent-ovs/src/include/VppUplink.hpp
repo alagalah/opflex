@@ -42,10 +42,13 @@ namespace VPP
 
         void set(const std::string &uplink,
                  uint16_t vlan,
-                 Route::prefix_t &uplink_prefix,
                  const std::string &name,
                  const boost::asio::ip::address &ip,
                  uint16_t port);
+
+        void set(const std::string &uplink,
+                 uint16_t vlan,
+                 const std::string &name);
 
         /**
          * make the control channel/interfaces
@@ -69,7 +72,6 @@ namespace VPP
          */
         std::string m_iface;
         uint16_t m_vlan;
-        Route::prefix_t m_prefix;
     };
 };
 

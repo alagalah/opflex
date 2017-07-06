@@ -59,7 +59,6 @@ namespace ovsagent {
         static const std::string ENCAP_VLAN("encap.vlan");
         static const std::string UPLINK_IFACE("uplink-iface");
         static const std::string UPLINK_VLAN("uplink-vlan");
-        static const std::string UPLINK_PREFIX("uplink-prefix");
         static const std::string ENCAP_IFACE("encap-iface");
         static const std::string REMOTE_IP("remote-ip");
         static const std::string REMOTE_PORT("remote-port");
@@ -68,17 +67,16 @@ namespace ovsagent {
 
         LOG(INFO) << "Bridge Name " << bridgeName;
 
-        std::string iface;
         auto vxlan = properties.get_child_optional(ENCAP_VXLAN);
         auto vlan = properties.get_child_optional(ENCAP_VLAN);
 
         if (vlan)
         {
-            /* encapType = IntFlowManager::ENCAP_VLAN; */
-            /* encapIface = vlan.get().get<std::string>(ENCAP_IFACE, ""); */
-            /* count += 1; */
+            vppManager.uplink().set(vlan.get().get<std::string>(UPLINK_IFACE, ""),
+                                    vlan.get().get<uint16_t>(UPLINK_VLAN, 0),
+                                    vlan.get().get<std::string>(ENCAP_IFACE, ""));
         }
-        if (vxlan)
+        else if (vxlan)
         {
             boost::asio::ip::address remote_ip;
             boost::system::error_code ec;
@@ -86,8 +84,6 @@ namespace ovsagent {
             remote_ip =
                 boost::asio::ip::address::from_string(
                     vxlan.get().get<std::string>(REMOTE_IP, ""));
-            VPP::Route::prefix_t pfx = VPP::Route::prefix_t::from_string(
-                vxlan.get().get<std::string>(UPLINK_PREFIX, ""));
 
             if (ec)
             {
@@ -100,7 +96,6 @@ namespace ovsagent {
             {
                 vppManager.uplink().set(vxlan.get().get<std::string>(UPLINK_IFACE, ""),
                                         vxlan.get().get<uint16_t>(UPLINK_VLAN, 0),
-                                        pfx,
                                         vxlan.get().get<std::string>(ENCAP_IFACE, ""),
                                         remote_ip,
                                         vxlan.get().get<uint16_t>(REMOTE_PORT, 4789));

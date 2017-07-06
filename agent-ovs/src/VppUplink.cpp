@@ -97,25 +97,25 @@ void Uplink::configure()
      */
     DhcpConfig dc(subitf, "agent-opflex");
     VPP::OM::write(UPLINK_KEY, dc);
-    
-    /**
-     * Add the prefix to the control interface
-     */
-    /* L3Config l3(itf, m_prefix); */
-    /* VPP::OM::write(UPLINK_KEY, l3); */
 }
 
 void Uplink::set(const std::string &uplink,
                  uint16_t uplink_vlan,
-                 Route::prefix_t &uplink_prefix,
                  const std::string &encap_name,
                  const boost::asio::ip::address &remote_ip,
                  uint16_t port)
 {
     m_type = VXLAN;
     m_vxlan.dst = remote_ip;
-    m_vxlan.src = uplink_prefix.address();
     m_iface = uplink;
     m_vlan = uplink_vlan;
-    m_prefix = uplink_prefix;
+}
+
+void Uplink::set(const std::string &uplink,
+                 uint16_t uplink_vlan,
+                 const std::string &encap_name)
+{
+    m_type = VLAN;
+    m_iface = uplink;
+    m_vlan = uplink_vlan;
 }

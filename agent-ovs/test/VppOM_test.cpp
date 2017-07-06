@@ -556,8 +556,8 @@ BOOST_AUTO_TEST_CASE(vxlan) {
     delete l2itf;
     HW::Item<handle_t> hw_vxtdel(3, rc_t::NOOP);
     ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
-    ADD_EXPECT(VxlanTunnel::DeleteCmd(hw_vxtdel, src, dst, vni));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
+    ADD_EXPECT(VxlanTunnel::DeleteCmd(hw_vxtdel, src, dst, vni));
     TRY_CHECK(OM::remove(franz));
 }
 
