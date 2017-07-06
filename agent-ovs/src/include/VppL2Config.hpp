@@ -36,8 +36,6 @@ namespace VPP
          */
         L2Config(const Interface &itf,
                  const BridgeDomain &bd);
-        L2Config(const VxlanTunnel &itf,
-                 const BridgeDomain &bd);
         ~L2Config();
         L2Config(const L2Config& o);
 
