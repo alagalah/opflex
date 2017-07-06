@@ -19,8 +19,3 @@ std::ostream & VPP::operator<<(std::ostream &os, const Cmd &cmd)
 
     return (os);
 }
-
-void Cmd::retire()
-{
-}
-

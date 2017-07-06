@@ -24,6 +24,9 @@ extern "C"
 
 namespace VPP
 {
+    /**
+     * Forward declaration of the VPP::Connection class
+     */
     class Connection;
 
     /**
@@ -32,19 +35,34 @@ namespace VPP
     class Cmd
     {
     public:
+        /**
+         * Default constructor
+         */
         Cmd()
         {
         }
+        /**
+         * Virtual destructor
+         */
         virtual ~Cmd()
         {
         }
 
+        /**
+         * Issue the command to VPP/HW
+         */
         virtual rc_t issue(Connection &con) = 0;
-        virtual void  succeeded() = 0;
-        virtual void retire();
 
+        /**
+         * Invoked on a Command when the HW queue is disabled to indicate
+         * that the commnad can be considered successful
+         */
+        virtual void succeeded() = 0;
+
+        /**
+         * convert to string format for debug purposes
+         */
         virtual std::string to_string() const = 0;
-
     };
 
     /**

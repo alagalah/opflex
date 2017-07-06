@@ -10,12 +10,12 @@
 
 using namespace VPP;
 
-ObjectRefList& KeyDB::find(KEY &k)
+ObjectRefList& KeyDB::find(const KEY &k)
 {
     return (m_objs[k]);
 }
 
-void KeyDB::flush(KEY &k)
+void KeyDB::flush(const KEY &k)
 {
     m_objs.erase(m_objs.find(k));
 }

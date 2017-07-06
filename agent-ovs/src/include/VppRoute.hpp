@@ -53,6 +53,9 @@ namespace VPP
             bool operator!=(const prefix_t &o) const;
             prefix_t & operator=(const prefix_t &o) const;
 
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
             static prefix_t from_string(const std::string &str);
 

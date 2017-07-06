@@ -23,6 +23,10 @@ Interface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
 {
 }
 
+Interface::CreateCmd::~CreateCmd()
+{
+}
+
 bool Interface::CreateCmd::operator==(const CreateCmd& other) const
 {
     return (m_name == other.m_name);
@@ -36,11 +40,6 @@ void Interface::CreateCmd::complete()
     {
         add(m_hw_item.data(), sp);
     }
-}
-
-void Interface::DeleteCmd::complete()
-{
-    remove(m_hw_item.data());
 }
 
 Interface::LoopbackCreateCmd::LoopbackCreateCmd(HW::Item<handle_t> &item,
@@ -183,6 +182,15 @@ Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
 {
 }
 
+Interface::DeleteCmd::~DeleteCmd()
+{
+}
+
+void Interface::DeleteCmd::complete()
+{
+    remove(m_hw_item.data());
+}
+
 Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item,
                                 const std::string &name):
     RpcCmd(item),
@@ -205,6 +213,7 @@ rc_t Interface::LoopbackDeleteCmd::issue(Connection &con)
     vapi_msg_delete_loopback *req;
 
     req = vapi_alloc_delete_loopback(con.ctx());
+    req->payload.sw_if_index = m_hw_item.data().value();
 
     VAPI_CALL(vapi_delete_loopback(
                   con.ctx(), req,
@@ -353,7 +362,22 @@ bool Interface::SetTableCmd::operator==(const SetTableCmd& other) const
 
 rc_t Interface::SetTableCmd::issue(Connection &con)
 {
-    // finally... call VPP
+    vapi_msg_sw_interface_set_table *req;
+
+    req = vapi_alloc_sw_interface_set_table(con.ctx());
+    req->payload.sw_if_index = m_hdl.data().value();
+    req->payload.is_ipv6 = 0;
+    req->payload.vrf_id = m_hw_item.data();
+
+    VAPI_CALL(vapi_sw_interface_set_table(con.ctx(),
+                                          req,
+                                          RpcCmd::callback<
+                                              vapi_payload_sw_interface_set_table_reply,
+                                          SetTableCmd>,
+                                          this));
+
+    m_hw_item.set(wait());
+
     return (rc_t::OK);
 }
 

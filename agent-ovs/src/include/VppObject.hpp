@@ -24,7 +24,7 @@ namespace VPP
     {
     public:
         /**
-         * Debug rpint function
+         * convert to string format for debug purposes
          */
         virtual std::string to_string() const = 0;
 

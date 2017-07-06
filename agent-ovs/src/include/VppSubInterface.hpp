@@ -44,9 +44,19 @@ namespace VPP
                       const handle_t &parent,
                       uint16_t vlan);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const CreateCmd&i) const;
         private:
             const handle_t &m_parent;
@@ -61,9 +71,19 @@ namespace VPP
         public:
             DeleteCmd(HW::Item<handle_t> &item);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const DeleteCmd&i) const;
         };
 

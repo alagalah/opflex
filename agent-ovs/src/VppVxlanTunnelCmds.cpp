@@ -20,21 +20,15 @@ extern "C"
 using namespace VPP;
 
 VxlanTunnel::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
-                                  const boost::asio::ip::address &src,
-                                  const boost::asio::ip::address &dst,
-                                  uint32_t vni):
+                                  const endpoint_t &ep):
     RpcCmd(item),
-    m_src(src),
-    m_dst(dst),
-    m_vni(vni)
+    m_ep(ep)
 {
 }
 
 bool VxlanTunnel::CreateCmd::operator==(const CreateCmd& other) const
 {
-    return ((m_src == other.m_src) &&
-            (m_dst == other.m_dst) &&
-            (m_vni == other.m_vni));
+    return (m_ep == other.m_ep);
 }
 
 rc_t VxlanTunnel::CreateCmd::issue(Connection &con)
@@ -44,12 +38,12 @@ rc_t VxlanTunnel::CreateCmd::issue(Connection &con)
     req = vapi_alloc_vxlan_add_del_tunnel(con.ctx());
     req->payload.is_add = 1;
     req->payload.is_ipv6 = 0;
-    to_bytes(m_src, &req->payload.is_ipv6, req->payload.src_address);
-    to_bytes(m_dst, &req->payload.is_ipv6, req->payload.dst_address);
+    to_bytes(m_ep.src, &req->payload.is_ipv6, req->payload.src_address);
+    to_bytes(m_ep.dst, &req->payload.is_ipv6, req->payload.dst_address);
     req->payload.mcast_sw_if_index = ~0;
     req->payload.encap_vrf_id = 0;
     req->payload.decap_next_index = ~0;
-    req->payload.vni = m_vni;
+    req->payload.vni = m_ep.vni;
 
     VAPI_CALL(vapi_vxlan_add_del_tunnel(
                   con.ctx(),
@@ -68,29 +62,21 @@ std::string VxlanTunnel::CreateCmd::to_string() const
 {
     std::ostringstream s;
     s << "vxlan-tunnel-create: " << m_hw_item.to_string()
-      << " src:" << m_src.to_string()
-      << " dst:" << m_dst.to_string()
-      << " vni:" << m_vni;
+      << " ep:" << m_ep.to_string();
 
     return (s.str());
 }
 
 VxlanTunnel::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item,
-                                  const boost::asio::ip::address &src,
-                                  const boost::asio::ip::address &dst,
-                                  uint32_t vni):
+                                  const endpoint_t &ep):
     RpcCmd(item),
-    m_src(src),
-    m_dst(dst),
-    m_vni(vni)
+    m_ep(ep)
 {
 }
 
 bool VxlanTunnel::DeleteCmd::operator==(const DeleteCmd& other) const
 {
-    return ((m_src == other.m_src) &&
-            (m_dst == other.m_dst) &&
-            (m_vni == other.m_vni));
+    return (m_ep == other.m_ep);
 }
 
 rc_t VxlanTunnel::DeleteCmd::issue(Connection &con)
@@ -100,12 +86,12 @@ rc_t VxlanTunnel::DeleteCmd::issue(Connection &con)
     req = vapi_alloc_vxlan_add_del_tunnel(con.ctx());
     req->payload.is_add = 0;
     req->payload.is_ipv6 = 0;
-    to_bytes(m_src, &req->payload.is_ipv6, req->payload.src_address);
-    to_bytes(m_dst, &req->payload.is_ipv6, req->payload.dst_address);
+    to_bytes(m_ep.src, &req->payload.is_ipv6, req->payload.src_address);
+    to_bytes(m_ep.dst, &req->payload.is_ipv6, req->payload.dst_address);
     req->payload.mcast_sw_if_index = ~0;
     req->payload.encap_vrf_id = 0;
     req->payload.decap_next_index = ~0;
-    req->payload.vni = m_vni;
+    req->payload.vni = m_ep.vni;
 
     VAPI_CALL(vapi_vxlan_add_del_tunnel(
                   con.ctx(),
@@ -125,9 +111,7 @@ std::string VxlanTunnel::DeleteCmd::to_string() const
 {
     std::ostringstream s;
     s << "vxlan-tunnel-delete: " << m_hw_item.to_string()
-      << " src:" << m_src.to_string()
-      << " dst:" << m_dst.to_string()
-      << " vni:" << m_vni;
+      << " ep:" << m_ep.to_string();
 
     return (s.str());
 }

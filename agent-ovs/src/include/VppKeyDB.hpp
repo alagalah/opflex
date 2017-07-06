@@ -15,6 +15,12 @@
 
 #include "VppObject.hpp"
 
+/**
+ * In the opflex world each entity is known by a URI which can be converted
+ * into a string. We use the string type, since it allows us to keep this VPP
+ * specific code independent of opflex types. I might consider making this
+ * a template parameter one day...
+ */
 typedef const std::string KEY;
 
 namespace VPP
@@ -23,19 +29,28 @@ namespace VPP
      * A convenitent typedef for set of objects owned.
      *  A set of shared pointers. This is how the reference counting
      *  of an object in the model it managed. Once all these shared ptr
-     *  and hance references are gone, the object is deleted and any state
+     *  and hence references are gone, the object is deleted and any state
      *  in VPP is removed.
      */
     typedef std::set<ObjectRef> ObjectRefList;
 
     /**
-     * A DB storing the objects that each owner owns.
+     * A DB storing the objects that each owner/key owns.
+     *  Each object is reference counter by each key that owns it. When
+     * no more references exist the object is destroyed.
      */
     class KeyDB
     {
     public:
-        ObjectRefList& find(KEY &k);
-        void flush(KEY &k);
+        /**
+         * Find the objects owned by the key
+         */
+        ObjectRefList& find(const KEY &k);
+
+        /**
+         * flush, i.e. un-reference, all objects owned by the key
+         */
+        void flush(const KEY &k);
 
     private:
         /**

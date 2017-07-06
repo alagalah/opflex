@@ -40,7 +40,7 @@ namespace VPP
         L2Config(const L2Config& o);
 
         /**
-         * Debug print function
+         * convert to string format for debug purposes
          */
         std::string to_string() const;
 
@@ -55,9 +55,18 @@ namespace VPP
                     uint32_t bd,
                     bool is_bvi);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const BindCmd&i) const;
         private:
             const handle_t m_itf;
@@ -76,9 +85,18 @@ namespace VPP
                       uint32_t bd,
                       bool is_bvi);
 
+            /**
+             * Issue the command to VPP/HW
+             */
             rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
             std::string to_string() const;
 
+            /**
+             * Comparison operator - only used for UT
+             */
             bool operator==(const UnbindCmd&i) const;
         private:
             const handle_t m_itf;

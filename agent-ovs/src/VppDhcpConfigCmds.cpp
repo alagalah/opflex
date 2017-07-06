@@ -141,7 +141,7 @@ rc_t DhcpConfig::EventsCmd::issue(Connection &con)
                                                 this);
 
     /*
-     * return i-progress so the command stays in the pending list.
+     * return in-progress so the command stays in the pending list.
      */
     return (rc_t::INPROGRESS);
 }
