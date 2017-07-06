@@ -127,9 +127,9 @@ rc_t ControlInterface::CreateCmd::issue(Connection &con)
     vapi_tap_connect(con.ctx(), req,
                           Interface::create_callback<
                           vapi_payload_tap_connect_reply,
-                          TapCreateCmd>,
+                          CreateCmd>,
                           this);
-    wait();
+   m_hw_item =  wait();
 
     return rc_t::OK;
 }
