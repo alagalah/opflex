@@ -11,6 +11,8 @@
 
 #include <future>
 
+#include "logging.h"
+
 #include "VppCmd.hpp"
 
 namespace VPP
@@ -61,6 +63,7 @@ namespace VPP
             //Cmd *c = static_cast<Cmd*>(callback_ctx);
             DERIVED *cmd = static_cast<DERIVED*>(callback_ctx);
 
+            LOG(ovsagent::INFO) << "last:" << is_last << " " << cmd->to_string();
             if (is_last)
             {
                 cmd->m_promise.set_value(rc_t::OK);

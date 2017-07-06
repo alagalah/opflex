@@ -30,14 +30,6 @@ L2Config::L2Config(const Interface &itf,
 {
 }
 
-L2Config::L2Config(const VxlanTunnel &vxt,
-                   const BridgeDomain &bd):
-    m_itf(VxlanTunnel::find(vxt)),
-    m_bd(BridgeDomain::find(bd)),
-    m_binding(0)
-{
-}
-
 L2Config::L2Config(const L2Config& o):
     m_itf(o.m_itf),
     m_bd(o.m_bd),
