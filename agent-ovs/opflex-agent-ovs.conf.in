@@ -248,9 +248,6 @@
         //             // Set to zero or omit if the uplink is untagged.
         //             "uplink-vlan": 4093,
 	//
-	//	       // The IP prefix on the uplink
-        //             "uplink-prefix": "10.0.0.44/8",
-        //
         //             // The IP address used for the destination IP in
         //             // the encapsulated traffic.  This should be an
         //             // anycast IP address understood by the upstream
@@ -259,6 +256,17 @@
         //
         //             // UDP port number of the encapsulated traffic.
         //              "remote-port": 4789
+        //         }
+        //         // Encapsulate traffic with a locally-significant VLAN
+        //         // tag
+        //         "vlan" : {
+        //              "encap-iface": "team0"
+        //             // The name of the interface VPP will consue for uplink
+        //             "uplink-iface": "team0",
+        //
+        //             // The vlan tag, used on the uplink interface.
+        //             // for control traffic.
+        //             "uplink-vlan": 4093,
         //         }
         //    }
         //}
