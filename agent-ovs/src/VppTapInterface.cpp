@@ -21,18 +21,12 @@ extern "C"
 using namespace VPP;
 
 /**
- * A DB of all the tap-interfaces, key on the name
- */
-InstDB<const std::string, TapInterface> TapInterface::m_db;
-
-/**
  * Construct a new object matching the desried state
  */
 TapInterface::TapInterface(const std::string &name,
-                                   type_t type,
-                                   admin_state_t state,
-                                   Route::prefix_t prefix):
-    Interface(name, type, state),
+                           admin_state_t state,
+                           Route::prefix_t prefix):
+    Interface(name, type_t::TAP, state),
     m_prefix(prefix)
 {
 }
@@ -40,30 +34,13 @@ TapInterface::TapInterface(const std::string &name,
 TapInterface::~TapInterface()
 {
     sweep();
-
-    // not in the DB anymore.
-    Interface::release();
-    m_db.release(name(), this);
+    release();
 }
 
 TapInterface::TapInterface(const TapInterface& o):
     Interface(o),
     m_prefix(o.m_prefix)
 {
-}
-
-std::shared_ptr<TapInterface> TapInterface::find_or_add(const TapInterface &temp)
-{
-    std::shared_ptr<TapInterface> sp = m_db.find_or_add(temp.key(), temp);
-
-    Interface::insert(temp, sp);
-
-    return (sp);
-}
-
-std::shared_ptr<TapInterface> TapInterface::find(const TapInterface &temp)
-{
-    return (m_db.find(temp.name()));
 }
 
 Cmd* TapInterface::mk_create_cmd()
@@ -74,6 +51,16 @@ Cmd* TapInterface::mk_create_cmd()
 Cmd* TapInterface::mk_delete_cmd()
 {
     return (new DeleteCmd(m_hdl));
+}
+
+std::shared_ptr<TapInterface> TapInterface::instance() const
+{
+    return std::dynamic_pointer_cast<TapInterface>(instance_i());
+}
+
+std::shared_ptr<Interface> TapInterface::instance_i() const
+{
+    return m_db.find_or_add(name(), *this);
 }
 
 TapInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,

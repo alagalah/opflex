@@ -34,15 +34,18 @@ namespace VPP
         /**
          * Find or add the object to the store.
          * The object passed is deisred state. A new instance will be copy
-         * constructed from it.
+         * constructed from it. This function is templatised on the object type
+         * passed, which may be drrived from, the object type stored. this
+         * prevents slicing during the make_shared construction.
          */
-        std::shared_ptr<OBJ> find_or_add(const KEY &key, const OBJ &obj)
+        template <typename DERIVED>
+        std::shared_ptr<OBJ> find_or_add(const KEY &key, const DERIVED &obj)
         {
             auto search = m_map.find(key);
 
             if (search == m_map.end())
             {
-                std::shared_ptr<OBJ> sp = std::make_shared<OBJ>(obj);
+                std::shared_ptr<OBJ> sp = std::make_shared<DERIVED>(obj);
 
                 m_map[key] = sp;
 

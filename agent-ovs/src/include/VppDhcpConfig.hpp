@@ -49,6 +49,12 @@ namespace VPP
          */
         ~DhcpConfig();
 
+
+        /**
+         * Return the 'instance' of the DHCP config that matches this object
+         */
+        std::shared_ptr<DhcpConfig> instance() const;
+
         /**
          * convert to string format for debug purposes
          */
@@ -218,7 +224,7 @@ namespace VPP
         static std::shared_ptr<DhcpConfig> find_or_add(const DhcpConfig &temp);
 
         /*
-         * It's the VPPHW class that updates the objects in HW
+         * It's the VPP::OM class that calls instance()
          */
         friend class VPP::OM;
     

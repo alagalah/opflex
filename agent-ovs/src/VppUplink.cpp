@@ -59,9 +59,8 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
                         dhcp_data.mask_width);
 
     TapInterface itf("tuntap0",
-                         Interface::type_t::TAP,
-                         Interface::admin_state_t::UP,
-                         pfx);
+                     Interface::admin_state_t::UP,
+                     pfx);
     VPP::OM::write(UPLINK_KEY, itf);
 }
 
@@ -78,7 +77,7 @@ void Uplink::configure()
     /*
      * Find and save the interface this created
      */
-    m_uplink = Interface::find(itf);
+    m_uplink = itf.instance();
 
     /*
      * now create the sub-interface on which control and data traffic from

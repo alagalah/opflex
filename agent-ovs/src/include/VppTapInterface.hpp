@@ -24,11 +24,15 @@ namespace VPP
     public:
         
         TapInterface(const std::string &name,
-                         type_t type,
-                         admin_state_t state,
-                         Route::prefix_t prefix);
+                     admin_state_t state,
+                     Route::prefix_t prefix);
         ~TapInterface();
         TapInterface(const TapInterface& o);
+
+        /**
+         * Return the matching 'instance' of the TAP interface
+         */
+        std::shared_ptr<TapInterface> instance() const;
 
         /**
          * A functor class that creates an interface
@@ -82,23 +86,26 @@ namespace VPP
             bool operator==(const DeleteCmd&i) const;
         };
 
-        /**
-         * The the instance of the Interface in the Object-Model
-         */
-        static std::shared_ptr<TapInterface> find(const TapInterface &temp);        
-
     private:
 
         /**
-         * Virtual functions to construct an interface create/delete commands.
+         * Return the matching 'instance' of the sub-interface
+         *  over-ride from the base class
+         */
+        std::shared_ptr<Interface> instance_i() const;
+
+        /**
+         * Virtual functions to construct an interface create commands.
          */
         virtual Cmd* mk_create_cmd();
+
+        /**
+         * Virtual functions to construct an interface delete commands.
+         */
         virtual Cmd* mk_delete_cmd();
 
-        static std::shared_ptr<TapInterface> find_or_add(const TapInterface &temp);
-
         /*
-         * It's the VPPHW class that updates the objects in HW
+         * It's the VPP::OM class that call instance()
          */
         friend class VPP::OM;
 
@@ -106,11 +113,6 @@ namespace VPP
          * Ip Prefix
          */
         Route::prefix_t m_prefix;
-
-        /**
-         * A map of all tap-interfaces key against the tap-interface's name
-         */
-        static InstDB<const std::string, TapInterface> m_db;
     };
 
 }

@@ -212,7 +212,6 @@ if RENDERER_VPP
   libagent_ovs_la_SOURCES += \
 	src/VppRenderer.cpp \
 	src/VppConnection.cpp \
-	src/VppInspect.cpp \
 	src/VppUplink.cpp \
 	src/VppObjectDB.cpp \
 	src/VppObject.cpp \
@@ -226,7 +225,7 @@ if RENDERER_VPP
 	src/VppL3ConfigCmds.cpp \
 	src/VppDhcpConfig.cpp \
 	src/VppDhcpConfigCmds.cpp \
-        src/VppControlInterface.cpp \
+        src/VppTapInterface.cpp \
 	src/VppSubInterface.cpp \
 	src/VppSubInterfaceCmds.cpp \
 	src/VppBridgeDomain.cpp \

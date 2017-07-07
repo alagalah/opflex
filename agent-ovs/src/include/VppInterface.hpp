@@ -173,6 +173,11 @@ namespace VPP
         Interface(const Interface& o);
 
         /**
+         * Return the matching'instance' of the interface
+         */
+        std::shared_ptr<Interface> instance() const;
+
+        /**
          * convert to string format for debug purposes
          */
         virtual std::string to_string(void) const;
@@ -653,14 +658,9 @@ namespace VPP
         HW::Item<handle_t> m_hdl;
 
         /**
-         * Find or Add an interface to the instance store
+         * Return the matching 'instance' of the interface
          */
-        static std::shared_ptr<Interface> find_or_add(const Interface &temp);
-
-        /**
-         * Insert an interface into the instance store
-         */
-        static void insert(const Interface &temp, std::shared_ptr<Interface> sp);
+        virtual std::shared_ptr<Interface> instance_i() const;
 
         /**
          * release/remove an interface form the instance store
@@ -684,6 +684,11 @@ namespace VPP
          */
         virtual void sweep(void);
 
+        /**
+         * A map of all interfaces key against the interface's name
+         */
+        static InstDB<const std::string, Interface> m_db;
+
     private:
         /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
@@ -691,7 +696,7 @@ namespace VPP
         void update(const Interface &obj);
 
         /*
-         * It's the VPPHW class that updates the objects in HW
+         * It's the VPP::OM class that calls instance()
          */
         friend class VPP::OM;
 
@@ -704,7 +709,7 @@ namespace VPP
          * The interface type. clearly this cannot be changed
          * once the interface has been created.
          */
-        type_t m_type;
+        const type_t m_type;
 
         /**
          * The state of the interface
@@ -726,11 +731,6 @@ namespace VPP
          * Operational state of the interface
          */
         oper_state_t m_oper;
-
-        /**
-         * A map of all interfaces key against the interface's name
-         */
-        static InstDB<const std::string, Interface> m_db;
 
         /**
          * A map of all interfaces keyed against VPP's handle

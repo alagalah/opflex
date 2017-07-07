@@ -11,18 +11,13 @@
 using namespace VPP;
 
 /**
- * A DB of all the sub-interfaces, key on the name
- */
-InstDB<const std::string, SubInterface> SubInterface::m_db;
-
-/**
  * Construct a new object matching the desried state
  */
 SubInterface::SubInterface(const Interface &parent,
                            admin_state_t state,
                            vlan_id_t vlan):
     Interface(mk_name(parent, vlan), parent.type(), state),
-    m_parent(Interface::find(parent)),
+    m_parent(parent.instance()),
     m_vlan(vlan)
 {
 }
@@ -30,10 +25,7 @@ SubInterface::SubInterface(const Interface &parent,
 SubInterface::~SubInterface()
 {
     sweep();
-
-    // not in the DB anymore.
-    Interface::release();
-    m_db.release(name(), this);
+    release();
 }
 
 SubInterface::SubInterface(const SubInterface& o):
@@ -49,20 +41,6 @@ std::string SubInterface::mk_name(const Interface &parent,
     return (parent.name() + "." + std::to_string(vlan));
 }
 
-std::shared_ptr<SubInterface> SubInterface::find_or_add(const SubInterface &temp)
-{
-    std::shared_ptr<SubInterface> sp = m_db.find_or_add(temp.key(), temp);
-
-    Interface::insert(temp, sp);
-
-    return (sp);
-}
-
-std::shared_ptr<SubInterface> SubInterface::find(const SubInterface &temp)
-{
-    return (m_db.find(temp.name()));
-}
-
 Cmd* SubInterface::mk_create_cmd()
 {
     return (new CreateCmd(m_hdl, m_parent->handle(), m_vlan));
@@ -71,4 +49,14 @@ Cmd* SubInterface::mk_create_cmd()
 Cmd* SubInterface::mk_delete_cmd()
 {
     return (new DeleteCmd(m_hdl));
+}
+
+std::shared_ptr<SubInterface> SubInterface::instance() const
+{
+    return std::dynamic_pointer_cast<SubInterface>(instance_i());
+}
+
+std::shared_ptr<Interface> SubInterface::instance_i() const
+{
+    return m_db.find_or_add(name(), *this);
 }

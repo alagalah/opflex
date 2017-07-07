@@ -121,10 +121,7 @@ void VxlanTunnel::sweep()
 VxlanTunnel::~VxlanTunnel()
 {
     sweep();
-
-    // not in the DB anymore.
-    Interface::release();
-    m_db.release(m_tep, this);
+    release();
 }
 
 std::string VxlanTunnel::to_string() const
@@ -151,14 +148,15 @@ void VxlanTunnel::update(const VxlanTunnel &desired)
 
 std::shared_ptr<VxlanTunnel> VxlanTunnel::find_or_add(const VxlanTunnel &temp)
 {
-    std::shared_ptr<VxlanTunnel> sp = m_db.find_or_add(temp.m_tep, temp);
-
-    Interface::insert(temp, sp);
-
-    return (sp);
+    return (m_db.find_or_add(temp.m_tep, temp));
 }
 
-std::shared_ptr<VxlanTunnel> VxlanTunnel::find(const VxlanTunnel &temp)
+std::shared_ptr<VxlanTunnel> VxlanTunnel::instance() const
 {
-    return (m_db.find(temp.m_tep));
+    return (find_or_add(*this));
+}
+
+std::shared_ptr<Interface> VxlanTunnel::instance_i() const
+{
+    return find_or_add(*this);
 }

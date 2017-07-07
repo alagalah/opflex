@@ -59,7 +59,7 @@ Interface::Interface(const std::string &name,
     m_state(itf_state),
     m_type(itf_type),
     m_hdl(handle_t::INVALID),
-    m_rd(RouteDomain::find(rd)),
+    m_rd(rd.instance()),
     m_table_id(m_rd->table_id()),
     m_oper(oper_state_t::DOWN)
 {
@@ -225,19 +225,14 @@ void Interface::set(const oper_state_t &state)
     m_oper = state;
 }
 
-std::shared_ptr<Interface> Interface::find_or_add(const Interface &temp)
+std::shared_ptr<Interface> Interface::instance_i() const
 {
-    return (m_db.find_or_add(temp.m_name, temp));
+    return (m_db.find_or_add(name(), *this));
 }
 
-void Interface::insert(const Interface &temp, std::shared_ptr<Interface> sp)
+std::shared_ptr<Interface> Interface::instance() const
 {
-    return (m_db.add(temp.m_name, sp));
-}
-
-std::shared_ptr<Interface> Interface::find(const Interface &temp)
-{
-    return (m_db.find(temp.m_name));
+    return instance_i();
 }
 
 std::shared_ptr<Interface> Interface::find(const std::string &name)

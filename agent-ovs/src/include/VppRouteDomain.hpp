@@ -40,6 +40,11 @@ namespace VPP
         ~RouteDomain();
 
         /**
+         * Return the 'instance' of the TAP interface matching this object
+         */
+        std::shared_ptr<RouteDomain> instance() const;
+
+        /**
          * Debug print function
          */
         std::string to_string() const;

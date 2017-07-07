@@ -24,7 +24,7 @@ InstDB<Interface::key_type, DhcpConfig> DhcpConfig::m_db;
  */
 DhcpConfig::DhcpConfig(const Interface &itf,
                        const std::string &hostname):
-    m_itf(Interface::find(itf)),
+    m_itf(itf.instance()),
     m_hostname(hostname),
     m_binding(0)
 {
@@ -79,6 +79,11 @@ void DhcpConfig::update(const DhcpConfig &desired)
 std::shared_ptr<DhcpConfig> DhcpConfig::find_or_add(const DhcpConfig &temp)
 {
     return (m_db.find_or_add(temp.m_itf->key(), temp));
+}
+
+std::shared_ptr<DhcpConfig> DhcpConfig::instance() const
+{
+    return find_or_add(*this);
 }
 
 DhcpConfig::EventListener::EventListener():

@@ -51,7 +51,7 @@ namespace VPP {
          *  any remaining state owned by the KEY is purged.
          */
         template <typename OBJ>
-        static rc_t write(const KEY &key, OBJ &obj)
+        static rc_t write(const KEY &key, const OBJ &obj)
         {
             rc_t rc = rc_t::OK;
 
@@ -59,7 +59,7 @@ namespace VPP {
              * Find the instance another owner may have created.
              * this always returns something.
              */
-            std::shared_ptr<OBJ> inst(OBJ::find_or_add(obj));
+            std::shared_ptr<OBJ> inst(obj.instance());
 
             /*
              * Update the existing object with with the new desired state
