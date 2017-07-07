@@ -91,6 +91,11 @@ namespace VPP
         VxlanTunnel(const VxlanTunnel& o);
 
         /**
+         * Return the matching 'instance'
+         */
+        std::shared_ptr<VxlanTunnel> instance() const;
+
+        /**
          * Debug rpint function
          */
         virtual std::string to_string() const;
@@ -168,17 +173,22 @@ namespace VPP
             const endpoint_t m_ep;
         };
 
-        /**
-         * The the instance of the VxlanTunnel in the Object-Model
-         */
-        static std::shared_ptr<VxlanTunnel> find(const VxlanTunnel &temp);
-
     private:
+        /**
         /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
          */
         void update(const VxlanTunnel &obj);
 
+        /**
+         * Return the matching 'instance' of the sub-interface
+         *  over-ride from the base class
+         */
+        std::shared_ptr<Interface> instance_i() const;
+
+        /**
+         * Find the VXLAN tunnel in the OM
+         */
         static std::shared_ptr<VxlanTunnel> find_or_add(const VxlanTunnel &temp);
 
         /*

@@ -79,7 +79,7 @@ std::shared_ptr<BridgeDomain> BridgeDomain::find_or_add(const BridgeDomain &temp
     return (m_db.find_or_add(temp.m_id.data(), temp));
 }
 
-std::shared_ptr<BridgeDomain> BridgeDomain::find(const BridgeDomain &temp)
+std::shared_ptr<BridgeDomain> BridgeDomain::instance() const
 {
-    return (m_db.find(temp.m_id.data()));
+    return find_or_add(*this);
 }

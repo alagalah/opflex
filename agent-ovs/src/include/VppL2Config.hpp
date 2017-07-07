@@ -48,6 +48,11 @@ namespace VPP
         ~L2Config();
 
         /**
+         * Return the 'instance' of the L2 config that matches this object
+         */
+        std::shared_ptr<L2Config> instance() const;
+
+        /**
          * convert to string format for debug purposes
          */
         std::string to_string() const;
@@ -146,10 +151,13 @@ namespace VPP
          */
         void update(const L2Config &obj);
 
+        /**
+         * Find or Add the instance in the DB
+         */
         static std::shared_ptr<L2Config> find_or_add(const L2Config &temp);
 
         /*
-         * It's the VPPHW class that updates the objects in HW
+         * It's the VPP::OM class that calls instance()
          */
         friend class VPP::OM;
     

@@ -11,7 +11,6 @@
 #define VPPAGENT_VPPMANAGER_H_
 
 #include "Agent.h"
-#include "SwitchManager.h"
 #include "IdGenerator.h"
 #include "RDConfig.h"
 #include "TaskQueue.h"
@@ -49,7 +48,6 @@ class VppManager :     public EndpointListener,
                        public ServiceListener,
                        public ExtraConfigListener,
                        public PolicyListener,
-                       public PortStatusListener,
                        public opflex::ofcore::PeerStatusListener,
                        public VPP::Interface::EventListener,
                        public VPP::DhcpConfig::EventListener,

@@ -40,12 +40,6 @@ namespace VPP
          */
         L3Config(const Interface &itf,
                  const Route::prefix_t &pfx);
-
-        /**
-         * Construct a new object matching the desried state
-         */
-        L3Config(const SubInterface &itf,
-                 const Route::prefix_t &pfx);
         
         /**
          * Copy Constructor
@@ -56,6 +50,11 @@ namespace VPP
          * Destructor
          */
         ~L3Config();
+
+        /**
+         * Return the 'instance' of the L3-Config that matches this object
+         */
+        std::shared_ptr<L3Config> instance() const;
 
         /**
          * convert to string format for debug purposes
@@ -175,6 +174,9 @@ namespace VPP
          */
         void update(const L3Config &obj);
 
+        /**
+         * Find or add the instance in the DB
+         */
         static std::shared_ptr<L3Config> find_or_add(const L3Config &temp);
 
         /*

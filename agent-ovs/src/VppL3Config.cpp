@@ -24,15 +24,7 @@ InstDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> L3Config::m_db
  */
 L3Config::L3Config(const Interface &itf,
                    const Route::prefix_t &pfx):
-    m_itf(Interface::find(itf)),
-    m_pfx(pfx),
-    m_binding(0)
-{
-}
-
-L3Config::L3Config(const SubInterface &itf,
-                   const Route::prefix_t &pfx):
-    m_itf(SubInterface::find(itf)),
+    m_itf(itf.instance()),
     m_pfx(pfx),
     m_binding(0)
 {
@@ -87,4 +79,9 @@ void L3Config::update(const L3Config &desired)
 std::shared_ptr<L3Config> L3Config::find_or_add(const L3Config &temp)
 {
     return (m_db.find_or_add(make_pair(temp.m_itf->key(), temp.m_pfx), temp));
+}
+
+std::shared_ptr<L3Config> L3Config::instance() const
+{
+    return find_or_add(*this);
 }

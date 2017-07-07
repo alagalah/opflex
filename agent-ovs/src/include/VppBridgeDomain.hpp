@@ -42,6 +42,11 @@ namespace VPP
         ~BridgeDomain();
 
         /**
+         * Return the matchin 'instance' of the bridge-domain
+         */
+        std::shared_ptr<BridgeDomain> instance() const;
+
+        /**
          * convert to string format for debug purposes
          */
         std::string to_string(void) const;
@@ -120,7 +125,7 @@ namespace VPP
         static std::shared_ptr<BridgeDomain> find_or_add(const BridgeDomain &temp);
 
         /*
-         * It's the VPP::OM class that calls find_or_add
+         * It's the VPP::OM class that calls instance()
          */
         friend class VPP::OM;
     

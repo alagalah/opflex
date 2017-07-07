@@ -24,8 +24,8 @@ InstDB<const handle_t, L2Config> L2Config::m_db;
  */
 L2Config::L2Config(const Interface &itf,
                    const BridgeDomain &bd):
-    m_itf(Interface::find(itf)),
-    m_bd(BridgeDomain::find(bd)),
+    m_itf(itf.instance()),
+    m_bd(bd.instance()),
     m_binding(0)
 {
 }
@@ -84,4 +84,9 @@ void L2Config::update(const L2Config &desired)
 std::shared_ptr<L2Config> L2Config::find_or_add(const L2Config &temp)
 {
     return (m_db.find_or_add(temp.m_itf->handle(), temp));
+}
+
+std::shared_ptr<L2Config> L2Config::instance() const
+{
+    return find_or_add(*this);
 }

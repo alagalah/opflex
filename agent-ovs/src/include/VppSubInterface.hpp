@@ -21,7 +21,7 @@ namespace VPP
         /*
          * Typedef for VLAN ID
          */
-        typedef u32 vlan_id_t;
+        typedef uint16_t vlan_id_t;
 
     public:
         /**
@@ -38,6 +38,11 @@ namespace VPP
          * Copy Constructor
          */
         SubInterface(const SubInterface& o);
+
+        /**
+         * Return the matching 'instance' of the sub-interface
+         */
+        std::shared_ptr<SubInterface> instance() const;
 
         /**
          * A functor class that creates an interface
@@ -107,12 +112,13 @@ namespace VPP
             bool operator==(const DeleteCmd&i) const;
         };
 
-        /**
-         * The the instance of the Interface in the Object-Model
-         */
-        static std::shared_ptr<SubInterface> find(const SubInterface &temp);
-
     private:
+        /**
+         * Return the matching 'instance' of the sub-interface
+         *  over-ride from the base class
+         */
+        std::shared_ptr<Interface> instance_i() const;
+
         /**
          * Virtual functions to construct an interface create commands.
          */
@@ -122,13 +128,6 @@ namespace VPP
          * Virtual functions to construct an interface delete commands.
          */
         virtual Cmd* mk_delete_cmd();
-
-        static std::shared_ptr<SubInterface> find_or_add(const SubInterface &temp);
-
-        /*
-         * It's the VPPHW class that updates the objects in HW
-         */
-        friend class VPP::OM;
 
         /**
          * From the name of the parent and the vlan,
@@ -146,11 +145,6 @@ namespace VPP
          * Refernece conter lock on the parent
          */
         const std::shared_ptr<Interface> m_parent;
-
-        /**
-         * A map of all sub-interfaces key against the sub-interface's name
-         */
-        static InstDB<const std::string, SubInterface> m_db;
    };
 };
 #endif
