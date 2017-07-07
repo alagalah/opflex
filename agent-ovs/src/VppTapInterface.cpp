@@ -11,7 +11,7 @@
 #include <iostream>
 
 #include "VppCmd.hpp"
-#include "VppControlInterface.hpp"
+#include "VppTapInterface.hpp"
 
 extern "C"
 {
@@ -21,14 +21,14 @@ extern "C"
 using namespace VPP;
 
 /**
- * A DB of all the control-interfaces, key on the name
+ * A DB of all the tap-interfaces, key on the name
  */
-InstDB<const std::string, ControlInterface> ControlInterface::m_db;
+InstDB<const std::string, TapInterface> TapInterface::m_db;
 
 /**
  * Construct a new object matching the desried state
  */
-ControlInterface::ControlInterface(const std::string &name,
+TapInterface::TapInterface(const std::string &name,
                                    type_t type,
                                    admin_state_t state,
                                    Route::prefix_t prefix):
@@ -37,7 +37,7 @@ ControlInterface::ControlInterface(const std::string &name,
 {
 }
 
-ControlInterface::~ControlInterface()
+TapInterface::~TapInterface()
 {
     sweep();
 
@@ -46,37 +46,37 @@ ControlInterface::~ControlInterface()
     m_db.release(name(), this);
 }
 
-ControlInterface::ControlInterface(const ControlInterface& o):
+TapInterface::TapInterface(const TapInterface& o):
     Interface(o),
     m_prefix(o.m_prefix)
 {
 }
 
-std::shared_ptr<ControlInterface> ControlInterface::find_or_add(const ControlInterface &temp)
+std::shared_ptr<TapInterface> TapInterface::find_or_add(const TapInterface &temp)
 {
-    std::shared_ptr<ControlInterface> sp = m_db.find_or_add(temp.key(), temp);
+    std::shared_ptr<TapInterface> sp = m_db.find_or_add(temp.key(), temp);
 
     Interface::insert(temp, sp);
 
     return (sp);
 }
 
-std::shared_ptr<ControlInterface> ControlInterface::find(const ControlInterface &temp)
+std::shared_ptr<TapInterface> TapInterface::find(const TapInterface &temp)
 {
     return (m_db.find(temp.name()));
 }
 
-Cmd* ControlInterface::mk_create_cmd()
+Cmd* TapInterface::mk_create_cmd()
 {
     return (new CreateCmd(m_hdl, name(), m_prefix));
 }
 
-Cmd* ControlInterface::mk_delete_cmd()
+Cmd* TapInterface::mk_delete_cmd()
 {
     return (new DeleteCmd(m_hdl));
 }
 
-ControlInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
+TapInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
                                        const std::string &name,
                                        Route::prefix_t &prefix):
     RpcCmd(item),
@@ -85,7 +85,7 @@ ControlInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
 {
 }
 
-rc_t ControlInterface::CreateCmd::issue(Connection &con)
+rc_t TapInterface::CreateCmd::issue(Connection &con)
 {
     vapi_msg_tap_connect *req;
 
@@ -118,7 +118,7 @@ rc_t ControlInterface::CreateCmd::issue(Connection &con)
     return rc_t::OK;
 }
 
-std::string ControlInterface::CreateCmd::to_string() const
+std::string TapInterface::CreateCmd::to_string() const
 {
     std::ostringstream s;
     s << "tap-intf-create: " << m_hw_item.to_string()
@@ -127,31 +127,31 @@ std::string ControlInterface::CreateCmd::to_string() const
     return (s.str());
 }
 
-bool ControlInterface::CreateCmd::operator==(const CreateCmd& other) const
+bool TapInterface::CreateCmd::operator==(const CreateCmd& other) const
 {
     return (CreateCmd::operator==(other));
 }
 
-ControlInterface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
+TapInterface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
     RpcCmd(item)
 {
 }
 
-rc_t ControlInterface::DeleteCmd::issue(Connection &con)
+rc_t TapInterface::DeleteCmd::issue(Connection &con)
 {
     // finally... call VPP
 
     return rc_t::OK;
 }
-std::string ControlInterface::DeleteCmd::to_string() const
+std::string TapInterface::DeleteCmd::to_string() const
 {
     std::ostringstream s;
-    s << "control-itf-delete: " << m_hw_item.to_string();
+    s << "tap-itf-delete: " << m_hw_item.to_string();
 
     return (s.str());
 }
 
-bool ControlInterface::DeleteCmd::operator==(const DeleteCmd& other) const
+bool TapInterface::DeleteCmd::operator==(const DeleteCmd& other) const
 {
     return (m_hw_item == other.m_hw_item);
 }

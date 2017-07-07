@@ -16,19 +16,19 @@ namespace VPP
 {
 
     /**
-     * A control-interface. e.g. a tap interface
+     * A tap-interface. e.g. a tap interface
      */
-    class ControlInterface: public Interface
+    class TapInterface: public Interface
     {
 
     public:
         
-        ControlInterface(const std::string &name,
+        TapInterface(const std::string &name,
                          type_t type,
                          admin_state_t state,
                          Route::prefix_t prefix);
-        ~ControlInterface();
-        ControlInterface(const ControlInterface& o);
+        ~TapInterface();
+        TapInterface(const TapInterface& o);
 
         /**
          * A functor class that creates an interface
@@ -85,7 +85,7 @@ namespace VPP
         /**
          * The the instance of the Interface in the Object-Model
          */
-        static std::shared_ptr<ControlInterface> find(const ControlInterface &temp);        
+        static std::shared_ptr<TapInterface> find(const TapInterface &temp);        
 
     private:
 
@@ -95,7 +95,7 @@ namespace VPP
         virtual Cmd* mk_create_cmd();
         virtual Cmd* mk_delete_cmd();
 
-        static std::shared_ptr<ControlInterface> find_or_add(const ControlInterface &temp);
+        static std::shared_ptr<TapInterface> find_or_add(const TapInterface &temp);
 
         /*
          * It's the VPPHW class that updates the objects in HW
@@ -108,9 +108,9 @@ namespace VPP
         Route::prefix_t m_prefix;
 
         /**
-         * A map of all control-interfaces key against the control-interface's name
+         * A map of all tap-interfaces key against the tap-interface's name
          */
-        static InstDB<const std::string, ControlInterface> m_db;
+        static InstDB<const std::string, TapInterface> m_db;
     };
 
 }
