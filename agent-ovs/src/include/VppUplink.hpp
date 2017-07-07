@@ -12,7 +12,7 @@
 
 #include "VppVxlanTunnel.hpp"
 #include "VppDhcpConfig.hpp"
-#include "VppControlInterface.hpp"
+#include "VppTapInterface.hpp"
 
 namespace VPP
 {
@@ -72,7 +72,7 @@ namespace VPP
         /**
          * A reference to the control Interface at Linux side
          */
-        std::shared_ptr<ControlInterface>  controlInterface;
+        std::shared_ptr<TapInterface>  tapInterface;
 
         /**
          * Paramters saved from the set-properties call
