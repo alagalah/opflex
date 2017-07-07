@@ -15,11 +15,6 @@
 using namespace VPP;
 
 /**
- * In VPP 0 represents the default table.
- */
-const Route::table_id_t Route::DEFAULT_TABLE = 0;
-
-/**
  * The all Zeros prefix
  */
 const Route::prefix_t Route::prefix_t::ZERO("0.0.0.0", 0);
@@ -145,14 +140,4 @@ void Route::prefix_t::to_vpp(uint8_t *is_ip6,
 {
     *len = m_len;
     to_bytes(m_addr, is_ip6, addr);
-}
-
-Route::prefix_t Route::prefix_t::from_string(const std::string &str)
-{
-    std::vector<std::string> strs;
-
-    boost::split(strs, str, boost::is_any_of("/"));
-
-    return (Route::prefix_t(boost::asio::ip::address::from_string(strs[0]),
-                            std::stoi(strs[1])));
 }

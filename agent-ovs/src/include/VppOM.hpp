@@ -24,8 +24,6 @@ namespace VPP {
      */
     class OM {
     public:
-        template <typename OBJ> using list = std::queue<OBJ>;
-
         /**
          * Init
          */
@@ -102,6 +100,9 @@ namespace VPP {
             return (HW::write());
         }
 
+        /**
+         * Remove all object in the OM referenced by the key
+         */
         static void remove(const KEY &key)
         {
             /*

@@ -38,6 +38,9 @@ namespace VPP
          * Constructable by derived classes only
          */
         Object();
+        /**
+         * Destructor
+         */
         virtual ~Object();
 
     private:
@@ -72,15 +75,40 @@ namespace VPP
     class ObjectRef
     {
     public:
+        /**
+         * Constructor
+         */
         ObjectRef(std::shared_ptr<Object> obj);
 
+        /**
+         * less than operator
+         */
         bool operator<(const ObjectRef &other) const;
+
+        /**
+         * Return the shared pointer
+         */
         std::shared_ptr<Object> obj() const;
+
+        /**
+         * Mark the reference object as stale
+         */
         void mark()  const;
+
+        /**
+         * Clear the stale flag on the object
+         */
         void clear() const;
+
+        /**
+         * Query if the object is stale
+         */
         bool stale() const;
 
     private:
+        /**
+         * The reference object
+         */
         std::shared_ptr<Object> m_obj;
 
         /**
@@ -90,6 +118,9 @@ namespace VPP
         mutable obj_state_t m_state;
     };
 
+    /**
+     * ostream print of a VPP Obect
+     */
     std::ostream& operator<<(std::ostream &os, const Object& o);
     
 };

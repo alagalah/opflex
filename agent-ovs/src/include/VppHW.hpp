@@ -25,21 +25,31 @@ namespace VPP
     {
     public:
         /**
-         * An abstraction of a data item that is written in OM
+         * A HW::item is data that is either to be written to or read from VPP/HW.
+         * The item is a pair of the data written/read and the result of that operation.
          */
         template <typename T>
         class Item
         {
         public:
+            /**
+             * Constructor
+             */
             Item(const T &data):
                 item_data(data),
                 item_rc(rc_t::NOOP)
              {
              }
+            /**
+             * Constructor
+             */
             Item():
                 item_rc(rc_t::NOOP)
              {
              }
+            /**
+             * Constructor
+             */
             Item(const T &data,
                  rc_t rc):
                 item_data(data),
@@ -47,32 +57,51 @@ namespace VPP
              {
              }
 
+            /**
+             * Comparison operator
+             */
             bool operator==(const Item<T> &i) const
             {
                 return (item_data == i.item_data);
             }
 
+            /**
+             * Copy assignment
+             */
             Item & operator=(const Item &other)
             {
                 item_data = other.item_data;
                 item_rc = other.item_rc;
             }
 
+            /**
+             * Return the data read/written
+             */
             T &data()
             {
                 return (item_data);
             }
 
+            /**
+             * Const reference to the data
+             */
             const T &data() const
             {
                 return (item_data);
             }
 
+            /**
+             * Get the HW return code
+             */
             rc_t rc() const
             {
                  return (item_rc);
             }
 
+            /**
+             * Set the HW return code - should only be called from the
+             * family of Command objects
+             */
             void set(const rc_t &rc)
             {
                 item_rc = rc;
@@ -139,14 +168,37 @@ namespace VPP
         class CmdQ
         {
         public:
+            /**
+             * Constructor
+             */
             CmdQ();
+            /**
+             * Destructor
+             */
             ~CmdQ();
+
+            /**
+             * Copy assignement - only used in UT
+             */
             CmdQ& operator=(const CmdQ &f);
 
+            /**
+             * Enqueue a command into the Q.
+             */
             virtual void enqueue(Cmd *c);
+            /**
+             * Enqueue a command into the Q.
+             */
             virtual void enqueue(std::shared_ptr<Cmd> c);
+
+            /**
+             * Write all the commands to HW
+             */
             virtual rc_t write();
 
+            /**
+             * Blocking Connect to VPP - call once at bootup
+             */
             void connect();
 
             /**
@@ -200,14 +252,28 @@ namespace VPP
             bool m_enabled;
         };
 
-        /*
-         * Initialise the HW connection to VPP
+        /**
+         * Initialise the HW connection to VPP - the UT version passing
+         * a mock Q.
          */
         static void init(CmdQ *f);
+
+        /**
+         * Initialise the HW
+         */
         static void init();
 
+        /**
+         * Enqueue A command for execution
+         */
         static void enqueue(Cmd *f);
+        /**
+         * Enqueue A command for execution
+         */
         static void enqueue(std::shared_ptr<Cmd> c);
+        /**
+         * Write/Execute all commands hitherto enqueued.
+         */
         static rc_t write();
 
         /**
@@ -231,10 +297,14 @@ namespace VPP
         static CmdQ *m_cmdQ;
     };
     
-    /*
-     * Specialisation for the POD versions of an item
+    /**
+     * bool Specialisation for HW::Item to_string
      */
     template <> std::string HW::Item<bool>::to_string() const;
+
+    /**
+     * uint Specialisation for HW::Item to_string
+     */
     template <> std::string HW::Item<unsigned int>::to_string() const;
 };
 

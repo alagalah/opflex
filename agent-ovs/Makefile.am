@@ -124,8 +124,6 @@ noinst_HEADERS = \
 	src/include/FlowReader.h \
 	src/include/SwitchStateHandler.h \
 	src/include/VppManager.h \
-	src/include/VppTypes.h \
-	src/include/VppStruct.h \
 	src/include/IntFlowManager.h \
 	src/include/AccessFlowManager.h \
 	src/include/ovs-shim.h \

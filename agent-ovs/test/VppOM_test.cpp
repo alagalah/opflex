@@ -508,9 +508,9 @@ BOOST_AUTO_TEST_CASE(bridge) {
     // is an uncontrollable artifact of the C++ object destruction.
     delete l2itf2;
     ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
-    ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
     ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2, itf1_name));
+    ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
     TRY_CHECK(OM::remove(dante));
 }
 

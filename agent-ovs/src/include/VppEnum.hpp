@@ -32,45 +32,74 @@ namespace VPP
             return (m_desc);
         }
 
+        /**
+         * Comparison operator
+         */
         bool operator==(const Enum &e) const
         {
             return (e.m_value == m_value);
         }
 
+        /**
+         * Assignemet
+         */
         Enum & operator=(const Enum &e)
         {
             m_value = e.m_value;
             m_desc = e.m_desc;
         }
 
+        /**
+         * Comparison operator
+         */
         bool operator!=(const Enum &e) const
         {
             return (e.m_value != m_value);
         }
 
+        /**
+         * integer conversion operator
+         */
         constexpr operator int() const
         {
             return (m_value);
         }
 
+        /**
+         * Return the value of the enum - same as integer conversion
+         */
         constexpr int value() const
         {
             return (m_value);
         }
 
     protected:
+        /**
+         * Constructor of an Enum - takes value and string description
+         */
         constexpr Enum(int value,
                        const std::string desc):
             m_value(value),
             m_desc(desc)
         {
         }
+
+        /**
+         * Constructor
+         */
         virtual ~Enum()
         {
         }
 
     private:
+        /**
+         * String description
+         */
         std::string m_desc;
+
+        /**
+         * Integer value of the enum
+         */
         int m_value;
     };
 };

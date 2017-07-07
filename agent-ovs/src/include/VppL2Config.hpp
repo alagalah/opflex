@@ -36,8 +36,16 @@ namespace VPP
          */
         L2Config(const Interface &itf,
                  const BridgeDomain &bd);
-        ~L2Config();
+
+        /**
+         * Copy Constructor
+         */
         L2Config(const L2Config& o);
+
+        /**
+         * Destructor
+         */
+        ~L2Config();
 
         /**
          * convert to string format for debug purposes
@@ -50,6 +58,9 @@ namespace VPP
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
                     uint32_t bd,
@@ -69,8 +80,19 @@ namespace VPP
              */
             bool operator==(const BindCmd&i) const;
         private:
+            /**
+             * The interface to bind
+             */
             const handle_t m_itf;
+
+            /**
+             * The bridge-domain to bind to
+             */
             uint32_t m_bd;
+
+            /**
+             * Is it a BVI interface that is being bound
+             */
             bool m_is_bvi;
         };
 
@@ -80,6 +102,9 @@ namespace VPP
         class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             UnbindCmd(HW::Item<bool> &item,
                       const handle_t &itf,
                       uint32_t bd,
@@ -99,8 +124,19 @@ namespace VPP
              */
             bool operator==(const UnbindCmd&i) const;
         private:
+            /**
+             * The interface to bind
+             */
             const handle_t m_itf;
+
+            /**
+             * The bridge-domain to bind to
+             */
             uint32_t m_bd;
+
+            /**
+             * Is it a BVI interface that is being bound
+             */
             bool m_is_bvi;
         };
 

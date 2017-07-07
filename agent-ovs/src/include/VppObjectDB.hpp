@@ -21,10 +21,24 @@ namespace VPP
     class ObjectDB
     {
     public:
+        /**
+         * Iterator typedef
+         */
         typedef std::map<const Object*, Object*>::iterator iterator;
+
+        /**
+         * DB entry type def
+         */
         typedef std::pair<const Object*, Object*> entry;
 
+        /**
+         * Get iterator begin
+         */
         static iterator begin();
+
+        /**
+         * get iterator end
+         */
         static iterator end();
     
     private:
@@ -32,11 +46,20 @@ namespace VPP
          * no instantiations
          */
         ObjectDB();
-        ~ObjectDB();
 
+        /**
+         * Add an object to the DB
+         */
         static void add(Object *obj);
+
+        /**
+         * remove an object from the DB
+         */
         static void remove(Object *obj);
 
+        /**
+         * Only Objects can add and removes themselves from the DB
+         */
         friend class Object;
 
         /**

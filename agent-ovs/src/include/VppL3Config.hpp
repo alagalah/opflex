@@ -40,10 +40,22 @@ namespace VPP
          */
         L3Config(const Interface &itf,
                  const Route::prefix_t &pfx);
+
+        /**
+         * Construct a new object matching the desried state
+         */
         L3Config(const SubInterface &itf,
                  const Route::prefix_t &pfx);
-        ~L3Config();
+        
+        /**
+         * Copy Constructor
+         */
         L3Config(const L3Config& o);
+
+        /**
+         * Destructor
+         */
+        ~L3Config();
 
         /**
          * convert to string format for debug purposes
@@ -56,6 +68,9 @@ namespace VPP
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
                     const Route::prefix_t &pfx);
@@ -74,7 +89,14 @@ namespace VPP
              */
             bool operator==(const BindCmd&i) const;
         private:
+            /**
+             * Reference to the interface to bind to
+             */
             const handle_t &m_itf;
+
+            /**
+             * The prefix to bind
+             */
             const Route::prefix_t m_pfx;
         };
 
@@ -84,7 +106,10 @@ namespace VPP
         class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
-            UnbindCmd(HW::Item<bool> &item,
+            /**
+             * Constructor
+             */
+           UnbindCmd(HW::Item<bool> &item,
                       const handle_t &itf,
                       const Route::prefix_t &pfx);
 
@@ -102,8 +127,15 @@ namespace VPP
              */
             bool operator==(const UnbindCmd&i) const;
         private:
+            /**
+             * Reference to the interface to unbind fomr
+             */
             const handle_t m_itf;
-            const Route::prefix_t m_pfx;
+
+            /**
+             * The prefix to unbind
+             */
+           const Route::prefix_t m_pfx;
         };
 
         /**
@@ -112,6 +144,9 @@ namespace VPP
         class DumpV4Cmd: public DumpCmd<vapi_payload_ip_fib_details>
         {
         public:
+            /**
+             * Constructor
+             */
             DumpV4Cmd();
 
             /**
@@ -128,6 +163,9 @@ namespace VPP
              */
             bool operator==(const DumpV4Cmd&i) const;
         private:
+            /**
+             * HW reutrn code
+             */
             HW::Item<bool> item;
         };
 

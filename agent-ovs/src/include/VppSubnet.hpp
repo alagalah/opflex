@@ -37,7 +37,15 @@ namespace VPP
          * Construct a new object matching the desried state
          */
         Subnet(const Route::prefix_t &p);
+
+        /**
+         * Copy Constructor
+         */
         Subnet(const Subnet& o);
+
+        /**
+         * Destructor
+         */
         ~Subnet();
 
         /**
@@ -51,7 +59,14 @@ namespace VPP
          */
         void update(const Subnet &obj);
 
+        /**
+         * Find or add a subnet instance in the OM
+         */
         static std::shared_ptr<Subnet> find_or_add(const Subnet &temp);
+
+        /**
+         * Find a subnet instace in the OM
+         */
         static std::shared_ptr<Subnet> find(const Subnet &temp);
 
         /*
@@ -65,7 +80,7 @@ namespace VPP
         void sweep(void);
 
         /**
-         * The Subnet's prefixt
+         * The Subnet's prefix
          */
         Route::prefix_t m_prefix;
 

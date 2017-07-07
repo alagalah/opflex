@@ -30,8 +30,14 @@ namespace VPP
          * Construct a new object matching the desried state
          */
         RouteDomain(Route::table_id_t id);
-        ~RouteDomain();
+        /**
+         * Copy Constructor
+         */
         RouteDomain(const RouteDomain& o);
+        /**
+         * Destructor
+         */
+        ~RouteDomain();
 
         /**
          * Debug print function
@@ -43,6 +49,9 @@ namespace VPP
          */
         Route::table_id_t table_id() const;
 
+        /**
+         * Find the instnace of the route domain in the OM
+         */
         static std::shared_ptr<RouteDomain> find(const RouteDomain &temp);
 
     private:
@@ -51,6 +60,9 @@ namespace VPP
          */
         void update(const RouteDomain &obj);
 
+        /**
+         * Find or add the instnace of the route domain in the OM
+         */
         static std::shared_ptr<RouteDomain> find_or_add(const RouteDomain &temp);
 
         /*

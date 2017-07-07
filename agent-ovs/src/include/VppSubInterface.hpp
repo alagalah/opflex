@@ -30,7 +30,13 @@ namespace VPP
         SubInterface(const Interface &parent,
                      admin_state_t state,
                      vlan_id_t vlan);
+        /**
+         * Destructor
+         */
         ~SubInterface();
+        /**
+         * Copy Constructor
+         */
         SubInterface(const SubInterface& o);
 
         /**
@@ -40,6 +46,10 @@ namespace VPP
                                        HW::Item<handle_t>>
         {
         public:
+            /**
+             * Cstrunctor taking the reference to the parent
+             * and the sub-interface's VLAN
+             */
             CreateCmd(HW::Item<handle_t> &item,
                       const handle_t &parent,
                       uint16_t vlan);
@@ -59,7 +69,14 @@ namespace VPP
              */
             bool operator==(const CreateCmd&i) const;
         private:
+            /**
+             * Refernece to the parents handle
+             */
             const handle_t &m_parent;
+
+            /**
+             * The VLAN of the sub-interface
+             */
             uint16_t m_vlan;
         };
 
@@ -69,6 +86,9 @@ namespace VPP
         class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             DeleteCmd(HW::Item<handle_t> &item);
 
             /**
@@ -94,9 +114,13 @@ namespace VPP
 
     private:
         /**
-         * Virtual functions to construct an interface create/delete commands.
+         * Virtual functions to construct an interface create commands.
          */
         virtual Cmd* mk_create_cmd();
+
+        /**
+         * Virtual functions to construct an interface delete commands.
+         */
         virtual Cmd* mk_delete_cmd();
 
         static std::shared_ptr<SubInterface> find_or_add(const SubInterface &temp);

@@ -30,7 +30,7 @@ extern "C"
 namespace VPP
 {
     /**
-     * A representation of Dhcp configuration on an interface
+     * A representation of DHCP client configuration on an interface
      */
     class DhcpConfig: public Object
     {
@@ -40,8 +40,14 @@ namespace VPP
          */
         DhcpConfig(const Interface &itf,
                    const std::string &hostname);
-        ~DhcpConfig();
+        /**
+         * Copy Constructor
+         */
         DhcpConfig(const DhcpConfig& o);
+        /**
+         * Destructor
+         */
+        ~DhcpConfig();
 
         /**
          * convert to string format for debug purposes
@@ -49,11 +55,14 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * A functor class that binds the Dhcp config to the interface
+         * A command class that binds the DHCP config to the interface
          */
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
                     const std::string &hostname);
@@ -72,7 +81,14 @@ namespace VPP
              */
             bool operator==(const BindCmd&i) const;
         private:
+            /**
+             * Reference to the HW::Item of the interface to bind
+             */
             const handle_t &m_itf;
+
+            /**
+             * The DHCP client's hostname
+             */
             const std::string m_hostname;
         };
 
@@ -82,6 +98,9 @@ namespace VPP
         class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             UnbindCmd(HW::Item<bool> &item,
                       const handle_t &itf,
                       const std::string &hostname);
@@ -100,22 +119,47 @@ namespace VPP
              */
             bool operator==(const UnbindCmd&i) const;
         private:
-            const handle_t m_itf;
+            /**
+             * Reference to the HW::Item of the interface to unbind
+             */
+            const handle_t &m_itf;
+
+            /**
+             * The DHCP client's hostname
+             */
             const std::string m_hostname;
         };
 
         /**
-         * A class that listens to Interface Events
+         * Forward declartion of the Event Command
          */
         class EventsCmd;
+
+        /**
+         * A class that listens to DHCP Events
+         */
         class EventListener
         {
         public:
+            /**
+             * Constructor
+             */
             EventListener();
+
+            /**
+             * Listener's virtual function invoked when a DHCP event is
+             * available to read
+             */
             virtual void handle_dhcp_event(EventsCmd *cmd) = 0;
 
+            /**
+             * Return the HW::Item associated with this command
+             */            
             HW::Item<bool> & status();
         protected:
+            /**
+             * The HW::Item associated with this command
+             */
             HW::Item<bool> m_status;
         };
 
@@ -126,12 +170,19 @@ namespace VPP
                          public EventCmd<vapi_payload_dhcp_compl_event>
         {
         public:
+            /**
+             * Constructor
+             */
             EventsCmd(EventListener &el);
 
             /**
-             * Issue the command to VPP/HW
+             * Issue the command to VPP/HW - subscribe to DHCP events
              */
             rc_t issue(Connection &con);
+
+            /**
+             * Retire the command - unsubscribe
+             */
             void retire();
             /**
              * convert to string format for debug purposes
@@ -143,8 +194,14 @@ namespace VPP
              */
             bool operator==(const EventsCmd&i) const;
 
+            /**
+             * called in the VAPI RX thread when data is available.
+             */
             void notify(vapi_payload_dhcp_compl_event *data);
         private:
+            /**
+             * The listner of this command
+             */
             EventListener & m_listener;
         };
 
@@ -155,6 +212,9 @@ namespace VPP
          */
         void update(const DhcpConfig &obj);
 
+        /**
+         * Find or add DHCP config to the OM
+         */
         static std::shared_ptr<DhcpConfig> find_or_add(const DhcpConfig &temp);
 
         /*
