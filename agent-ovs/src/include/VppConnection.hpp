@@ -27,21 +27,35 @@ namespace VPP {
     class Connection
     {
     public:
+        /**
+         * Constructor
+         */
         Connection();
+        /**
+         * Destructor
+         */
         ~Connection();
 
-        bool connected() const;
-
+        /**
+         * Blocking connect call - always eventually succeeds, or the
+         * universe expires. Not much this system can do without one.
+         */
         void connect();
 
+        /**
+         * Retrun the VAPI context the commands will use
+         */
         vapi_ctx_t & ctx();
     private:
+        /**
+         * The VAPI connection context
+         */
         vapi_ctx_t m_ctx;
-        vapi_error_e m_rv;
-        const std::string m_app_name;
-        const std::string m_app_prefix;
 
-        std::mutex m_mutex;
+        /**
+         * The name of this application
+         */
+        const std::string m_app_name;
     };
 };
 

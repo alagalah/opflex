@@ -80,13 +80,6 @@ rc_t HW::CmdQ::write()
     rc_t rc = rc_t::OK;
 
     /*
-     * if not connected to VPP at this time, the commands will remain
-     * in the queue, unissued.
-     */
-    if (!m_conn.connected())
-        return (rc_t::NOOP);
-
-    /*
      * The queue is enabled, Execute each command in the queue.
      * If one execution fails, abort the rest
      */

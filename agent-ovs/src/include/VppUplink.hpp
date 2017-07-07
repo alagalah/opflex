@@ -28,12 +28,24 @@ namespace VPP
     class Uplink
     {
     public:
+        /**
+         * The uplink interface's encapsulation type for data traffic.
+         */
         enum uplink_type_t
         {
+            /**
+             * VXLAN encap
+             */
             VXLAN,
+            /**
+             * VLAN encap
+             */
             VLAN
         };
 
+        /**
+         * Default Constructor
+         */
         Uplink();
 
         /**
@@ -41,12 +53,18 @@ namespace VPP
          */
         VPP::Interface *mk_interface(const std::string &uuid, uint32_t vnid);
 
+        /**
+         * Set the uplink paramenters for vxlan
+         */
         void set(const std::string &uplink,
                  uint16_t vlan,
                  const std::string &name,
                  const boost::asio::ip::address &ip,
                  uint16_t port);
 
+        /**
+         * Set the uplink paramenters for vlan
+         */
         void set(const std::string &uplink,
                  uint16_t vlan,
                  const std::string &name);
@@ -56,12 +74,20 @@ namespace VPP
          */
         void configure();
 
+        /**
+         * Handle notifications about DHCP complete
+         */
         void handle_dhcp_event(DhcpConfig::EventsCmd *cmd);
 
     private:
-
+        /**
+         * the encap type on the uplinnk
+         */
         uplink_type_t m_type;
 
+        /**
+         * VXLAN uplink encap, if used
+         */
         VPP::VxlanTunnel::endpoint_t m_vxlan;
 
         /**
@@ -75,10 +101,14 @@ namespace VPP
         std::shared_ptr<ControlInterface>  controlInterface;
 
         /**
-         * Paramters saved from the set-properties call
+         * The VLAN used for control traffic
+         */
+        uint16_t m_vlan;
+
+        /**
+         * The name of the uplink interface
          */
         std::string m_iface;
-        uint16_t m_vlan;
     };
 };
 

@@ -327,17 +327,34 @@ namespace VPP
         class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             DeleteCmd(HW::Item<handle_t> &item);
+            /**
+             * Constructor
+             */
             DeleteCmd(HW::Item<handle_t> &item,
                       const std::string &name);
+            /**
+             * Destructor
+             */
             virtual ~DeleteCmd();
 
             /**
              * Comparison operator - only used for UT
              */
             virtual bool operator==(const DeleteCmd&i) const;
+
+            /**
+             * Called when the command completes to remove the
+             * interface from the per-handle store
+             */
             void complete();
         protected:
+            /**
+             * the name of the interface to delete
+             */
             const std::string m_name;
         };
 

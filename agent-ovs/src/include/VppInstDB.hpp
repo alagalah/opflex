@@ -24,10 +24,18 @@ namespace VPP
     class InstDB
     {
     public:
+        /**
+         * Constructor
+         */
         InstDB()
         {
         }
 
+        /**
+         * Find or add the object to the store.
+         * The object passed is deisred state. A new instance will be copy
+         * constructed from it.
+         */
         std::shared_ptr<OBJ> find_or_add(const KEY &key, const OBJ &obj)
         {
             auto search = m_map.find(key);
@@ -45,6 +53,9 @@ namespace VPP
             return (search->second.lock());
         }
 
+        /**
+         * Find the object to the store.
+         */
         std::shared_ptr<OBJ> find(const KEY &key)
         {
             auto search = m_map.find(key);
@@ -59,7 +70,7 @@ namespace VPP
             return (search->second.lock());
         }
 
-        /*
+        /**
          * Release the object from the DB store, if it's the one we have stored
          */
         void release(const KEY &key, const OBJ *obj)
@@ -84,8 +95,8 @@ namespace VPP
             }
         }
 
-        /*
-         * Release the object from the DB store, if it's the one we have stored
+        /**
+         * Add the object from the DB store.
          */
         void add(const KEY &key, std::shared_ptr<OBJ> sp)
         {
@@ -93,6 +104,9 @@ namespace VPP
         }
 
     private:
+        /**
+         * the map of objects against their key
+         */
         std::map<KEY, std::weak_ptr<OBJ>> m_map;
     };
 };

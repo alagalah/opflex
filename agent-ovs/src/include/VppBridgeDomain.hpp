@@ -10,7 +10,6 @@
 #define __VPP_BRIDGE_DOMAIN_H__
 
 #include <string>
-#include <map>
 #include <stdint.h>
 
 #include "VppObject.hpp"
@@ -33,8 +32,14 @@ namespace VPP
          * Construct a new object matching the desried state
          */
         BridgeDomain(uint32_t id);
-        ~BridgeDomain();
+        /**
+         * Copy Constructor
+         */
         BridgeDomain(const BridgeDomain& o);
+        /**
+         * Destructor
+         */
+        ~BridgeDomain();
 
         /**
          * convert to string format for debug purposes
@@ -52,11 +57,14 @@ namespace VPP
         static std::shared_ptr<BridgeDomain> find(const BridgeDomain &temp);
 
         /**
-         * A functor class that creates an Bridge-Domain
+         * A command class that creates an Bridge-Domain
          */
         class CreateCmd: public RpcCmd<HW::Item<uint32_t>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             CreateCmd(HW::Item<uint32_t> &item);
 
             /**
@@ -80,6 +88,9 @@ namespace VPP
         class DeleteCmd: public RpcCmd<HW::Item<uint32_t>, rc_t>
         {
         public:
+            /**
+             * Constructor
+             */
             DeleteCmd(HW::Item<uint32_t> &item);
 
             /**
@@ -103,10 +114,13 @@ namespace VPP
          */
         void update(const BridgeDomain &obj);
 
+        /**
+         * Find or add an instance of a Bridge-Domain in the Object Model
+         */
         static std::shared_ptr<BridgeDomain> find_or_add(const BridgeDomain &temp);
 
         /*
-         * It's the VPPHW class that updates the objects in HW
+         * It's the VPP::OM class that calls find_or_add
          */
         friend class VPP::OM;
     

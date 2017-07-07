@@ -32,7 +32,14 @@ namespace VPP
     */
     struct rc_t: public Enum<rc_t>
     {
+        /**
+         * Constructor
+         */
         rc_t(int v, const std::string s);
+
+        /**
+         * Destructor
+         */
         ~rc_t();
 
         /**
@@ -61,6 +68,9 @@ namespace VPP
          */
         const static rc_t INVALID;
 
+        /**
+         * Get the rc_t from the VPP API value
+         */
         static const rc_t &from_vpp_retval(int32_t rv);
     };
 
@@ -69,28 +79,46 @@ namespace VPP
      */
     struct handle_t
     {
+        /**
+         * Constructor
+         */
         handle_t(int value);
 
         /**
          * convert to string format for debug purposes
          */
         std::string to_string() const;
+
+        /**
+         * Comparison operator
+         */
         bool operator==(const handle_t &other) const;
 
+        /**
+         * less than operator
+         */
         bool operator<(const handle_t &other) const;
+
         /**
          * A value of an interface handle_t that means the itf does not exist
          */
         const static handle_t INVALID;
 
+        /**
+         * get the value of the handle
+         */
         uint32_t value() const;
 
-        static handle_t from_int(uint32_t value);
-
     private:
+        /**
+         * VPP's handle value
+         */
         uint32_t m_value;
     };
 
+    /**
+     * ostream print of a handle_t
+     */
     std::ostream & operator<<(std::ostream &os, const handle_t &h);
 };
 

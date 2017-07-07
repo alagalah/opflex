@@ -15,12 +15,11 @@
 namespace VPP
 {
    /**
-    * Error codes that VPP will return during a HW write
+    * Types belonging to Routing
     */
-    class Route
+    namespace Route
     {
-    public:
-        /*
+        /**
          * type def the table-id
          */
         typedef uint32_t table_id_t;
@@ -28,7 +27,7 @@ namespace VPP
         /**
          * The table-id for the default table
          */
-        const static table_id_t DEFAULT_TABLE;
+        const static table_id_t DEFAULT_TABLE = 0;
 
         /**
          * A prefix defintion. Address + length
@@ -36,28 +35,62 @@ namespace VPP
         class prefix_t
         {
         public:
+            /**
+             * Default Constructor - creates ::/0
+             */
             prefix_t();
+            /**
+             * Constructor with address and length
+             */
             prefix_t(const boost::asio::ip::address &addr,
                      uint8_t len);
-            ~prefix_t();
+            /**
+             * Constructor with string and length
+             */
             prefix_t(const std::string &s,
                      uint8_t len);
+            /**
+             * Copy Constructor
+             */
             prefix_t(const prefix_t&);
+            /**
+             * Constructor with VPP API prefix representation
+             */
             prefix_t(uint8_t is_ip6, uint8_t *addr, uint8_t len);
+            /**
+             * Destructor
+             */
+            ~prefix_t();
 
+            /**
+             * Get the address
+             */
             const boost::asio::ip::address &address() const;
 
+            /**
+             * Assignement
+             */
             prefix_t &operator=(const prefix_t&);
+
+            /**
+             * Less than operator
+             */
             bool operator<(const prefix_t &o) const;
+
+            /**
+             * equals operator
+             */
             bool operator==(const prefix_t &o) const;
+
+            /**
+             * not equal opartor
+             */
             bool operator!=(const prefix_t &o) const;
-            prefix_t & operator=(const prefix_t &o) const;
 
             /**
              * convert to string format for debug purposes
              */
             std::string to_string() const;
-            static prefix_t from_string(const std::string &str);
 
             /**
              * The all Zeros prefix
@@ -68,8 +101,16 @@ namespace VPP
              * Convert the prefix into VPP API parameters
              */
             void to_vpp(uint8_t *is_ip6, uint8_t *addr, uint8_t *len) const;
+
         private:
+            /**
+             * The address
+             */
             boost::asio::ip::address m_addr;
+
+            /**
+             * The prefix length
+             */
             uint8_t m_len;
         };
     };
