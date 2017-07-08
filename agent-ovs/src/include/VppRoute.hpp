@@ -116,6 +116,11 @@ namespace VPP
     };
 
     /**
+     * Ostream printer for prefix_t
+     */
+    std::ostream & operator<<(std::ostream &os, const Route::prefix_t &pfx);
+
+    /**
      * Convert a boost address into a VPP bytes string
      */
     void to_bytes(const boost::asio::ip::address &addr, uint8_t *is_ip6, uint8_t *array);

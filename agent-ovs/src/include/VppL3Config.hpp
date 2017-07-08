@@ -62,6 +62,16 @@ namespace VPP
         std::string to_string() const;
 
         /**
+         * Dump all L3Configs into the stream provided
+         */
+        static void dump(std::ostream &os);
+
+        /**
+         * The key type for L3Configs
+         */
+        typedef std::pair<Interface::key_type, Route::prefix_t> key_type_t;
+
+        /**
          * A functor class that binds the L3 config to the interface
          */
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
@@ -211,8 +221,13 @@ namespace VPP
          * A map of all L3 configs keyed against a combination of the interface
          * and subnet's keys.
          */
-        static InstDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> m_db;
+        static InstDB<key_type_t, L3Config> m_db;
     };
+
+    /**
+     * Ostream output for the key
+     */
+    std::ostream &operator<<(std::ostream &os, const L3Config::key_type_t &key);
 };
 
 #endif

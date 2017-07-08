@@ -58,6 +58,11 @@ namespace VPP
         std::string to_string() const;
 
         /**
+         * Dump all L2Configs into the stream provided
+         */
+        static void dump(std::ostream &os);
+
+        /**
          * A functor class that binds L2 configuration to an interface
          */
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>

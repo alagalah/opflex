@@ -258,7 +258,7 @@ int main(int argc, char** argv) {
 
     sigset_t waitset;
     sigemptyset(&waitset);
-//    sigaddset(&waitset, SIGINT);
+    sigaddset(&waitset, SIGINT);
     sigaddset(&waitset, SIGTERM);
     sigprocmask(SIG_BLOCK, &waitset, NULL);
 

@@ -57,8 +57,9 @@ BridgeDomain::~BridgeDomain()
 std::string BridgeDomain::to_string() const
 {
     std::ostringstream s;
-    s << "bridge-domain: "
-      << m_id.to_string();
+    s << "bridge-domain:["
+      << m_id.to_string()
+      << "]";
 
     return (s.str());
 }
@@ -82,4 +83,9 @@ std::shared_ptr<BridgeDomain> BridgeDomain::find_or_add(const BridgeDomain &temp
 std::shared_ptr<BridgeDomain> BridgeDomain::instance() const
 {
     return find_or_add(*this);
+}
+
+void BridgeDomain::dump(std::ostream &os)
+{
+    m_db.dump(os);
 }

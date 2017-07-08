@@ -59,6 +59,11 @@ namespace VPP
          */
         static std::shared_ptr<RouteDomain> find(const RouteDomain &temp);
 
+        /**
+         * Dump all route-doamin into the stream provided
+         */
+        static void dump(std::ostream &os);
+
     private:
         /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.

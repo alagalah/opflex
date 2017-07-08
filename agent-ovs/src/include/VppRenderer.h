@@ -19,6 +19,8 @@
 #ifndef OVSAGENT_VPP_RENDERER_H
 #define OVSAGENT_VPP_RENDERER_H
 
+#include "VppInspect.hpp"
+
 namespace ovsagent {
 
 /**
@@ -68,6 +70,7 @@ public:
     virtual void stop();
 
 private:
+    std::unique_ptr<VPP::Inspect> inspector;
     IdGenerator idGen;
     VppManager vppManager;
     std::string bridgeName;
