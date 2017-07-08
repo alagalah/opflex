@@ -14,9 +14,6 @@
 
 using namespace VPP;
 
-/**
- * A DB of al the interfaces, key on the name
- */
 InstDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> L3Config::m_db;
 
 /**
@@ -58,9 +55,11 @@ void L3Config::sweep()
 std::string L3Config::to_string() const
 {
     std::ostringstream s;
-    s << "L3-config: " << m_itf->to_string()
+    s << "L3-config:[" << m_itf->to_string()
       << " prefix:" << m_pfx.to_string()
-      << m_binding.to_string();
+      << " "
+      << m_binding.to_string()
+      << "]";
 
     return (s.str());
 }
@@ -84,4 +83,20 @@ std::shared_ptr<L3Config> L3Config::find_or_add(const L3Config &temp)
 std::shared_ptr<L3Config> L3Config::instance() const
 {
     return find_or_add(*this);
+}
+
+void L3Config::dump(std::ostream &os)
+{
+    m_db.dump(os);
+}
+
+std::ostream& VPP::operator<<(std::ostream &os, const L3Config::key_type_t &key)
+{
+    os << "["
+       << key.first
+       << ", "
+       << key.second
+       << "]";
+
+    return (os);
 }

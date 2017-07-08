@@ -60,9 +60,10 @@ L2Config::~L2Config()
 std::string L2Config::to_string() const
 {
     std::ostringstream s;
-    s << "L2-config: " << m_itf->to_string()
-      << " BD:" << m_bd->to_string()
-      << m_binding.to_string();
+    s << "L2-config:[" << m_itf->to_string()
+      << " " << m_bd->to_string()
+      << " " << m_binding.to_string()
+      << "]";
 
     return (s.str());
 }
@@ -89,4 +90,9 @@ std::shared_ptr<L2Config> L2Config::find_or_add(const L2Config &temp)
 std::shared_ptr<L2Config> L2Config::instance() const
 {
     return find_or_add(*this);
+}
+
+void L2Config::dump(std::ostream &os)
+{
+    m_db.dump(os);
 }

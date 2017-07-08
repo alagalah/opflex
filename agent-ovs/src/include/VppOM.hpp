@@ -116,6 +116,14 @@ namespace VPP {
             HW::write();
         }
 
+        /**
+         * Print each of the object in the DB into the stream provided
+         */
+        static void dump(const KEY & key, std::ostream &os)
+        {
+            m_db->dump(key, os);
+        }
+
     private:
         /**
          * Database of object state created for each key

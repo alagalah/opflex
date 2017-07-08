@@ -10,6 +10,7 @@
 #define __VPP_INST_DB_H__
 
 #include <memory>
+#include <ostream>
 
 #include "logging.h"
 
@@ -49,7 +50,7 @@ namespace VPP
 
                 m_map[key] = sp;
 
-                LOG(ovsagent::INFO) << *sp;
+                LOG(ovsagent::DEBUG) << *sp;
                 return (sp);
             }
 
@@ -99,11 +100,15 @@ namespace VPP
         }
 
         /**
-         * Add the object from the DB store.
+         * Print each of the object in the DB into the stream provided
          */
-        void add(const KEY &key, std::shared_ptr<OBJ> sp)
+        void dump(std::ostream &os)
         {
-            m_map[key] = sp;
+            for (auto entry : m_map)
+            {
+                os << "key: " << entry.first << std::endl;
+                os << "  "    << entry.second.lock()->to_string() << std::endl;
+            }
         }
 
     private:

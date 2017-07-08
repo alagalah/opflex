@@ -62,6 +62,11 @@ namespace VPP
         static std::shared_ptr<BridgeDomain> find(const BridgeDomain &temp);
 
         /**
+         * Dump all bridge-doamin into the stream provided
+         */
+        static void dump(std::ostream &os);
+
+        /**
          * A command class that creates an Bridge-Domain
          */
         class CreateCmd: public RpcCmd<HW::Item<uint32_t>, rc_t>

@@ -11,7 +11,6 @@
 #include "logging.h"
 
 #include <boost/asio/placeholders.hpp>
-#include <boost/algorithm/string/split.hpp>
 
 namespace ovsagent {
 
@@ -100,6 +99,16 @@ namespace ovsagent {
                                         remote_ip,
                                         vxlan.get().get<uint16_t>(REMOTE_PORT, 4789));
             }
+        }
+
+        /*
+         * Are we opening an inspection socket?
+         */
+        auto inspect = properties.get<std::string>("inspect-socket", "");
+
+        if (inspect.length())
+        {
+            inspector.reset(new VPP::Inspect(inspect));
         }
     }
 }

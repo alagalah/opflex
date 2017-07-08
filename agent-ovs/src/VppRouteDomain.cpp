@@ -50,8 +50,9 @@ RouteDomain::~RouteDomain()
 std::string RouteDomain::to_string() const
 {
     std::ostringstream s;
-    s << "route-domain: "
-      << " ID:" << m_table_id;
+    s << "route-domain:["
+      << m_table_id
+      << "]";
 
     return (s.str());
 }
@@ -71,4 +72,9 @@ std::shared_ptr<RouteDomain> RouteDomain::find_or_add(const RouteDomain &temp)
 std::shared_ptr<RouteDomain> RouteDomain::instance() const
 {
     return find_or_add(*this);
+}
+
+void RouteDomain::dump(std::ostream &os)
+{
+    m_db.dump(os);
 }

@@ -141,3 +141,11 @@ void Route::prefix_t::to_vpp(uint8_t *is_ip6,
     *len = m_len;
     to_bytes(m_addr, is_ip6, addr);
 }
+
+std::ostream & VPP::operator<<(std::ostream &os,
+                               const Route::prefix_t &pfx)
+{
+    os << pfx.to_string();
+
+    return (os);
+}

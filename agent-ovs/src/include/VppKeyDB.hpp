@@ -52,6 +52,19 @@ namespace VPP
          */
         void flush(const KEY &k);
 
+        /**
+         * Print each of the object in the DB into the stream provided
+         */
+        void dump(const KEY & key, std::ostream &os)
+        {
+            ObjectRefList& orlist = find(key);
+
+            for (auto entry : orlist)
+            {
+                os << "  " << entry.obj()->to_string() << std::endl;
+            }
+        }
+
     private:
         /**
          * A map of keys versus the object they reference

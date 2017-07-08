@@ -136,11 +136,18 @@ void Interface::release()
 std::string Interface::to_string() const
 {
     std::ostringstream s;
-    s << "interface: " << m_name
+    s << "interface:[" << m_name
       << " type:" << m_type.to_string()
-      << " hdl:" << m_hdl.to_string()
-      << " admin-state:" << m_state.to_string()
-      << " oper-state:" << m_oper.to_string();
+      << " hdl:" << m_hdl.to_string();
+
+    if (m_rd)
+    {
+        s << " rd:" << m_rd->to_string();
+    }
+
+    s << " admin-state:" << m_state.to_string()
+      << " oper-state:" << m_oper.to_string()
+      << "]";
 
     return (s.str());
 }
@@ -254,4 +261,9 @@ void Interface::add(const handle_t &handle,
 void Interface::remove(const handle_t &handle)
 {
     m_hdl_db.erase(handle);
+}
+
+void Interface::dump(std::ostream &os)
+{
+    m_db.dump(os);
 }
