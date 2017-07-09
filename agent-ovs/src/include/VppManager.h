@@ -355,6 +355,11 @@ private:
      */
     void handleSweepTimer();
 
+    /**
+     * Handle the HW poll timeout
+     */
+    void handleHWPollTimer();
+
     Agent& agent;
     IdGenerator& idGen;
     TaskQueue taskQueue;
@@ -388,6 +393,11 @@ private:
      * A list of interest/want commands
      */
     std::list<std::shared_ptr<VPP::Cmd>> m_cmds;
+
+    /**
+     * The HW poll timer
+     */
+    std::unique_ptr<boost::asio::deadline_timer> m_poll_timer;
 
     /*
      * Map of flood-group URI to the endpoints associated with it.

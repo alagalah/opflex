@@ -72,7 +72,18 @@ namespace VPP
          */
         rc_t wait()
         {
-            return (m_promise.get_future().get());
+            std::future_status status;
+            std::future<rc_t> result;
+
+            result = m_promise.get_future();
+            status = result.wait_for(std::chrono::seconds(5));
+
+            if (status != std::future_status::ready)
+            {
+                return (rc_t::TIMEOUT);
+            }
+
+            return (result.get());
         }
 
         /**

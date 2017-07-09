@@ -154,6 +154,15 @@ namespace ovsagent {
 
         VPP::HW::enqueue(dc);
         m_cmds.push_back(dc);
+
+        //VPP::HW::write();
+
+        /**
+         * Scehdule a timer to Poll for HW livensss
+         */
+        m_poll_timer.reset(new deadline_timer(agent.getAgentIOService()));
+        m_poll_timer->expires_from_now(boost::posix_time::seconds(3));
+        m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this));
     }
 
     void VppManager::handleUplinkConfigure()
@@ -164,6 +173,29 @@ namespace ovsagent {
     void VppManager::handleSweepTimer()
     {
         m_boot.converged();
+    }
+
+    void VppManager::handleHWPollTimer()
+    {
+        if (!VPP::HW::poll())
+        {
+            /*
+             * Lost connection to VPP. exit and expect systemd to restart us
+             */
+            exit(EXIT_FAILURE);
+
+            /*
+             * This will be a more sensible option in the future
+             */
+            VPP::HW::connect();
+        }
+
+        /*
+         * re-scehdule a timer to Poll for HW liveness
+         */
+        m_poll_timer.reset(new deadline_timer(agent.getAgentIOService()));
+        m_poll_timer->expires_from_now(boost::posix_time::seconds(3));
+        m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this));
     }
 
     void VppManager::handleBoot()
@@ -721,8 +753,8 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                 VPP::Interface::oper_state_t oper_state =
                     VPP::Interface::oper_state_t::from_int(event.payload.link_up_down);
 
-                LOG(INFO) << "Interface Event: " << sp->to_string()
-                          << " state: " << oper_state.to_string();
+                LOG(DEBUG) << "Interface Event: " << sp->to_string()
+                           << " state: " << oper_state.to_string();
 
                 sp->set(oper_state);
             }

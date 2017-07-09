@@ -78,9 +78,28 @@ namespace VPP
          */
         DATA wait()
         {
-            return (m_promise.get_future().get());
+            std::future_status status;
+            std::future<DATA> result;
+
+            result = m_promise.get_future();
+            status = result.wait_for(std::chrono::seconds(5));
+
+            if (status != std::future_status::ready)
+            {
+                return (DATA(rc_t::TIMEOUT));
+            }
+
+            return (result.get());
         }
 
+        /**
+         * Called by the HW Command Q when it is disabled to indicate the
+         * command can be considered successful without issuing it to HW
+         */
+        virtual void succeeded()
+        {
+            m_hw_item.set(rc_t::OK);
+        }
 
     protected:
         /**
@@ -116,20 +135,6 @@ namespace VPP
 
             return (VAPI_OK);     
         }
-
-        /**
-         * Called by the HW Command Q when it is disabled to indicate the
-         * command can be considered successful without issuing it to HW
-         */
-        virtual void succeeded()
-        {
-            m_hw_item.set(rc_t::OK);
-        }
-
-        /**
-         * The HW command Q is a friend so it can call suceeded()
-         */
-        friend class HW::CmdQ;
     };
 };
 

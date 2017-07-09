@@ -12,18 +12,23 @@
 
 #include "VppHW.hpp"
 
+extern "C"
+{
+    #include "vpe.api.vapi.h"
+}
+
 using namespace VPP;
 
 HW::CmdQ::CmdQ():
     m_enabled(true),
-    m_alive(true),
+    m_connected(false),
     m_conn()
 {
 }
 
 HW::CmdQ::~CmdQ()
 {
-    m_alive = false;
+    m_connected = false;
 
     if (m_rx_thread && m_rx_thread->joinable())
     {
@@ -40,7 +45,7 @@ HW::CmdQ & HW::CmdQ::operator=(const HW::CmdQ &f)
  */
 void HW::CmdQ::rx_run()
 {
-    while (m_alive)
+    while (m_connected)
     {
         vapi_dispatch_one(m_conn.ctx());
     }
@@ -71,8 +76,21 @@ void HW::CmdQ::enqueue(std::queue<Cmd*> &cmds)
 
 void HW::CmdQ::connect()
 {
+    if (m_connected)
+    {
+        m_conn.disconnect();
+    }
+
+    m_connected = false;
+
+    if (m_rx_thread && m_rx_thread->joinable())
+    {
+        m_rx_thread->join();
+    }
+
     m_conn.connect();
 
+    m_connected = true;
     m_rx_thread.reset(new std::thread(&HW::CmdQ::rx_run, this));
 }
 
@@ -100,7 +118,7 @@ rc_t HW::CmdQ::write()
     {
         std::shared_ptr<Cmd> cmd = *it;
 
-        LOG(ovsagent::INFO) << *cmd;
+        LOG(ovsagent::DEBUG) << *cmd;
 
         if (m_enabled)
         {
@@ -164,6 +182,7 @@ rc_t HW::CmdQ::write()
  * The single Command Queue
  */
 HW::CmdQ* HW::m_cmdQ;
+HW::Item<bool> HW::m_poll_state;
 
 /**
  * Initalse the connection to VPP
@@ -216,6 +235,16 @@ rc_t HW::write()
     return (m_cmdQ->write());
 }
 
+bool HW::poll()
+{
+    std::shared_ptr<VPP::Cmd> poll(new Poll(m_poll_state));
+
+    VPP::HW::enqueue(poll);
+    VPP::HW::write();
+
+    return (m_poll_state);
+}
+
 template <> std::string HW::Item<bool>::to_string() const
 {
     std::ostringstream os;
@@ -236,4 +265,35 @@ template <> std::string HW::Item<unsigned int>::to_string() const
        << " data:" << item_data
        << "]";
     return (os.str());
+}
+
+HW::Poll::Poll(HW::Item<bool> &item):
+    RpcCmd(item)
+{
+}
+
+rc_t HW::Poll::issue(Connection &con)
+{
+    vapi_msg_control_ping *req;
+
+    req = vapi_alloc_control_ping(con.ctx());
+
+    VAPI_CALL(vapi_control_ping(con.ctx(), req,
+                                RpcCmd::callback<
+                                    vapi_payload_control_ping_reply,
+                                    Poll>,
+                                this));
+
+    m_hw_item.set(wait());
+
+    return (rc_t::OK);
+}
+
+std::string HW::Poll::to_string() const
+{
+    std::ostringstream s;
+
+    s << "poll: " << m_hw_item.to_string();
+
+    return (s.str());
 }

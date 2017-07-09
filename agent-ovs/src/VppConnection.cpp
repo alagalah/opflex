@@ -18,8 +18,13 @@ Connection::Connection():
 
 Connection::~Connection()
 {
-    vapi_disconnect(m_ctx);
+    disconnect();
     vapi_ctx_free(m_ctx);
+}
+
+void Connection::disconnect()
+{
+    vapi_disconnect(m_ctx);
 }
 
 void Connection::connect()
