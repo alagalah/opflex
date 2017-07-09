@@ -236,6 +236,12 @@ namespace VPP
              * The name of the interface to be created
              */
             const std::string &m_name;
+
+            /**
+             * Called by the HW Command Q when it is disabled to indicate the
+             * command can be considered successful without issuing it to HW
+             */
+            virtual void succeeded();
         };
 
         /**
@@ -441,6 +447,39 @@ namespace VPP
         };
 
         /**
+         * A command class to delete TAP interfaces in VPP
+         */
+        class SetTag: public RpcCmd<HW::Item<handle_t>, rc_t>
+        {
+        public:
+            /**
+             * Constructor taking the HW::Item to update
+             */
+            SetTag(HW::Item<handle_t> &item,
+                   const std::string &name);
+
+            /**
+             * Issue the command to VPP/HW
+             */
+            rc_t issue(Connection &con);
+
+            /**
+             * convert to string format for debug purposes
+             */
+            std::string to_string() const;
+
+            /**
+             * Comparison operator - only used for UT
+             */
+            bool operator==(const SetTag&i) const;
+        private:
+            /**
+             * The tag to add
+             */
+            const std::string m_name;
+        };
+
+        /**
          * A cmd class that changes the admin state
          */
         class StateChangeCmd: public RpcCmd<HW::Item<admin_state_t>, rc_t>
@@ -587,13 +626,13 @@ namespace VPP
         /**
          * A cmd class that Dumps all the Vpp Interfaces
          */
-        class DumpInterfaceCmd: public DumpCmd<vapi_payload_sw_interface_details>
+        class DumpCmd: public VPP::DumpCmd<vapi_payload_sw_interface_details>
         {
         public:
             /**
              * Default Constructor
              */
-            DumpInterfaceCmd();
+            DumpCmd();
 
             /**
              * Issue the command to VPP/HW
@@ -607,7 +646,7 @@ namespace VPP
             /**
              * Comparison operator - only used for UT
              */
-            bool operator==(const DumpInterfaceCmd&i) const;
+            bool operator==(const DumpCmd&i) const;
         };
 
         /**
@@ -686,13 +725,13 @@ namespace VPP
          * Virtual functions to construct an interface create commands.
          * Overridden in derived classes like the SubInterface
          */
-        virtual Cmd* mk_create_cmd();
+        virtual std::queue<Cmd*> & mk_create_cmd(std::queue<Cmd*> &cmds);
 
         /**
          * Virtual functions to construct an interface delete commands.
          * Overridden in derived classes like the SubInterface
          */
-        virtual Cmd* mk_delete_cmd();
+        virtual std::queue<Cmd*> & mk_delete_cmd(std::queue<Cmd*> &cmds);
 
         /**
          * Sweep/reap the object if still stale

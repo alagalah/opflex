@@ -23,14 +23,14 @@ L3Config::L3Config(const Interface &itf,
                    const Route::prefix_t &pfx):
     m_itf(itf.instance()),
     m_pfx(pfx),
-    m_binding(0)
+    m_binding(true)
 {
 }
 
 L3Config::L3Config(const L3Config& o):
     m_itf(o.m_itf),
     m_pfx(o.m_pfx),
-    m_binding(0)
+    m_binding(true)
 {
 }
 
@@ -69,7 +69,7 @@ void L3Config::update(const L3Config &desired)
     /*
      * the desired state is always that the interface should be created
      */
-    if (rc_t::OK != m_binding.rc())
+    if (!m_binding)
     {
         HW::enqueue(new BindCmd(m_binding, m_itf->handle(), m_pfx));
     }

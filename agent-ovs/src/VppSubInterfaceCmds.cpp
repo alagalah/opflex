@@ -21,9 +21,10 @@ extern "C"
 using namespace VPP;
 
 SubInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
+                                   const std::string &name,
                                    const handle_t &parent,
                                    uint16_t vlan):
-    RpcCmd(item),
+    Interface::CreateCmd(item, name),
     m_parent(parent),
     m_vlan(vlan)
 {
@@ -63,7 +64,7 @@ std::string SubInterface::CreateCmd::to_string() const
 }
 
 SubInterface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
-    RpcCmd(item)
+    Interface::DeleteCmd(item)
 {
 }
 

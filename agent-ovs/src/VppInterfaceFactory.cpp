@@ -7,6 +7,7 @@
  */
 
 #include <boost/algorithm/string.hpp>
+#include <algorithm>
 
 #include "VppInterface.hpp"
 #include "VppTapInterface.hpp"
@@ -33,6 +34,15 @@ Interface::new_interface(const vapi_payload_sw_interface_details &vd)
          * need to strip VPP's "host-" prefix from the interface name
          */
         name = name.substr(5);
+    }
+    /**
+     * if the tag is set, then we wrote that to specify a name to make
+     * the interface type more specific
+     */
+    if (vd.tag[0] != 0)
+    {
+        name = std::string(reinterpret_cast<const char*>(vd.tag));
+        type = Interface::type_t::from_string(name);
     }
 
     /*

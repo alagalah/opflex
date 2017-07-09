@@ -9,16 +9,10 @@
 #include <algorithm>
 
 #include "VppOM.hpp"
-#include "VppObjectDB.hpp"
 
 using namespace VPP;
 
 KeyDB *OM::m_db;
-
-/**
- * A special owner for all the state read from VPP HW at init time
- */
-static const std::string hw_owner = "__VPP_HW__";
 
 /**
  * Initalse the connection to VPP
@@ -26,29 +20,9 @@ static const std::string hw_owner = "__VPP_HW__";
 void OM::init()
 {
     m_db = new KeyDB();
-
-    /*
-     * Read the existing state from the HW
-     */
-
-    /*
-     * Mark all that state stale
-     */
-    mark(hw_owner);
 }
 
-/**
- * Initalse the connection to VPP
- */
-void OM::converged()
-{
-    /*
-     * Sweep all the stale state
-     */
-    sweep(hw_owner);
-}
-
-void OM::mark(KEY &key)
+void OM::mark(const KEY &key)
 {
     /*
      * Find if the object already stored on behalf of this key.
@@ -64,7 +38,7 @@ void OM::mark(KEY &key)
     std::for_each(objs.begin(), objs.end(), mark_obj);
 }
 
-void OM::sweep(KEY &key)
+void OM::sweep(const KEY &key)
 {
     /*
      * Find if the object already stored on behalf of this key.

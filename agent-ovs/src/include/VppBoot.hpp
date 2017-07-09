@@ -22,11 +22,14 @@ namespace VPP
 
         Boot();
 
-        void dump();
+        void start();
 
+        void converged();
     private:
         bool completed;
 
+        void dump_interface();
+        void dump_bridge();
     };
 }
 

@@ -47,8 +47,7 @@ namespace VPP
         /**
          * A functor class that creates an interface
          */
-        class CreateCmd: public RpcCmd<HW::Item<handle_t>,
-                                       HW::Item<handle_t>>
+        class CreateCmd: public Interface::CreateCmd
         {
         public:
             /**
@@ -56,6 +55,7 @@ namespace VPP
              * and the sub-interface's VLAN
              */
             CreateCmd(HW::Item<handle_t> &item,
+                      const std::string &name,
                       const handle_t &parent,
                       uint16_t vlan);
 
@@ -73,6 +73,7 @@ namespace VPP
              * Comparison operator - only used for UT
              */
             bool operator==(const CreateCmd&i) const;
+
         private:
             /**
              * Refernece to the parents handle
@@ -88,7 +89,7 @@ namespace VPP
         /**
          * A cmd class that Delete an interface
          */
-        class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
+        class DeleteCmd: public Interface::DeleteCmd
         {
         public:
             /**
@@ -134,12 +135,12 @@ namespace VPP
         /**
          * Virtual functions to construct an interface create commands.
          */
-        virtual Cmd* mk_create_cmd();
+        virtual std::queue<Cmd*> & mk_create_cmd(std::queue<Cmd*> &cmds);
 
         /**
          * Virtual functions to construct an interface delete commands.
          */
-        virtual Cmd* mk_delete_cmd();
+        virtual std::queue<Cmd*> & mk_delete_cmd(std::queue<Cmd*> &cmds);
 
         /**
          * From the name of the parent and the vlan,

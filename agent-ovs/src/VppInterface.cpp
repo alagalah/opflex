@@ -118,7 +118,8 @@ void Interface::sweep()
     }
     if (m_hdl)
     {
-        HW::enqueue(mk_delete_cmd());
+        std::queue<Cmd*> cmds;
+        HW::enqueue(mk_delete_cmd(cmds));
     }
     HW::write();
 }
@@ -164,40 +165,46 @@ const Interface::key_type &Interface::key() const
     return (name());
 }
 
-Cmd* Interface::mk_create_cmd()
+std::queue<Cmd*> & Interface::mk_create_cmd(std::queue<Cmd*> &q)
 {
-    if ((type_t::LOOPBACK == m_type) ||
-        (type_t::BVI == m_type))
+    if (type_t::LOOPBACK == m_type)
     {
-        return (new LoopbackCreateCmd(m_hdl, m_name));
+        q.push(new LoopbackCreateCmd(m_hdl, m_name));
+    }
+    else if (type_t::BVI == m_type)
+    {
+        q.push(new LoopbackCreateCmd(m_hdl, m_name));
+        q.push(new SetTag(m_hdl, m_name));
     }
     else if (type_t::AFPACKET == m_type)
     {
-        return (new AFPacketCreateCmd(m_hdl, m_name));
+        q.push(new AFPacketCreateCmd(m_hdl, m_name));
     }
     else if (type_t::TAP == m_type)
     {
-        return (new TapCreateCmd(m_hdl, m_name));
+        q.push(new TapCreateCmd(m_hdl, m_name));
     }
 
-    return (nullptr);
+    return (q);
 }
 
-Cmd* Interface::mk_delete_cmd()
+std::queue<Cmd*> & Interface::mk_delete_cmd(std::queue<Cmd*> &q)
 {
     if ((type_t::LOOPBACK == m_type) ||
         (type_t::BVI == m_type))
     {
-        return (new LoopbackDeleteCmd(m_hdl));
+        q.push(new LoopbackDeleteCmd(m_hdl));
     }
     else if (type_t::AFPACKET == m_type)
     {
-        return (new AFPacketDeleteCmd(m_hdl, m_name));
+        q.push(new AFPacketDeleteCmd(m_hdl, m_name));
     }
     else if (type_t::TAP == m_type)
     {
-        return (new TapDeleteCmd(m_hdl));
+        q.push(new TapDeleteCmd(m_hdl));
     }
+
+    return (q);
 }
 
 
@@ -208,7 +215,8 @@ void Interface::update(const Interface &desired)
      */
     if (rc_t::OK != m_hdl.rc())
     {
-        HW::enqueue(mk_create_cmd());
+        std::queue<Cmd*> cmds;
+        HW::enqueue(mk_create_cmd(cmds));
     }
 
     /*

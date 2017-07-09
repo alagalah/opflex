@@ -219,7 +219,6 @@ if RENDERER_VPP
 	src/VppRenderer.cpp \
 	src/VppConnection.cpp \
 	src/VppUplink.cpp \
-	src/VppObjectDB.cpp \
 	src/VppObject.cpp \
 	src/VppCmd.cpp \
 	src/VppInterface.cpp \
@@ -240,7 +239,6 @@ if RENDERER_VPP
 	src/VppRouteDomain.cpp \
 	src/VppVxlanTunnel.cpp \
 	src/VppVxlanTunnelCmds.cpp \
-	src/VppSubnet.cpp \
         src/VppBoot.cpp \
 	src/VppManager.cpp \
 	src/VppInspect.cpp \

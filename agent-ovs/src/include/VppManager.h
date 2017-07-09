@@ -19,6 +19,7 @@
 #include <boost/asio/ip/address.hpp>
 #include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include <utility>
 #include <unordered_map>
@@ -323,7 +324,14 @@ private:
      */
     void handleInterfaceEvent(VPP::Interface::EventsCmd *e);
 
+    /**
+     * handle DHCP event from DHCP listner
+     */
     void handle_dhcp_event(VPP::DhcpConfig::EventsCmd *cmd);
+
+    /**
+     * Handle a DHCP event in the task Q thread conttet
+     */
     void handleDhcpEvent(VPP::DhcpConfig::EventsCmd *e);
 
     /**
@@ -341,6 +349,11 @@ private:
      */
     void handleBoot();
 
+    /**
+     * Handle the Vpp sweep timeout
+     */
+    void handleSweepTimer();
+
     Agent& agent;
     IdGenerator& idGen;
     TaskQueue taskQueue;
@@ -354,8 +367,20 @@ private:
     uint8_t dhcpMac[6];
     std::string mcastGroupFile;
 
+    /**
+     * Boot sequence manager
+     */
     VPP::Boot m_boot;
 
+    /**
+     * The sweep boot state timer.
+     *  This is a member here so it has access to the taskQ
+     */
+    std::unique_ptr<boost::asio::deadline_timer> m_sweep_timer;
+
+    /**
+     * Uplink interface manager
+     */
     VPP::Uplink m_uplink;
 
     /**
