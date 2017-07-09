@@ -89,7 +89,7 @@ rc_t HW::CmdQ::write()
     {
         std::shared_ptr<Cmd> cmd = *it;
 
-        LOG(ovsagent::DEBUG) << *cmd;
+        LOG(ovsagent::INFO) << *cmd;
 
         if (m_enabled)
         {

@@ -31,6 +31,15 @@ TapInterface::TapInterface(const std::string &name,
 {
 }
 
+TapInterface::TapInterface(const handle_t &hdl,
+                           const std::string &name,
+                           admin_state_t state,
+                           Route::prefix_t prefix):
+    Interface(hdl, name, type_t::TAP, state),
+    m_prefix(prefix)
+{
+}
+
 TapInterface::~TapInterface()
 {
     sweep();

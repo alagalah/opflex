@@ -56,7 +56,7 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
 
     Route::prefix_t pfx(dhcp_data.is_ipv6,
                         dhcp_data.host_address,
-                        dhcp_data.mask_width);
+                        24);//dhcp_data.mask_width);
 
     TapInterface itf("tuntap0",
                      Interface::admin_state_t::UP,
@@ -83,10 +83,10 @@ void Uplink::configure()
      * now create the sub-interface on which control and data traffic from
      * the upstream leaf will arrive
      */
-//    SubInterface subitf(itf,
-//                        Interface::admin_state_t::UP,
-//                        m_vlan);
-//    VPP::OM::write(UPLINK_KEY, subitf);
+    SubInterface subitf(itf,
+                        Interface::admin_state_t::UP,
+                        m_vlan);
+    VPP::OM::write(UPLINK_KEY, subitf);
 
     /**
      * Configure DHCP on the uplink subinterface

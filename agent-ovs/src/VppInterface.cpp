@@ -40,12 +40,14 @@ Interface::Interface(const std::string &name,
 {
 }
 
-Interface::Interface(const vapi_payload_sw_interface_details &vd):
-    m_name(reinterpret_cast<const char*>(vd.interface_name)),
-    m_state(Interface::admin_state_t::from_int(vd.link_up_down),
-            rc_t::NOOP),
-    m_type(Interface::type_t::from_string(m_name)),
-    m_hdl(handle_t(vd.sw_if_index), rc_t::NOOP),
+Interface::Interface(const handle_t &handle,
+                     const std::string &name,
+                     Interface::type_t type,
+                     Interface::admin_state_t state):
+    m_hdl(handle),
+    m_name(name),
+    m_state(state),
+    m_type(type),
     m_table_id(Route::DEFAULT_TABLE),
     m_oper(oper_state_t::DOWN)
 {
@@ -71,7 +73,7 @@ Interface::Interface(const Interface& o):
     m_type(o.m_type),
     m_table_id(o.m_table_id),
     m_rd(o.m_rd),
-    m_hdl(handle_t::INVALID),
+    m_hdl(o.m_hdl),
     m_oper(o.m_oper)
 {
 }

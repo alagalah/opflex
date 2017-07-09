@@ -223,6 +223,7 @@ if RENDERER_VPP
 	src/VppObject.cpp \
 	src/VppCmd.cpp \
 	src/VppInterface.cpp \
+	src/VppInterfaceFactory.cpp \
 	src/VppInterfaceCmds.cpp \
 	src/VppInterfaceTypes.cpp \
 	src/VppL2Config.cpp \
