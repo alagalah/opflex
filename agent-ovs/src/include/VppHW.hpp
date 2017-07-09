@@ -16,7 +16,7 @@
 #include <string>
 #include <sstream>
 
-#include "VppCmd.hpp"
+#include "VppRpcCmd.hpp"
 #include "VppConnection.hpp"
 
 namespace VPP
@@ -47,6 +47,15 @@ namespace VPP
                 item_rc(rc_t::NOOP)
              {
              }
+
+            /**
+             * Constructor
+             */
+            Item(rc_t rc):
+                item_rc(rc)
+             {
+             }
+
             /**
              * Constructor
              */
@@ -249,7 +258,7 @@ namespace VPP
             /**
              * A flag for the thread to poll to see if the queue is still alive
              */
-            bool m_alive;
+            bool m_connected;
 
             /**
              * A flag indicating the client has disabled the Cmd Q.
@@ -293,11 +302,21 @@ namespace VPP
          */
         static void connect();
 
+        /**
+         * Blocking pool of the HW connection
+         */
+        static bool poll();
+
     private:
         /**
          * The command Q toward HW
          */
         static CmdQ *m_cmdQ;
+
+        /**
+         * HW::Item representing the connection state as determined by polling
+         */
+        static HW::Item<bool> m_poll_state;
 
         /**
          * Disable the passing of commands to VPP. Whilst disabled all writes
@@ -315,6 +334,34 @@ namespace VPP
          * Only the OM can enable/disable HW
          */
         friend class OM;
+
+        /**
+         * A command pool the HW for liveness
+         */
+        class Poll: public RpcCmd<HW::Item<bool>, rc_t>
+        {
+        public:
+            /**
+             * Constructor taking the HW::Item to update
+             */
+            Poll(HW::Item<bool> &item);
+
+            /**
+             * Issue the command to VPP/HW
+             */
+            rc_t issue(Connection &con);
+
+            /**
+             * convert to string format for debug purposes
+             */
+            std::string to_string() const;
+
+            /**
+             * Comparison operator - only used for UT
+             */
+            bool operator==(const Poll&i) const;
+        };
+
     };
     
     /**
@@ -324,11 +371,6 @@ namespace VPP
 
     /**
      * uint Specialisation for HW::Item to_string
-     */
-    template <> std::string HW::Item<unsigned int>::to_string() const;
-
-    /**
-     * string Specialisation for HW::Item to_string
      */
     template <> std::string HW::Item<unsigned int>::to_string() const;
 };

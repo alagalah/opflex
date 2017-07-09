@@ -47,7 +47,7 @@ void Boot::dump_interface()
     {
         std::unique_ptr<Interface> itf = Interface::new_interface(*data);
 
-        LOG(ovsagent::INFO) << "dump: " << itf->to_string();
+        LOG(ovsagent::DEBUG) << "dump: " << itf->to_string();
 
         if (Interface::type_t::LOCAL != itf->type())
         {
@@ -74,7 +74,7 @@ void Boot::dump_interface()
                                           record->ip,
                                           record->prefix_length);
 
-                // LOG(ovsagent::INFO) << "dump: " << pfx.to_string();
+                LOG(ovsagent::DEBUG) << "dump: " << pfx.to_string();
 
                 L3Config l3(*itf, pfx);
                 OM::commit(BOOT_KEY, l3);
@@ -102,7 +102,7 @@ void Boot::dump_bridge()
     {
         BridgeDomain bd(record->bd_id);
 
-        LOG(ovsagent::INFO) << "dump: " << bd.to_string();
+        LOG(ovsagent::DEBUG) << "dump: " << bd.to_string();
 
         /*
          * Write each of the discovered interfaces into the OM,

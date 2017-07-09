@@ -37,10 +37,15 @@ namespace VPP {
         ~Connection();
 
         /**
-         * Blocking connect call - always eventually succeeds, or the
+         * Blocking [re]connect call - always eventually succeeds, or the
          * universe expires. Not much this system can do without one.
          */
         void connect();
+
+        /**
+         * Blocking disconnect
+         */
+        void disconnect();
 
         /**
          * Retrun the VAPI context the commands will use

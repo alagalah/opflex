@@ -69,6 +69,11 @@ namespace VPP
         const static rc_t INVALID;
 
         /**
+         * HW write timedout - VPP did not respond within a timely manner
+         */
+        const static rc_t TIMEOUT;
+
+        /**
          * Get the rc_t from the VPP API value
          */
         static const rc_t &from_vpp_retval(int32_t rv);
@@ -83,6 +88,11 @@ namespace VPP
          * Constructor
          */
         handle_t(int value);
+
+        /**
+         * Constructor
+         */
+        handle_t();
 
         /**
          * convert to string format for debug purposes
