@@ -65,6 +65,17 @@ namespace VPP
             }
         }
 
+        /**
+         * Print each KEY
+         */
+        void dump(std::ostream &os)
+        {
+            for (auto entry : m_objs)
+            {
+                os << "  key:[" << entry.first << "]" << std::endl;
+            }
+        }
+
     private:
         /**
          * A map of keys versus the object they reference

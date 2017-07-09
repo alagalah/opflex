@@ -183,6 +183,23 @@ namespace VPP
         };
 
         /**
+         * Show All KEYs
+         */
+        class ShowKeys: public Command
+        {
+        public:
+            /**
+             * Constructor
+             */
+            ShowKeys() = default;
+
+            /**
+             * Execute the command - capture output in ostream
+             */
+            void exec(std::ostream &os);
+        };
+
+        /**
          * Show Help
          */
         class ShowHelp: public Command

@@ -81,7 +81,8 @@ namespace VPP
             const static type_t LOCAL;
             /**
              * TAP interface type
-             */const static type_t TAP;
+             */
+            const static type_t TAP;
 
             /**
              * Convert VPP's name of the interface to a type
@@ -150,10 +151,6 @@ namespace VPP
         Interface(const std::string &name,
                   type_t type,
                   admin_state_t state);
-        /**
-         * Construct an interface object from a representation read from VPP
-         */
-        Interface(const vapi_payload_sw_interface_details &vd);
         /**
          * Construct a new object matching the desried state mapped
          * to a specific RouteDomain
@@ -656,7 +653,20 @@ namespace VPP
          */
         static void dump(std::ostream &os);
 
+        /**
+         * Factory method to construct a new Interface from the VPP record
+         */
+        static std::unique_ptr<Interface> new_interface(const vapi_payload_sw_interface_details &vd);
+
     protected:
+        /**
+         * Construct an interface object with a handle
+         */
+        Interface(const handle_t &handle,
+                  const std::string &name,
+                  type_t type,
+                  admin_state_t state);
+
         /**
          * The SW interface handle VPP has asigned to the interface
          */

@@ -80,3 +80,26 @@ void OM::sweep(KEY &key)
 
     HW::write();
 }
+
+void OM::remove(const KEY &key)
+{
+    /*
+     * Simply reset the list for this key. This will desctruct the
+     * object list and shared_ptrs therein. When the last shared_ptr
+     * goes the objects desctructor is called and the object is
+     * removed from OM
+     */
+    m_db->flush(key);
+
+    HW::write();
+}
+
+void OM::dump(const KEY & key, std::ostream &os)
+{
+    m_db->dump(key, os);
+}
+
+void OM::dump(std::ostream &os)
+{
+    m_db->dump(os);
+}

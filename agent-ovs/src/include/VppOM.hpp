@@ -103,26 +103,17 @@ namespace VPP {
         /**
          * Remove all object in the OM referenced by the key
          */
-        static void remove(const KEY &key)
-        {
-            /*
-             * Simply reset the list for this key. This will desctruct the
-             * object list and shared_ptrs therein. When the last shared_ptr
-             * goes the objects desctructor is called and the object is
-             * removed from OM
-             */
-            m_db->flush(key);
-
-            HW::write();
-        }
+        static void remove(const KEY &key);
 
         /**
          * Print each of the object in the DB into the stream provided
          */
-        static void dump(const KEY & key, std::ostream &os)
-        {
-            m_db->dump(key, os);
-        }
+        static void dump(const KEY & key, std::ostream &os);
+
+        /**
+         * Print each of the KEYS
+         */
+        static void dump(std::ostream &os);
 
     private:
         /**

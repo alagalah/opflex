@@ -37,13 +37,13 @@ void Boot::dump() {
 
         while (cmd->pop(data))
         {
-            Interface itf(data);
+            std::unique_ptr<Interface> itf = Interface::new_interface(data);
 
-            LOG(ovsagent::INFO) << "dump: " << itf.to_string();
+            LOG(ovsagent::INFO) << "dump: " << itf->to_string();
 
-            if (Interface::type_t::LOCAL != itf.type())
+            if (Interface::type_t::LOCAL != itf->type())
             {
-                VPP::OM::write(BOOT_KEY, itf);
+                VPP::OM::write(BOOT_KEY, *itf);
             }
         }
 

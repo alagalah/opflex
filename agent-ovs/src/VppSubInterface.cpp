@@ -21,6 +21,16 @@ SubInterface::SubInterface(const Interface &parent,
     m_vlan(vlan)
 {
 }
+
+SubInterface::SubInterface(const handle_t &handle,
+                           const Interface &parent,
+                           admin_state_t state,
+                           vlan_id_t vlan):
+    Interface(handle, mk_name(parent, vlan), parent.type(), state),
+    m_parent(parent.instance()),
+    m_vlan(vlan)
+{
+}
     
 SubInterface::~SubInterface()
 {

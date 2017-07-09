@@ -114,6 +114,18 @@ namespace VPP
 
     private:
         /**
+         * Construct with handle
+         */
+        SubInterface(const handle_t &handle,
+                     const Interface &parent,
+                     admin_state_t state,
+                     vlan_id_t vlan);
+        /**
+         * The interface class can construct Interfaces with handles
+         */
+        friend class Interface;
+
+        /**
          * Return the matching 'instance' of the sub-interface
          *  over-ride from the base class
          */

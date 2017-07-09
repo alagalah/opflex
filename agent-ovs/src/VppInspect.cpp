@@ -85,8 +85,11 @@ Inspect::write_req_t::~write_req_t()
 
 Inspect::write_req_t::write_req_t(std::ostringstream &output)
 {
-    buf = uv_buf_init(output.str().c_str(),
-                      output.str().length());
+    buf.len = output.str().length();
+    buf.base = (char*) malloc(buf.len);
+    memcpy(buf.base,
+           output.str().c_str(),
+           buf.len);
 }
 
 void Inspect::on_alloc_buffer(uv_handle_t *handle,
@@ -124,8 +127,9 @@ void Inspect::on_read(uv_stream_t *client,
 {
     if (nread > 0)
     {
-        std::string message(buf->base); 
         std::ostringstream output;
+        std::string message(buf->base);
+        message = message.substr(0, nread);
 
         Command *cmd = new_command(message);
 
@@ -214,6 +218,10 @@ Inspect::Command * Inspect::new_command(const std::string &message)
             return new ShowAll();
         }
     }
+    else if (message.find("keys") != std::string::npos)
+    {
+        return new ShowKeys();
+    }
     else if (message.find("key") != std::string::npos)
     {
         std::vector<std::string> results;
@@ -237,8 +245,8 @@ void Inspect::ShowHelp::exec(std::ostream &os)
     os << " inst:route      - Show all Route-Domaina"  << std::endl;
     os << " inst:L3Config   - Show all L3 Configs"     << std::endl;
     os << " inst:L2Config   - Show all L2 Configs"     << std::endl;
+    os << " keys            - Show all keys owning objects"  << std::endl;
     os << " key:XXX         - Show all object referenced by key XXX"  << std::endl;
-    os << "                    where XXX is gleaned from gbp_inspect" << std::endl;
     os << std::endl;
 }
 
@@ -279,6 +287,11 @@ void Inspect::ShowAll::exec(std::ostream &os)
 void Inspect::ShowKey::exec(std::ostream &os)
 {
     OM::dump(m_key, os);
+}
+
+void Inspect::ShowKeys::exec(std::ostream &os)
+{
+    OM::dump(os);
 }
 
 Inspect::ShowKey::ShowKey(const std::string &key):

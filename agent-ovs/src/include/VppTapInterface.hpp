@@ -87,6 +87,18 @@ namespace VPP
         };
 
     private:
+        /**
+         * Construct with a handle
+         */
+        TapInterface(const handle_t &hdl,
+                     const std::string &name,
+                     admin_state_t state,
+                     Route::prefix_t prefix);
+
+        /**
+         * Interface is a friend so it can construct with handles
+         */
+        friend class Interface;
 
         /**
          * Return the matching 'instance' of the sub-interface
