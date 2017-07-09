@@ -112,7 +112,13 @@ std::string L3Config::UnbindCmd::to_string() const
     return (s.str());
 }
 
-L3Config::DumpV4Cmd::DumpV4Cmd()
+L3Config::DumpV4Cmd::DumpV4Cmd(const handle_t &hdl):
+    m_itf(hdl)
+{
+}
+
+L3Config::DumpV4Cmd::DumpV4Cmd(const DumpV4Cmd &d):
+    m_itf(d.m_itf)
 {
 }
 
@@ -123,13 +129,15 @@ bool L3Config::DumpV4Cmd::operator==(const DumpV4Cmd& other) const
 
 rc_t L3Config::DumpV4Cmd::issue(Connection &con)
 {
-    vapi_msg_ip_fib_dump *req;
+    vapi_msg_ip_address_dump *req;
 
-    req = vapi_alloc_ip_fib_dump(con.ctx());
+    req = vapi_alloc_ip_address_dump(con.ctx());
+    req->payload.sw_if_index = m_itf.value();
+    req->payload.is_ipv6 = 0;
 
-    VAPI_CALL(vapi_ip_fib_dump(con.ctx(), req,
-                               DumpCmd::callback<DumpV4Cmd>,
-                               this));
+    VAPI_CALL(vapi_ip_address_dump(con.ctx(), req,
+                                   DumpCmd::callback<DumpV4Cmd>,
+                                   this));
 
     wait();
 

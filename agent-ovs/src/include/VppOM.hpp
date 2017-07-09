@@ -30,12 +30,6 @@ namespace VPP {
         static void init();
 
         /**
-         * Called by the control plane once it has added all initial state
-         * and indicates that any remaining state in VPP can be removed
-         */
-        static void converged();
-
-        /**
          * Mark all state owned by this key as stale
          */
         static void mark(const KEY &key);
@@ -44,6 +38,23 @@ namespace VPP {
          * Sweep all the key's objects that are stale
          */
         static void sweep(const KEY &key);
+
+        /**
+         * Make the State in VPP reflect tha expressed desired state.
+         *  But don't call the HW - use this whilst processing dumped
+         *  data from HW
+         */
+        template <typename OBJ>
+        static rc_t commit(const KEY &key, const OBJ &obj)
+        {
+            rc_t rc = rc_t::OK;
+
+            HW::disable();
+            rc = VPP::OM::write(key, obj);
+            HW::enable();
+
+            return (rc);
+        }
 
         /**
          * Make the State in VPP reflect tha expressed desired state.

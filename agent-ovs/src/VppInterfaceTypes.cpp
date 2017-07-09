@@ -32,24 +32,33 @@ const Interface::admin_state_t Interface::admin_state_t::UP(1, "up");
 
 Interface::type_t Interface::type_t::from_string(const std::string &str)
 {
-    if (str.find("Ethernet") != std::string::npos) {
-
+    if (str.find("Ethernet") != std::string::npos)
+    {
         return Interface::type_t::ETHERNET;
-    } else if (str.find("vxlan") != std::string::npos) {
-
+    }
+    else if (str.find("vxlan") != std::string::npos)
+    {
         return Interface::type_t::VXLAN;
-    } else if (str.find("loop") != std::string::npos) {
-
+    }
+    else if (str.find("loop") != std::string::npos)
+    {
         return Interface::type_t::LOOPBACK;
-    } else if (str.find("host-") != std::string::npos) {
-
+    }
+    else if (str.find("host-") != std::string::npos)
+    {
         return Interface::type_t::AFPACKET;
-    } else if (str.find("local") != std::string::npos) {
-
+    }
+    else if (str.find("local") != std::string::npos)
+    {
         return Interface::type_t::LOCAL;
-    } else if (str.find("tap") != std::string::npos) {
-
+    }
+    else if (str.find("tap") != std::string::npos)
+    {
         return Interface::type_t::TAP;
+    }
+    else if (str.find("bvi") != std::string::npos)
+    {
+        return Interface::type_t::BVI;
     }
 
     return Interface::type_t::UNKNOWN;

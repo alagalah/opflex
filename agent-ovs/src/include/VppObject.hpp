@@ -37,11 +37,11 @@ namespace VPP
         /**
          * Constructable by derived classes only
          */
-        Object();
+        Object() = default;
         /**
          * Destructor
          */
-        virtual ~Object();
+        virtual ~Object() = default;
 
     private:
         /**

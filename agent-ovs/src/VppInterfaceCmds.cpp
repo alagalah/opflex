@@ -42,6 +42,13 @@ void Interface::CreateCmd::complete()
     }
 }
 
+void Interface::CreateCmd::succeeded()
+{
+    m_hw_item.set(rc_t::OK);
+
+    complete();
+}
+
 Interface::LoopbackCreateCmd::LoopbackCreateCmd(HW::Item<handle_t> &item,
                                                 const std::string &name):
     CreateCmd(item, name)
@@ -449,16 +456,16 @@ std::string Interface::EventsCmd::to_string() const
     return ("itf-events");
 }
 
-Interface::DumpInterfaceCmd::DumpInterfaceCmd()
+Interface::DumpCmd::DumpCmd()
 {
 }
 
-bool Interface::DumpInterfaceCmd::operator==(const DumpInterfaceCmd& other) const
+bool Interface::DumpCmd::operator==(const DumpCmd& other) const
 {
     return (true);
 }
 
-rc_t Interface::DumpInterfaceCmd::issue(Connection &con)
+rc_t Interface::DumpCmd::issue(Connection &con)
 {
     vapi_msg_sw_interface_dump *req;
 
@@ -466,7 +473,7 @@ rc_t Interface::DumpInterfaceCmd::issue(Connection &con)
     req->payload.name_filter_valid = 0;
 
     VAPI_CALL(vapi_sw_interface_dump(con.ctx(), req,
-                                     DumpCmd::callback<DumpInterfaceCmd>,
+                                     DumpCmd::callback<DumpCmd>,
                                      this));
 
     wait();
@@ -474,7 +481,48 @@ rc_t Interface::DumpInterfaceCmd::issue(Connection &con)
     return rc_t::OK;
 }
 
-std::string Interface::DumpInterfaceCmd::to_string() const
+std::string Interface::DumpCmd::to_string() const
 {
     return ("Vpp-Interfaces-Dump");
+}
+
+Interface::SetTag::SetTag(HW::Item<handle_t> &item,
+                          const std::string &name):
+    RpcCmd(item),
+    m_name(name)
+{
+}
+
+rc_t Interface::SetTag::issue(Connection &con)
+{
+    vapi_msg_sw_interface_tag_add_del *req;
+
+    req = vapi_alloc_sw_interface_tag_add_del(con.ctx());
+    req->payload.is_add = 1;
+    req->payload.sw_if_index = m_hw_item.data().value();
+    memcpy(req->payload.tag, m_name.c_str(), m_name.length());
+
+    VAPI_CALL(vapi_sw_interface_tag_add_del(
+                  con.ctx(), req,
+                  RpcCmd::callback<vapi_payload_sw_interface_tag_add_del_reply,
+                  SetTag>,
+                  this));
+
+    wait();
+
+    return rc_t::OK;
+}
+std::string Interface::SetTag::to_string() const
+{
+    std::ostringstream s;
+    s << "itf-set-tag: " << m_hw_item.to_string()
+      << " name:" << m_name;
+
+    return (s.str());
+}
+
+bool Interface::SetTag::operator==(const SetTag& o) const
+{
+    return ((m_name == o.m_name) &&
+            (m_hw_item.data() == o.m_hw_item.data()));
 }

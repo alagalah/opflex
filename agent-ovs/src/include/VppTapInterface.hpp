@@ -109,12 +109,12 @@ namespace VPP
         /**
          * Virtual functions to construct an interface create commands.
          */
-        virtual Cmd* mk_create_cmd();
+        virtual std::queue<Cmd*> & mk_create_cmd(std::queue<Cmd*> &cmds);
 
         /**
          * Virtual functions to construct an interface delete commands.
          */
-        virtual Cmd* mk_delete_cmd();
+        virtual std::queue<Cmd*> & mk_delete_cmd(std::queue<Cmd*> &cmds);
 
         /*
          * It's the VPP::OM class that call instance()

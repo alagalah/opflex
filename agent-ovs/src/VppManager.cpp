@@ -161,8 +161,24 @@ namespace ovsagent {
         m_uplink.configure();
     }
 
-    void VppManager::handleBoot() {
-        m_boot.dump();
+    void VppManager::handleSweepTimer()
+    {
+        m_boot.converged();
+    }
+
+    void VppManager::handleBoot()
+    {
+        /**
+         * Read the state from VPP
+         */
+        m_boot.start();
+
+        /**
+         * Scehdule a timer to sweep the stale state
+         */
+        m_sweep_timer.reset(new deadline_timer(agent.getAgentIOService()));
+        m_sweep_timer->expires_from_now(boost::posix_time::seconds(30));
+        m_sweep_timer->async_wait(bind(&VppManager::handleSweepTimer, this));
     }
 
     void VppManager::registerModbListeners() {

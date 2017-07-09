@@ -51,14 +51,18 @@ std::string SubInterface::mk_name(const Interface &parent,
     return (parent.name() + "." + std::to_string(vlan));
 }
 
-Cmd* SubInterface::mk_create_cmd()
+std::queue<Cmd*> & SubInterface::mk_create_cmd(std::queue<Cmd*> &q)
 {
-    return (new CreateCmd(m_hdl, m_parent->handle(), m_vlan));
+    q.push(new CreateCmd(m_hdl, name(), m_parent->handle(), m_vlan));
+
+    return (q);
 }
 
-Cmd* SubInterface::mk_delete_cmd()
+std::queue<Cmd*> & SubInterface::mk_delete_cmd(std::queue<Cmd*> &q)
 {
-    return (new DeleteCmd(m_hdl));
+    q.push(new DeleteCmd(m_hdl));
+
+    return (q);
 }
 
 std::shared_ptr<SubInterface> SubInterface::instance() const

@@ -56,12 +56,24 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
 
     Route::prefix_t pfx(dhcp_data.is_ipv6,
                         dhcp_data.host_address,
-                        24);//dhcp_data.mask_width);
+                        dhcp_data.mask_width);
 
     TapInterface itf("tuntap0",
                      Interface::admin_state_t::UP,
                      pfx);
     VPP::OM::write(UPLINK_KEY, itf);
+
+    /*
+     * commit and L3 Config to the OM so this uplink owns the
+     * subnet on the interface. If we don't have a representation
+     * of the configured prefix in the OM, we'll sweep it from the
+     * interface if we restart
+     */
+    SubInterface subitf(*m_uplink,
+                        Interface::admin_state_t::UP,
+                        m_vlan);
+    L3Config l3(subitf, pfx);
+    OM::commit(UPLINK_KEY, l3);
 }
 
 void Uplink::configure()

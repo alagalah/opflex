@@ -192,6 +192,11 @@ namespace VPP
             virtual void enqueue(std::shared_ptr<Cmd> c);
 
             /**
+             * Enqueue a set of commands
+             */
+            virtual void enqueue(std::queue<Cmd*> &c);
+
+            /**
              * Write all the commands to HW
              */
             virtual rc_t write();
@@ -267,10 +272,17 @@ namespace VPP
          * Enqueue A command for execution
          */
         static void enqueue(Cmd *f);
+
         /**
          * Enqueue A command for execution
          */
         static void enqueue(std::shared_ptr<Cmd> c);
+
+        /**
+         * Enqueue A set of commands for execution
+         */
+        static void enqueue(std::queue<Cmd*> &c);
+
         /**
          * Write/Execute all commands hitherto enqueued.
          */
@@ -280,6 +292,12 @@ namespace VPP
          * Blocking Connect to VPP
          */
         static void connect();
+
+    private:
+        /**
+         * The command Q toward HW
+         */
+        static CmdQ *m_cmdQ;
 
         /**
          * Disable the passing of commands to VPP. Whilst disabled all writes
@@ -292,9 +310,11 @@ namespace VPP
          * The Q is enabled by default.
          */
         static void enable();
-        
-    private:
-        static CmdQ *m_cmdQ;
+
+        /**
+         * Only the OM can enable/disable HW
+         */
+        friend class OM;
     };
     
     /**
@@ -304,6 +324,11 @@ namespace VPP
 
     /**
      * uint Specialisation for HW::Item to_string
+     */
+    template <> std::string HW::Item<unsigned int>::to_string() const;
+
+    /**
+     * string Specialisation for HW::Item to_string
      */
     template <> std::string HW::Item<unsigned int>::to_string() const;
 };

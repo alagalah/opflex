@@ -58,6 +58,17 @@ void HW::CmdQ::enqueue(std::shared_ptr<Cmd> cmd)
     m_queue.push_back(cmd);
 }
 
+void HW::CmdQ::enqueue(std::queue<Cmd*> &cmds)
+{
+    while (cmds.size())
+    {
+        std::shared_ptr<Cmd> sp(cmds.front());
+
+        m_queue.push_back(sp);
+        cmds.pop();
+    }
+}
+
 void HW::CmdQ::connect()
 {
     m_conn.connect();
@@ -178,6 +189,11 @@ void HW::enqueue(Cmd *cmd)
 void HW::enqueue(std::shared_ptr<Cmd> cmd)
 {
     m_cmdQ->enqueue(cmd);
+}
+
+void HW::enqueue(std::queue<Cmd*> & cmds)
+{
+    m_cmdQ->enqueue(cmds);
 }
 
 void HW::connect()

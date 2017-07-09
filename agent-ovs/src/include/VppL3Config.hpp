@@ -150,13 +150,14 @@ namespace VPP
         /**
          * A cmd class that Dumps all the IPv4 L3 configs
          */
-        class DumpV4Cmd: public DumpCmd<vapi_payload_ip_fib_details>
+        class DumpV4Cmd: public DumpCmd<vapi_payload_ip_address_details>
         {
         public:
             /**
              * Constructor
              */
-            DumpV4Cmd();
+            DumpV4Cmd(const handle_t &itf);
+            DumpV4Cmd(const DumpV4Cmd &d);
 
             /**
              * Issue the command to VPP/HW
@@ -176,6 +177,11 @@ namespace VPP
              * HW reutrn code
              */
             HW::Item<bool> item;
+
+            /**
+             * The interface to get the addresses for
+             */
+            const handle_t m_itf;
         };
 
     private:

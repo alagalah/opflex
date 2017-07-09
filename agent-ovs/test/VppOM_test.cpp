@@ -56,6 +56,14 @@ public:
     {
         m_act_queue.push(f);
     }
+    void enqueue(std::queue<Cmd*> &cmds)
+    {
+        while (cmds.size())
+        {
+            m_act_queue.push(cmds.front());
+            cmds.pop();
+        }
+    }
 
     bool is_empty()
     {
@@ -104,6 +112,10 @@ public:
             else if (typeid(*f_exp) == typeid(Interface::SetTableCmd))
             {
                 rc = handle_derived<Interface::SetTableCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(Interface::SetTag))
+            {
+                rc = handle_derived<Interface::SetTag>(f_exp, f_act);
             }
             else if (typeid(*f_exp) == typeid(L3Config::BindCmd))
             {
@@ -383,6 +395,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
     HW::Item<Route::prefix_t> hw_pfx_10(pfx_10, rc_t::OK);
 
     ADD_EXPECT(Interface::LoopbackCreateCmd(hw_ifh, bvi_name));
+    ADD_EXPECT(Interface::SetTag(hw_ifh, bvi_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
     TRY_CHECK_RC(OM::write(ernest, itf));
 
@@ -415,6 +428,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
     HW::Item<handle_t> hw_ifh2(5, rc_t::OK);
 
     ADD_EXPECT(Interface::LoopbackCreateCmd(hw_ifh2, bvi2_name));
+    ADD_EXPECT(Interface::SetTag(hw_ifh2, bvi2_name));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh2));
     ADD_EXPECT(Interface::SetTableCmd(hw_rd_bind, hw_ifh2));
 
@@ -584,7 +598,7 @@ BOOST_AUTO_TEST_CASE(vlan) {
                                           33);
 
     HW::Item<handle_t> hw_vl33(3, rc_t::OK);
-    ADD_EXPECT(SubInterface::CreateCmd(hw_vl33, hw_ifh.data(), 33));
+    ADD_EXPECT(SubInterface::CreateCmd(hw_vl33, itf1_name+".33", hw_ifh.data(), 33));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_vl33));
 
     TRY_CHECK_RC(OM::write(noam, *vl33));

@@ -52,14 +52,18 @@ TapInterface::TapInterface(const TapInterface& o):
 {
 }
 
-Cmd* TapInterface::mk_create_cmd()
+std::queue<Cmd*> &  TapInterface::mk_create_cmd(std::queue<Cmd*> &q)
 {
-    return (new CreateCmd(m_hdl, name(), m_prefix));
+    q.push(new CreateCmd(m_hdl, name(), m_prefix));
+
+    return (q);
 }
 
-Cmd* TapInterface::mk_delete_cmd()
+std::queue<Cmd*> &  TapInterface::mk_delete_cmd(std::queue<Cmd*> &q)
 {
-    return (new DeleteCmd(m_hdl));
+    q.push(new DeleteCmd(m_hdl));
+
+    return (q);
 }
 
 std::shared_ptr<TapInterface> TapInterface::instance() const

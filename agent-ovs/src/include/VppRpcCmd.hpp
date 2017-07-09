@@ -121,7 +121,7 @@ namespace VPP
          * Called by the HW Command Q when it is disabled to indicate the
          * command can be considered successful without issuing it to HW
          */
-        void succeeded()
+        virtual void succeeded()
         {
             m_hw_item.set(rc_t::OK);
         }

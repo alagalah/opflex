@@ -102,3 +102,34 @@ std::string BridgeDomain::DeleteCmd::to_string() const
 
     return (s.str());
 }
+
+BridgeDomain::DumpCmd::DumpCmd()
+{
+}
+
+bool BridgeDomain::DumpCmd::operator==(const DumpCmd& other) const
+{
+    return (true);
+}
+
+rc_t BridgeDomain::DumpCmd::issue(Connection &con)
+{
+    vapi_msg_bridge_domain_dump *req;
+
+    req = vapi_alloc_bridge_domain_dump(con.ctx());
+    req->payload.bd_id = ~0;
+
+    VAPI_CALL(vapi_bridge_domain_dump(
+                  con.ctx(), req,
+                  DumpCmd::callback_vl<DumpCmd>,
+                  DumpCmd::mk_cb_ctx(this, vapi_calc_bridge_domain_details_msg_size)));
+
+    wait();
+
+    return rc_t::OK;
+}
+
+std::string BridgeDomain::DumpCmd::to_string() const
+{
+    return ("bridge-domain-dump");
+}

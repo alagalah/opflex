@@ -7,22 +7,8 @@
  */
 
 #include "VppObject.hpp"
-#include "VppObjectDB.hpp"
 
 using namespace VPP;
-
-/**
- * Construct a new object matching the desried state
- */
-Object::Object()
-{
-    ObjectDB::add(this);
-}
-
-Object::~Object()
-{
-    ObjectDB::remove(this);
-}
 
 ObjectRef::ObjectRef(std::shared_ptr<Object> obj):
     m_obj(obj),

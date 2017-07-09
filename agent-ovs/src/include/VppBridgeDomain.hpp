@@ -16,8 +16,14 @@
 #include "VppOM.hpp"
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
+#include "VppDumpCmd.hpp"
 #include "VppInstDB.hpp"
 #include "VppEnum.hpp"
+
+extern "C"
+{
+    #include "l2.api.vapi.h"
+}
 
 namespace VPP
 {
@@ -116,6 +122,38 @@ namespace VPP
              * Comparison operator - only used for UT
              */
             bool operator==(const DeleteCmd&i) const;
+        };
+
+        /**
+         * A cmd class that Dumps all the IPv4 L3 configs
+         */
+        class DumpCmd: public VPP::DumpCmd<vapi_payload_bridge_domain_details>
+        {
+        public:
+            /**
+             * Constructor
+             */
+            DumpCmd();
+            DumpCmd(const DumpCmd &d);
+
+            /**
+             * Issue the command to VPP/HW
+             */
+            rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
+            std::string to_string() const;
+
+            /**
+             * Comparison operator - only used for UT
+             */
+            bool operator==(const DumpCmd&i) const;
+        private:
+            /**
+             * HW reutrn code
+             */
+            HW::Item<bool> item;
         };
 
     private:
