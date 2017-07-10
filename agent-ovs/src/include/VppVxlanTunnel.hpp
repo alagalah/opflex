@@ -18,6 +18,11 @@
 #include "VppRouteDomain.hpp"
 #include "VppInterface.hpp"
 
+extern "C"
+{
+    #include "vxlan.api.vapi.h"
+}
+
 namespace VPP
 {
     /**
@@ -80,6 +85,16 @@ namespace VPP
         VxlanTunnel(const boost::asio::ip::address &src,
                     const boost::asio::ip::address &dst,
                     uint32_t vni);
+
+        /**
+         * Construct a new object matching the desried state with a handle
+         * read from VPP
+         */
+        VxlanTunnel(const handle_t &hdl,
+                    const boost::asio::ip::address &src,
+                    const boost::asio::ip::address &dst,
+                    uint32_t vni);
+
         /*
          * Destructor
          */
@@ -106,10 +121,14 @@ namespace VPP
         const handle_t & handle() const;
 
         /**
+         * Dump all L3Configs into the stream provided
+         */
+        static void dump(std::ostream &os);
+
+        /**
          * A Command class that creates an VXLAN tunnel
          */
-        class CreateCmd: public RpcCmd<HW::Item<handle_t>,
-                                       HW::Item<handle_t>>
+        class CreateCmd: public Interface::CreateCmd
         {
         public:
             /**
@@ -117,6 +136,7 @@ namespace VPP
              * endpoint values
              */
             CreateCmd(HW::Item<handle_t> &item,
+                      const std::string &name,
                       const endpoint_t &ep);
 
             /**
@@ -142,7 +162,7 @@ namespace VPP
         /**
          * A functor class that creates an VXLAN tunnel
          */
-        class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
+        class DeleteCmd: public Interface::DeleteCmd
         {
         public:
             /**
@@ -171,6 +191,32 @@ namespace VPP
              * Enpoint values of the tunnel to be deleted
              */            
             const endpoint_t m_ep;
+        };
+
+        /**
+         * A cmd class that Dumps all the Vpp Interfaces
+         */
+        class DumpCmd: public VPP::DumpCmd<vapi_payload_vxlan_tunnel_details>
+        {
+        public:
+            /**
+             * Default Constructor
+             */
+            DumpCmd();
+
+            /**
+             * Issue the command to VPP/HW
+             */
+            rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
+            std::string to_string() const;
+
+            /**
+             * Comparison operator - only used for UT
+             */
+            bool operator==(const DumpCmd&i) const;
         };
 
     private:
@@ -218,5 +264,10 @@ namespace VPP
                                    const boost::asio::ip::address &dst,
                                    uint32_t vni);
     };
+
+    /**
+     * Ostream output for a tunnel endpoint
+     */
+    std::ostream & operator<<(std::ostream &os, const VxlanTunnel::endpoint_t &ep);
 };
 #endif

@@ -74,6 +74,11 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
                         m_vlan);
     L3Config l3(subitf, pfx);
     OM::commit(UPLINK_KEY, l3);
+
+    /*
+     * VXLAN tunnels use the DHCP address as the source
+     */
+    m_vxlan.src = pfx.address();
 }
 
 void Uplink::configure()
@@ -105,6 +110,29 @@ void Uplink::configure()
      */
     DhcpConfig dc(itf, "agent-opflex");
     VPP::OM::write(UPLINK_KEY, dc);
+
+    /**
+     * In the case of a agent restart, the DHCP process will already be complete
+     * in VPP and we won't get notified. So let's cehck here if there alreay
+     * exists an L3 config on the interface
+     */
+    std::deque<std::shared_ptr<L3Config>> l3s = L3Config::find(itf);
+
+    if (l3s.size())
+    {
+        /*
+         * there should only be one. we'll pick the first
+         */
+        std::shared_ptr<L3Config> l3 = l3s.front();
+
+        /*
+         * Claim ownership.
+         * VXLAN tunnels use the DHCP address as the source
+         */
+        OM::commit(UPLINK_KEY, *l3);
+
+        m_vxlan.src = l3->prefix().address();
+    }
 }
 
 void Uplink::set(const std::string &uplink,

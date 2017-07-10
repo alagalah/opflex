@@ -51,6 +51,11 @@ void L3Config::sweep()
     HW::write();
 }
 
+const Route::prefix_t& L3Config::prefix() const
+{
+    return (m_pfx);
+}
+
 
 std::string L3Config::to_string() const
 {
@@ -99,4 +104,34 @@ std::ostream& VPP::operator<<(std::ostream &os, const L3Config::key_type_t &key)
        << "]";
 
     return (os);
+}
+
+std::deque<std::shared_ptr<L3Config>> L3Config::find(const Interface &i)
+{
+    /*
+     * Loop throught the entire map looking for matching interface.
+     * not the most efficient algorithm, but it will do for now. The
+     * number of L3 configs is low and this is only called during bootup
+     */
+    std::deque<std::shared_ptr<L3Config>> l3s;
+
+    auto it = m_db.cbegin();
+
+    while (it != m_db.cend())
+    {
+        /*
+         * The key in the DB is a pair of the interface's name and prefix.
+         * If the keys match, save the L3-config
+         */
+        auto key = it->first;
+
+        if (i.key() == key.first)
+        {
+            l3s.push_back(it->second.lock());
+        }
+
+        ++it;
+    }
+
+    return (l3s);
 }

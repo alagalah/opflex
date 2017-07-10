@@ -12,16 +12,12 @@
 
 #include "VppVxlanTunnel.hpp"
 
-extern "C"
-{
-    #include "vxlan.api.vapi.h"
-}
-
 using namespace VPP;
 
 VxlanTunnel::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
+                                  const std::string &name,
                                   const endpoint_t &ep):
-    RpcCmd(item),
+    Interface::CreateCmd(item, name),
     m_ep(ep)
 {
 }
@@ -55,6 +51,11 @@ rc_t VxlanTunnel::CreateCmd::issue(Connection &con)
 
     m_hw_item = wait();
 
+    if (m_hw_item)
+    {
+        complete();
+    }
+
     return rc_t::OK;
 }
 
@@ -69,7 +70,7 @@ std::string VxlanTunnel::CreateCmd::to_string() const
 
 VxlanTunnel::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item,
                                   const endpoint_t &ep):
-    RpcCmd(item),
+    Interface::DeleteCmd(item),
     m_ep(ep)
 {
 }
@@ -103,6 +104,7 @@ rc_t VxlanTunnel::DeleteCmd::issue(Connection &con)
 
     wait();
     m_hw_item.set(rc_t::NOOP);
+    complete();
 
     return (rc_t::OK);
 }
@@ -116,3 +118,32 @@ std::string VxlanTunnel::DeleteCmd::to_string() const
     return (s.str());
 }
 
+VxlanTunnel::DumpCmd::DumpCmd()
+{
+}
+
+bool VxlanTunnel::DumpCmd::operator==(const DumpCmd& other) const
+{
+    return (true);
+}
+
+rc_t VxlanTunnel::DumpCmd::issue(Connection &con)
+{
+    vapi_msg_vxlan_tunnel_dump *req;
+
+    req = vapi_alloc_vxlan_tunnel_dump(con.ctx());
+    req->payload.sw_if_index = ~0;
+
+    VAPI_CALL(vapi_vxlan_tunnel_dump(con.ctx(), req,
+                                     DumpCmd::callback<DumpCmd>,
+                                     this));
+
+    wait();
+
+    return rc_t::OK;
+}
+
+std::string VxlanTunnel::DumpCmd::to_string() const
+{
+    return ("Vpp-VxlanTunnels-Dump");
+}

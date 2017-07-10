@@ -62,6 +62,11 @@ namespace VPP
         std::string to_string() const;
 
         /**
+         * Return the prefix associated with this L3config
+         */
+        const Route::prefix_t& prefix() const;
+
+        /**
          * Dump all L3Configs into the stream provided
          */
         static void dump(std::ostream &os);
@@ -70,6 +75,11 @@ namespace VPP
          * The key type for L3Configs
          */
         typedef std::pair<Interface::key_type, Route::prefix_t> key_type_t;
+
+        /**
+         * Find an instance in the DB for the interface passed
+         */
+        static std::deque<std::shared_ptr<L3Config>> find(const Interface &i);
 
         /**
          * A functor class that binds the L3 config to the interface

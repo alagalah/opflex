@@ -20,6 +20,7 @@ void Boot::start()
         return;
 
     dump_interface();
+    dump_vxlan();
     dump_bridge();
 
     /*
@@ -49,7 +50,7 @@ void Boot::dump_interface()
 
         LOG(ovsagent::DEBUG) << "dump: " << itf->to_string();
 
-        if (Interface::type_t::LOCAL != itf->type())
+        if (itf && Interface::type_t::LOCAL != itf->type())
         {
             /*
              * Write each of the discovered interfaces into the OM,
@@ -134,5 +135,34 @@ void Boot::converged()
     /*
      * Sweep all the stale state
      */
+    LOG(ovsagent::INFO) << "sweep";
+
     OM::sweep(BOOT_KEY);
+}
+
+void Boot::dump_vxlan()
+{
+    /*
+     * dump VPP current states
+     */
+    VxlanTunnel::DumpCmd::details_type *data;
+    std::shared_ptr<VxlanTunnel::DumpCmd> cmd(new VxlanTunnel::DumpCmd());
+
+    HW::enqueue(cmd);
+    HW::write();
+
+    while (data = cmd->pop())
+    {
+        handle_t hdl(data->sw_if_index);
+        boost::asio::ip::address src = from_bytes(data->is_ipv6,
+                                                  data->src_address);
+        boost::asio::ip::address dst = from_bytes(data->is_ipv6,
+                                                  data->dst_address);
+
+        VxlanTunnel vt(hdl, src, dst, data->vni);
+
+        LOG(ovsagent::DEBUG) << "dump: " << vt.to_string();
+
+        OM::commit(BOOT_KEY, vt);
+    }
 }

@@ -545,7 +545,7 @@ BOOST_AUTO_TEST_CASE(vxlan) {
     VxlanTunnel vxt(ep.src, ep.dst, ep.vni);
 
     HW::Item<handle_t> hw_vxt(3, rc_t::OK);
-    ADD_EXPECT(VxlanTunnel::CreateCmd(hw_vxt, ep));
+    ADD_EXPECT(VxlanTunnel::CreateCmd(hw_vxt, "don't-care", ep));
 
     TRY_CHECK_RC(OM::write(franz, vxt));
 

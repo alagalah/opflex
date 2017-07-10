@@ -68,6 +68,13 @@ Interface::new_interface(const vapi_payload_sw_interface_details &vd)
         Interface parent(parts[0], type, state);
         up_itf.reset(new SubInterface(hdl, parent, state, vd.sub_id));
     }
+    else if (type_t::VXLAN == type)
+    {
+        /*
+         * there's not enough inforation in a SW interface record to construct
+         * a VXLAN tunnel. so skip it.
+         */
+    }
     else
     {
         up_itf.reset(new Interface(hdl, name, type, state));
