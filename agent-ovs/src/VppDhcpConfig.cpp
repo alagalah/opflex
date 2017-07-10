@@ -17,14 +17,14 @@ using namespace VPP;
 /**
  * A DB of all DHCP configs
  */
-InstDB<Interface::key_type, DhcpConfig> DhcpConfig::m_db;
+SingularDB<Interface::key_type, DhcpConfig> DhcpConfig::m_db;
 
 /**
  * Construct a new object matching the desried state
  */
 DhcpConfig::DhcpConfig(const Interface &itf,
                        const std::string &hostname):
-    m_itf(itf.instance()),
+    m_itf(itf.singular()),
     m_hostname(hostname),
     m_binding(0)
 {
@@ -81,7 +81,7 @@ std::shared_ptr<DhcpConfig> DhcpConfig::find_or_add(const DhcpConfig &temp)
     return (m_db.find_or_add(temp.m_itf->key(), temp));
 }
 
-std::shared_ptr<DhcpConfig> DhcpConfig::instance() const
+std::shared_ptr<DhcpConfig> DhcpConfig::singular() const
 {
     return find_or_add(*this);
 }

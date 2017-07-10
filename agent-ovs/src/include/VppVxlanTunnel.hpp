@@ -13,7 +13,7 @@
 #include "VppOM.hpp"
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
-#include "VppInstDB.hpp"
+#include "VppSingularDB.hpp"
 #include "VppRoute.hpp"
 #include "VppRouteDomain.hpp"
 #include "VppInterface.hpp"
@@ -106,9 +106,9 @@ namespace VPP
         VxlanTunnel(const VxlanTunnel& o);
 
         /**
-         * Return the matching 'instance'
+         * Return the matching 'singular instance'
          */
-        std::shared_ptr<VxlanTunnel> instance() const;
+        std::shared_ptr<VxlanTunnel> singular() const;
 
         /**
          * Debug rpint function
@@ -230,7 +230,7 @@ namespace VPP
          * Return the matching 'instance' of the sub-interface
          *  over-ride from the base class
          */
-        std::shared_ptr<Interface> instance_i() const;
+        std::shared_ptr<Interface> singular_i() const;
 
         /**
          * Find the VXLAN tunnel in the OM
@@ -255,7 +255,7 @@ namespace VPP
         /**
          * A map of all VLAN tunnela against thier key
          */
-        static InstDB<endpoint_t, VxlanTunnel> m_db;
+        static SingularDB<endpoint_t, VxlanTunnel> m_db;
 
         /**
          * Construct a unique name for the tunnel

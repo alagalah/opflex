@@ -17,7 +17,7 @@
 #include "VppOM.hpp"
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
-#include "VppInstDB.hpp"
+#include "VppSingularDB.hpp"
 #include "VppInterface.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppVxlanTunnel.hpp"
@@ -48,9 +48,9 @@ namespace VPP
         ~L2Config();
 
         /**
-         * Return the 'instance' of the L2 config that matches this object
+         * Return the 'singular instance' of the L2 config that matches this object
          */
-        std::shared_ptr<L2Config> instance() const;
+        std::shared_ptr<L2Config> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -157,12 +157,12 @@ namespace VPP
         void update(const L2Config &obj);
 
         /**
-         * Find or Add the instance in the DB
+         * Find or Add the singular instance in the DB
          */
         static std::shared_ptr<L2Config> find_or_add(const L2Config &temp);
 
         /*
-         * It's the VPP::OM class that calls instance()
+         * It's the VPP::OM class that calls singular()
          */
         friend class VPP::OM;
     
@@ -194,7 +194,7 @@ namespace VPP
         /**
          * A map of all L2 interfaces key against the interface's handle_t
          */
-        static InstDB<const handle_t, L2Config> m_db;
+        static SingularDB<const handle_t, L2Config> m_db;
     };
 };
 

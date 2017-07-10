@@ -17,7 +17,7 @@
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
 #include "VppDumpCmd.hpp"
-#include "VppInstDB.hpp"
+#include "VppSingularDB.hpp"
 #include "VppEnum.hpp"
 
 extern "C"
@@ -48,9 +48,9 @@ namespace VPP
         ~BridgeDomain();
 
         /**
-         * Return the matchin 'instance' of the bridge-domain
+         * Return the matchin 'singular' instance of the bridge-domain
          */
-        std::shared_ptr<BridgeDomain> instance() const;
+        std::shared_ptr<BridgeDomain> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -163,12 +163,12 @@ namespace VPP
         void update(const BridgeDomain &obj);
 
         /**
-         * Find or add an instance of a Bridge-Domain in the Object Model
+         * Find or add an singular of a Bridge-Domain in the Object Model
          */
         static std::shared_ptr<BridgeDomain> find_or_add(const BridgeDomain &temp);
 
         /*
-         * It's the VPP::OM class that calls instance()
+         * It's the VPP::OM class that calls singular()
          */
         friend class VPP::OM;
     
@@ -185,7 +185,7 @@ namespace VPP
         /**
          * A map of all interfaces key against the interface's name
          */
-        static InstDB<uint32_t, BridgeDomain> m_db;
+        static SingularDB<uint32_t, BridgeDomain> m_db;
     };
 };
 

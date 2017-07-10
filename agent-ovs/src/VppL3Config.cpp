@@ -14,14 +14,14 @@
 
 using namespace VPP;
 
-InstDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> L3Config::m_db;
+SingularDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> L3Config::m_db;
 
 /**
  * Construct a new object matching the desried state
  */
 L3Config::L3Config(const Interface &itf,
                    const Route::prefix_t &pfx):
-    m_itf(itf.instance()),
+    m_itf(itf.singular()),
     m_pfx(pfx),
     m_binding(true)
 {
@@ -85,7 +85,7 @@ std::shared_ptr<L3Config> L3Config::find_or_add(const L3Config &temp)
     return (m_db.find_or_add(make_pair(temp.m_itf->key(), temp.m_pfx), temp));
 }
 
-std::shared_ptr<L3Config> L3Config::instance() const
+std::shared_ptr<L3Config> L3Config::singular() const
 {
     return find_or_add(*this);
 }

@@ -17,15 +17,15 @@ using namespace VPP;
 /**
  * A DB of al the interfaces, key on the name
  */
-InstDB<const handle_t, L2Config> L2Config::m_db;
+SingularDB<const handle_t, L2Config> L2Config::m_db;
 
 /**
  * Construct a new object matching the desried state
  */
 L2Config::L2Config(const Interface &itf,
                    const BridgeDomain &bd):
-    m_itf(itf.instance()),
-    m_bd(bd.instance()),
+    m_itf(itf.singular()),
+    m_bd(bd.singular()),
     m_binding(0)
 {
 }
@@ -87,7 +87,7 @@ std::shared_ptr<L2Config> L2Config::find_or_add(const L2Config &temp)
     return (m_db.find_or_add(temp.m_itf->handle(), temp));
 }
 
-std::shared_ptr<L2Config> L2Config::instance() const
+std::shared_ptr<L2Config> L2Config::singular() const
 {
     return find_or_add(*this);
 }

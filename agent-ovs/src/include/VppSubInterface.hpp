@@ -40,9 +40,9 @@ namespace VPP
         SubInterface(const SubInterface& o);
 
         /**
-         * Return the matching 'instance' of the sub-interface
+         * Return the matching 'singular instance' of the sub-interface
          */
-        std::shared_ptr<SubInterface> instance() const;
+        std::shared_ptr<SubInterface> singular() const;
 
         /**
          * A functor class that creates an interface
@@ -130,7 +130,7 @@ namespace VPP
          * Return the matching 'instance' of the sub-interface
          *  over-ride from the base class
          */
-        std::shared_ptr<Interface> instance_i() const;
+        std::shared_ptr<Interface> singular_i() const;
 
         /**
          * Virtual functions to construct an interface create commands.
