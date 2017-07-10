@@ -199,6 +199,10 @@ Inspect::Command * Inspect::new_command(const std::string &message)
         {
             return new ShowBridgeDomain();
         }
+        else if (message.find("vxlan") != std::string::npos)
+        {
+            return new ShowVxlan();
+        }
         else if (message.find("route") != std::string::npos)
         {
             return new ShowBridgeDomain();
@@ -245,6 +249,7 @@ void Inspect::ShowHelp::exec(std::ostream &os)
     os << " inst:route      - Show all Route-Domaina"  << std::endl;
     os << " inst:L3Config   - Show all L3 Configs"     << std::endl;
     os << " inst:L2Config   - Show all L2 Configs"     << std::endl;
+    os << " inst:vxlan      - Show all VXLAN tunnels"  << std::endl;
     os << " keys            - Show all keys owning objects"  << std::endl;
     os << " key:XXX         - Show all object referenced by key XXX"  << std::endl;
     os << std::endl;
@@ -253,6 +258,11 @@ void Inspect::ShowHelp::exec(std::ostream &os)
 void Inspect::ShowInterface::exec(std::ostream &os)
 {
     Interface::dump(os);
+}
+
+void Inspect::ShowVxlan::exec(std::ostream &os)
+{
+    VxlanTunnel::dump(os);
 }
 
 void Inspect::ShowBridgeDomain::exec(std::ostream &os)
@@ -282,6 +292,7 @@ void Inspect::ShowAll::exec(std::ostream &os)
     L2Config::dump(os);
     RouteDomain::dump(os);
     L3Config::dump(os);
+    VxlanTunnel::dump(os);
 }
 
 void Inspect::ShowKey::exec(std::ostream &os)

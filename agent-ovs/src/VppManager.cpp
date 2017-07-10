@@ -175,6 +175,8 @@ namespace ovsagent {
 
     void VppManager::handleHWPollTimer()
     {
+        if (stopping) return;
+
         if (!VPP::HW::poll())
         {
             /*

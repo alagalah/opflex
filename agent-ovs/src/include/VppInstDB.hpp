@@ -33,6 +33,27 @@ namespace VPP
         }
 
         /**
+         * Iterator
+         */
+        typedef typename std::map<KEY, std::weak_ptr<OBJ>>::const_iterator const_iterator;
+
+        /**
+         * Get iterator to the beginning of the DB
+         */
+        const_iterator cbegin()
+        {
+            return m_map.cbegin();
+        }
+
+        /**
+         * Get iterator to the beginning of the DB
+         */
+        const_iterator cend()
+        {
+            return m_map.cend();
+        }
+
+        /**
          * Find or add the object to the store.
          * The object passed is deisred state. A new instance will be copy
          * constructed from it. This function is templatised on the object type
@@ -97,6 +118,14 @@ namespace VPP
                     }
                 }
             }
+        }
+
+        /**
+         * Find the object to the store.
+         */
+        void add(const KEY &key, std::shared_ptr<OBJ> sp)
+        {
+            m_map[key] = sp;
         }
 
         /**

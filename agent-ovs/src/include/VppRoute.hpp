@@ -124,6 +124,11 @@ namespace VPP
      * Convert a boost address into a VPP bytes string
      */
     void to_bytes(const boost::asio::ip::address &addr, uint8_t *is_ip6, uint8_t *array);
+
+    /**
+     * Convert a VPP byte stinrg into a boost addresss
+     */
+    boost::asio::ip::address from_bytes(uint8_t is_ip6, uint8_t *array);
 };
 
 #endif

@@ -30,6 +30,7 @@ namespace VPP
 
         void dump_interface();
         void dump_bridge();
+        void dump_vxlan();
     };
 }
 

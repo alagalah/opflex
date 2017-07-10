@@ -482,7 +482,7 @@ rc_t Interface::DumpCmd::issue(Connection &con)
 
 std::string Interface::DumpCmd::to_string() const
 {
-    return ("Vpp-Interfaces-Dump");
+    return ("itf-dump");
 }
 
 Interface::SetTag::SetTag(HW::Item<handle_t> &item,

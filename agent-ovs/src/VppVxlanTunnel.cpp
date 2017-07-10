@@ -68,6 +68,13 @@ std::string VxlanTunnel::endpoint_t::to_string() const
     return (s.str());
 }
 
+std::ostream & VPP::operator<<(std::ostream &os, const VxlanTunnel::endpoint_t &ep)
+{
+    os << ep.to_string();
+
+    return (os);
+}
+
 std::string VxlanTunnel::mk_name(const boost::asio::ip::address &src,
                                  const boost::asio::ip::address &dst,
                                  uint32_t vni)
@@ -85,13 +92,22 @@ std::string VxlanTunnel::mk_name(const boost::asio::ip::address &src,
     return (s.str());
 }
 
-/**
- * Construct a new object matching the desried state
- */
 VxlanTunnel::VxlanTunnel(const boost::asio::ip::address &src,
                          const boost::asio::ip::address &dst,
                          uint32_t vni):
     Interface(mk_name(src, dst, vni),
+              Interface::type_t::VXLAN,
+              Interface::admin_state_t::UP),
+    m_tep(src, dst, vni)
+{
+}
+
+VxlanTunnel::VxlanTunnel(const handle_t &hdl,
+                         const boost::asio::ip::address &src,
+                         const boost::asio::ip::address &dst,
+                         uint32_t vni):
+    Interface(hdl,
+              mk_name(src, dst, vni),
               Interface::type_t::VXLAN,
               Interface::admin_state_t::UP),
     m_tep(src, dst, vni)
@@ -121,7 +137,12 @@ void VxlanTunnel::sweep()
 VxlanTunnel::~VxlanTunnel()
 {
     sweep();
+
+    /*
+     * release from both DBs
+     */
     release();
+    m_db.release(m_tep, this);
 }
 
 std::string VxlanTunnel::to_string() const
@@ -142,13 +163,23 @@ void VxlanTunnel::update(const VxlanTunnel &desired)
      */
     if (!m_hdl)
     {
-        HW::enqueue(new CreateCmd(m_hdl, m_tep));
+        HW::enqueue(new CreateCmd(m_hdl, name(), m_tep));
     }
 }
 
 std::shared_ptr<VxlanTunnel> VxlanTunnel::find_or_add(const VxlanTunnel &temp)
 {
-    return (m_db.find_or_add(temp.m_tep, temp));
+    /*
+     * a VXLAN tunnel needs to be in both the interface-find-by-name
+     * and the VxlanTunnel-find-by-endpoint instance databases
+     */
+    std::shared_ptr<VxlanTunnel> sp;
+
+    sp = m_db.find_or_add(temp.m_tep, temp);
+
+    Interface::m_db.add(temp.name(), sp);
+
+    return (sp);
 }
 
 std::shared_ptr<VxlanTunnel> VxlanTunnel::instance() const
@@ -159,4 +190,9 @@ std::shared_ptr<VxlanTunnel> VxlanTunnel::instance() const
 std::shared_ptr<Interface> VxlanTunnel::instance_i() const
 {
     return find_or_add(*this);
+}
+
+void VxlanTunnel::dump(std::ostream &os)
+{
+    m_db.dump(os);
 }

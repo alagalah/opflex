@@ -94,6 +94,22 @@ namespace VPP
         };
 
         /**
+         * Show All Vxlam Tunnels
+         */
+        class ShowVxlan: public Command
+        {
+        public:
+            /**
+             * Default Constructor
+             */
+            ShowVxlan() = default;
+
+            /**
+             * Execute the command - capture output in ostream
+             */
+            void exec(std::ostream &os);
+        };
+        /**
          * Show All Bridge-Domains
          */
         class ShowBridgeDomain: public Command

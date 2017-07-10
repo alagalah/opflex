@@ -95,25 +95,34 @@ std::string Route::prefix_t::to_string() const
     return (s.str());
 }
 
-Route::prefix_t::prefix_t(uint8_t is_ip6,
-                          uint8_t *addr,
-                          uint8_t len):
-    m_len(len)
+boost::asio::ip::address VPP::from_bytes(uint8_t is_ip6, uint8_t *bytes)
 {
+    boost::asio::ip::address addr;
+
     if (is_ip6)
     {
         std::array<uint8_t, 16> a;
-        std::copy(addr, addr+16, std::begin(a));
+        std::copy(bytes, bytes+16, std::begin(a));
         boost::asio::ip::address_v6 v6(a);
-        m_addr = v6;
+        addr = v6;
     }
     else
     {
         std::array<uint8_t, 4> a;
-        std::copy(addr, addr+4, std::begin(a));
+        std::copy(bytes, bytes+4, std::begin(a));
         boost::asio::ip::address_v4 v4(a);
-        m_addr = v4;
+        addr = v4;
     }
+
+    return (addr);
+}
+
+Route::prefix_t::prefix_t(uint8_t is_ip6,
+                          uint8_t *addr,
+                          uint8_t len):
+    m_len(len),
+    m_addr(from_bytes(is_ip6, addr))
+{
 }
 
 void VPP::to_bytes(const boost::asio::ip::address &addr,
@@ -131,7 +140,6 @@ void VPP::to_bytes(const boost::asio::ip::address &addr,
         *is_ip6 = 0;
         memcpy(array, addr.to_v4().to_bytes().data(), 4);
     }
-   
 }
 
 void Route::prefix_t::to_vpp(uint8_t *is_ip6,
