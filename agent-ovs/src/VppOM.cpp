@@ -12,6 +12,8 @@
 #include "VppInterface.hpp"
 #include "VppVxlanTunnel.hpp"
 #include "VppBridgeDomain.hpp"
+#include "VppAclList.hpp"
+#include "VppAclBinding.hpp"
 
 using namespace VPP;
 
@@ -99,6 +101,10 @@ void OM::populate(const KEY &key)
     Interface::populate(key);
     VxlanTunnel::populate(key);
     BridgeDomain::populate(key);
+    ACL::L2List::populate(key);
+    ACL::L3List::populate(key);
+    ACL::L2Binding::populate(key);
+    ACL::L3Binding::populate(key);
 
     /*
      * once we have it all, mark it stale.

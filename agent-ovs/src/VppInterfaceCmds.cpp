@@ -36,7 +36,7 @@ void Interface::CreateCmd::complete()
 {
     std::shared_ptr<Interface> sp = find(m_name);
 
-    if (sp)
+    if (sp && m_hw_item)
     {
         add(m_hw_item.data(), sp);
     }
@@ -44,8 +44,7 @@ void Interface::CreateCmd::complete()
 
 void Interface::CreateCmd::succeeded()
 {
-    m_hw_item.set(rc_t::OK);
-
+    RpcCmd::succeeded();
     complete();
 }
 

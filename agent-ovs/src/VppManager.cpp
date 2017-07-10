@@ -41,6 +41,7 @@
 #include "VppBridgeDomain.hpp"
 #include "VppInterface.hpp"
 #include "VppDhcpConfig.hpp"
+#include "VppAclBinding.hpp"
 
 #include "arp.h"
 #include "eth.h"
@@ -177,6 +178,8 @@ namespace ovsagent {
     void VppManager::handleSweepTimer(const boost::system::error_code& ec)
     {
         if (ec) return;
+
+        LOG(INFO) << "sweep boot data";
 
         /*
          * the sweep timer was not cancelled, continue with purging old state.
@@ -411,11 +414,6 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
      */
     VPP::OM::mark(uuid);
 
-    /* if (!vppApi.isConnected()) { */
-    /*     LOG(ERROR) << "VppApi is not connected"; */
-    /*     return; */
-    /* } */
-
     const Endpoint& endPoint = *epWrapper.get();
     const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
     int rv;
@@ -430,8 +428,25 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
     uint8_t macAddr[6];
     bool hasMac = endPoint.getMAC() != boost::none;
-    if (hasMac)
+
+    if (hasMac) {
         endPoint.getMAC().get().toUIntArray(macAddr);
+
+        /*
+         * Add an L2 ACL to accept packet on this interface only from this MAC
+         */
+        VPP::ACL::L2Rule rule(10,
+                              VPP::ACL::action_t::PERMIT,
+                              VPP::Route::prefix_t::ZERO,
+                              macAddr,
+                              VPP::mac_address_t::ONE);
+
+        VPP::ACL::L2List acl(uuid, {rule});
+        VPP::OM::write(uuid, acl);
+
+        VPP::ACL::L2Binding binding(VPP::ACL::direction_t::INPUT, itf, acl);
+        VPP::OM::write(uuid, binding);
+    }
 
     /* check and parse the IP-addresses */
     boost::system::error_code ec;
@@ -511,110 +526,6 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             return;
         }
     }
-
-    /* if (rdId != 0 && bdId != 0 && */
-    /*     vppApi.getBridgeNameByIntf(vppInterfaceName.get()).first) { */
-    /*     uint8_t routingMode = */
-    /*     agent.getPolicyManager().getEffectiveRoutingMode(epgURI.get()); */
-
-    /*     if (virtualRouterEnabled && hasMac && */
-    /*         routingMode == RoutingModeEnumT::CONST_ENABLED) { */
-    /*         for (const address& ipAddr : ipAddresses) { */
-    /*             if (endPoint.isDiscoveryProxyMode()) { */
-    /*                 /\* Auto-reply to ARP and NDP requests for endpoint */
-    /*                  * IP addresses */
-    /*                  * TODO I believe that VPP handles it by default. */
-    /*                  * May need to check with keith. */
-    /*                  * if VPP will not handle it, we can think about */
-    /*                  * "set ip arp" or "set ip6 nd proxy" */
-    /*                  * flowsProxyDiscovery(*this, elBridgeDst, 20, ipAddr, */
-    /*                  *\/  */
-    /*             } else { */
-    /*                 if (arpMode != AddressResModeEnumT::CONST_FLOOD && */
-    /*                     ipAddr.is_v4()) { */
-    /*                     if (arpMode == AddressResModeEnumT::CONST_UNICAST) { */
-    /*                     /\* */
-    /*                      * TODO ARP optimization: broadcast -> unicast */
-    /*                      * vpp API: "set ip ARP" */
-    /*                      *\/ */
-    /*                     } else { */
-    /*                     /\* */
-    /*                      * Keith, how VPP will handle such arp requests which */
-    /*                      * do not have entries (using "set ip arp") in the VPP. */
-    /*                      *\/ */
-    /*                      // drop the ARP packet */
-    /*                     } */
-    /*                 } */
-    /*                 if (ndMode != AddressResModeEnumT::CONST_FLOOD && */
-    /*                     ipAddr.is_v6()) { */
-    /*                     if (ndMode == AddressResModeEnumT::CONST_UNICAST) { */
-    /*                         /\* */
-    /*                          * TODO neighbor discovery optimization: */
-    /*                          * broadcast -> unicast */
-    /*                          *\/ */
-    /*                         // vpp API: "set ip6 neighbor" */
-    /*                         // actionDestEpArp(e1, epgVnid, swIfIndex, macAddr); */
-    /*                      } else { */
-    /*                         // else drop the ND packet */
-    /*                      } */
-    /*                 } */
-    /*             } */
-    /*         } */
-
-    /*         // IP address mappings */
-    /*         for (const Endpoint::IPAddressMapping& ipm : */
-    /*             endPoint.getIPAddressMappings()) { */
-    /*             if (!ipm.getMappedIP() || !ipm.getEgURI()) */
-    /*                 continue; */
-
-    /*             address mappedIp = */
-    /*                address::from_string(ipm.getMappedIP().get(), ec); */
-    /*             if (ec) continue; */
-
-    /*             address floatingIp; */
-    /*             if (ipm.getFloatingIP()) { */
-    /*                 floatingIp = */
-    /*                     address::from_string(ipm.getFloatingIP().get(), ec); */
-    /*                 if (ec) continue; */
-    /*                 if (floatingIp.is_v4() != mappedIp.is_v4()) continue; */
-    /*             } */
-
-    /*             uint32_t fepgVnid, frdId, fbdId, ffdId; */
-    /*             optional<URI> ffdURI, fbdURI, frdURI; */
-    /*             if (!getGroupForwardingInfo(ipm.getEgURI().get(), fepgVnid, */
-    /*                                         frdURI, frdId, fbdURI, fbdId, */
-    /*                                         ffdURI, ffdId)) */
-    /*                 continue; */
-
-    /*             uint32_t nextHop; */
-    /*             if (ipm.getNextHopIf()) { */
-    /*             // nextHop = switchManager.getPortMapper() */
-    /*             //    .FindPort(ipm.getNextHopIf().get()); */
-    /*             // if (nextHop == VppApi::VPP_SWIFINDEX_NONE) continue; */
-    /*             } */
-    /*             uint8_t nextHopMac[6]; */
-    /*             const uint8_t* nextHopMacp = NULL; */
-    /*             if (ipm.getNextHopMAC()) { */
-    /*                 ipm.getNextHopMAC().get().toUIntArray(nextHopMac); */
-    /*                  nextHopMacp = nextHopMac; */
-    /*             } */
-    /*         /\* */
-    /*          * Keith what is about IP address mapping? */
-    /*          * Why do we need it? */
-    /*          * How VPP does play a role there? */
-    /*          *\/ */
-    /*         } */
-    /*     } */
-    /* } */
-
-    /* if (fgrpURI && vppApi.getIntfIndexByName(vppInterfaceName.get()).first) { */
-    /*     updateEndpointFloodGroup(fgrpURI.get(), endPoint, */
-    /*         vppApi.getIntfIndexByName(vppInterfaceName.get()).second, */
-    /*                              endPoint.isPromiscuousMode(), */
-    /*                              fd); */
-    /* } else { */
-    /*     removeEndpointFromFloodGroup(uuid); */
-    /* } */
 
     /*
      * That's all folks ...

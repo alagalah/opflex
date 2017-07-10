@@ -6,6 +6,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
+#include <sstream>
+
 #include "Vpp.hpp"
 
 using namespace VPP;
@@ -75,6 +77,54 @@ uint32_t handle_t::value() const
 std::ostream & VPP::operator<<(std::ostream &os, const handle_t &h)
 {
     os << h.value();
+
+    return (os);
+}
+
+mac_address_t::mac_address_t(uint8_t b[6])
+{
+    std::copy(b, b+6, std::begin(bytes));
+}
+
+mac_address_t::mac_address_t(std::initializer_list<uint8_t> i)
+{
+    std::copy(i.begin(), i.end(), std::begin(bytes));
+}
+
+const mac_address_t mac_address_t::ONE({0xff, 0xff, 0xff, 0xff, 0xff, 0xff});
+
+const mac_address_t mac_address_t::ZERO({ 0x0 });
+
+void mac_address_t::to_bytes(uint8_t *array) const
+{
+    for (int i = 0; i < 6; i++)
+    {
+        array[i] = bytes[i];
+    }
+}
+
+std::string mac_address_t::to_string() const
+{
+    std::ostringstream s;
+
+    s << "mac:[";
+    for (auto byte : bytes)
+    {
+        s << std::to_string(byte) << ",";
+    }
+    s << "]";
+
+    return (s.str());
+}
+
+bool mac_address_t::operator==(const mac_address_t &mac) const
+{
+    return (bytes == mac.bytes);
+}
+
+std::ostream &VPP::operator<<(std::ostream &os, const mac_address_t &mac)
+{
+    os << mac.to_string();
 
     return (os);
 }

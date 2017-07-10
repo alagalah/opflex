@@ -233,6 +233,13 @@ if RENDERER_VPP
 	src/VppRouteDomain.cpp \
 	src/VppVxlanTunnel.cpp \
 	src/VppVxlanTunnelCmds.cpp \
+	src/VppAclTypes.cpp \
+	src/VppAclL3Rule.cpp \
+	src/VppAclL2Rule.cpp \
+	src/VppAclListCmds.cpp \
+	src/VppAclList.cpp \
+	src/VppAclBinding.cpp \
+	src/VppAclBindingCmds.cpp \
 	src/VppManager.cpp \
 	src/VppInspect.cpp \
 	src/VppHW.cpp \

@@ -23,6 +23,10 @@
 #include "VppRouteDomain.hpp"
 #include "VppVxlanTunnel.hpp"
 #include "VppSubInterface.hpp"
+#include "VppAclList.hpp"
+#include "VppAclBinding.hpp"
+#include "VppAclL3Rule.hpp"
+#include "VppAclL2Rule.hpp"
 
 using namespace boost;
 using namespace VPP;
@@ -156,6 +160,38 @@ public:
             else if (typeid(*f_exp) == typeid(SubInterface::DeleteCmd))
             {
                 rc = handle_derived<SubInterface::DeleteCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(ACL::L3List::UpdateCmd))
+            {
+                rc = handle_derived<ACL::L3List::UpdateCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(ACL::L3List::DeleteCmd))
+            {
+                rc = handle_derived<ACL::L3List::DeleteCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(ACL::L3Binding::BindCmd))
+            {
+                rc = handle_derived<ACL::L3Binding::BindCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(ACL::L3Binding::UnbindCmd))
+            {
+                rc = handle_derived<ACL::L3Binding::UnbindCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(ACL::L2List::UpdateCmd))
+            {
+                rc = handle_derived<ACL::L2List::UpdateCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(ACL::L2List::DeleteCmd))
+            {
+                rc = handle_derived<ACL::L2List::DeleteCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(ACL::L2Binding::BindCmd))
+            {
+                rc = handle_derived<ACL::L2Binding::BindCmd>(f_exp, f_act);
+            }
+            else if (typeid(*f_exp) == typeid(ACL::L2Binding::UnbindCmd))
+            {
+                rc = handle_derived<ACL::L2Binding::UnbindCmd>(f_exp, f_act);
             }
             else
             {
@@ -612,6 +648,90 @@ BOOST_AUTO_TEST_CASE(vlan) {
     ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
 
     TRY_CHECK(OM::remove(noam));
+}
+
+BOOST_AUTO_TEST_CASE(acl) {
+    VppInit vi;
+    const std::string fyodor = "FyodorDostoyevsky";
+    const std::string leo = "LeoTolstoy";
+    rc_t rc = rc_t::OK;
+
+    /*
+     * Fyodor adds an ACL in the input direction
+     */
+    std::string itf1_name = "host1";
+    Interface itf1(itf1_name,
+                   Interface::type_t::AFPACKET,
+                   Interface::admin_state_t::UP);
+    HW::Item<handle_t> hw_ifh(2, rc_t::OK);
+    HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP, rc_t::OK);
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
+    TRY_CHECK_RC(OM::write(fyodor, itf1));
+
+    Route::prefix_t src("10.10.10.10", 32);
+    ACL::L3Rule r1(10, ACL::action_t::PERMIT, src, Route::prefix_t::ZERO);
+    ACL::L3Rule r2(20, ACL::action_t::DENY, Route::prefix_t::ZERO, Route::prefix_t::ZERO);
+
+    std::string acl_name = "acl1";
+    ACL::L3List acl1(acl_name);
+    acl1.insert(r2);
+    acl1.insert(r1);
+    ACL::L3List::rules_t rules = {r1, r2};
+
+    HW::Item<handle_t> hw_acl(2, rc_t::OK);
+    ADD_EXPECT(ACL::L3List::UpdateCmd(hw_acl, acl_name, rules));
+    TRY_CHECK_RC(OM::write(fyodor, acl1));
+
+    ACL::L3Binding *l3b = new ACL::L3Binding(ACL::direction_t::INPUT, itf1, acl1);
+    HW::Item<bool> hw_binding(true, rc_t::OK);
+    ADD_EXPECT(ACL::L3Binding::BindCmd(hw_binding, ACL::direction_t::INPUT,
+                                       hw_ifh.data(), hw_acl.data()));
+    TRY_CHECK_RC(OM::write(fyodor, *l3b));
+
+    /**
+     * Leo adds an L2 ACL in the output direction
+     */
+    TRY_CHECK_RC(OM::write(leo, itf1));
+
+    std::string l2_acl_name = "l2_acl1";
+    mac_address_t mac({0x0, 0x0, 0x1, 0x2, 0x3, 0x4});
+    mac_address_t mac_mask({0xff, 0xff, 0xff, 0x0, 0x0, 0x0});
+    ACL::L2Rule l2_r1(10, ACL::action_t::PERMIT, src, mac, mac_mask);
+    ACL::L2Rule l2_r2(20, ACL::action_t::DENY, src, {}, {});
+
+    ACL::L2List l2_acl(l2_acl_name);
+    l2_acl.insert(l2_r2);
+    l2_acl.insert(l2_r1);
+
+    ACL::L2List::rules_t l2_rules = {l2_r1, l2_r2};
+
+    HW::Item<handle_t> l2_hw_acl(3, rc_t::OK);
+    ADD_EXPECT(ACL::L2List::UpdateCmd(l2_hw_acl, l2_acl_name, l2_rules));
+    TRY_CHECK_RC(OM::write(leo, l2_acl));
+
+    ACL::L2Binding *l2b = new ACL::L2Binding(ACL::direction_t::OUTPUT, itf1, l2_acl);
+    HW::Item<bool> l2_hw_binding(true, rc_t::OK);
+    ADD_EXPECT(ACL::L2Binding::BindCmd(l2_hw_binding, ACL::direction_t::OUTPUT,
+                                       hw_ifh.data(), l2_hw_acl.data()));
+    TRY_CHECK_RC(OM::write(leo, *l2b));
+
+    delete l2b;
+    ADD_EXPECT(ACL::L2Binding::UnbindCmd(l2_hw_binding, ACL::direction_t::OUTPUT,
+                                         hw_ifh.data(), l2_hw_acl.data()));
+    ADD_EXPECT(ACL::L2List::DeleteCmd(l2_hw_acl));
+    TRY_CHECK(OM::remove(leo));
+
+    delete l3b;
+    HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN,
+                                                  rc_t::OK);
+    ADD_EXPECT(ACL::L3Binding::UnbindCmd(hw_binding, ACL::direction_t::INPUT,
+                                         hw_ifh.data(), hw_acl.data()));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
+    ADD_EXPECT(ACL::L3List::DeleteCmd(hw_acl));
+
+    TRY_CHECK(OM::remove(fyodor));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -177,6 +177,40 @@ namespace VPP
         };
 
         /**
+         * Show All ACLs
+         */
+        class ShowAcl: public Command
+        {
+        public:
+            /**
+             * Default Constructor
+             */
+            ShowAcl() = default;
+
+            /**
+             * Execute the command - capture output in ostream
+             */
+            void exec(std::ostream &os);
+        };
+
+        /**
+         * Show All ACL Bindings
+         */
+        class ShowAclBinding: public Command
+        {
+        public:
+            /**
+             * Default Constructor
+             */
+            ShowAclBinding() = default;
+
+            /**
+             * Execute the command - capture output in ostream
+             */
+            void exec(std::ostream &os);
+        };
+
+        /**
          * Show All Objects referenced by a given KEY
          */
         class ShowKey: public Command

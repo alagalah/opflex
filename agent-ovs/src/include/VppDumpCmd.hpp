@@ -202,6 +202,65 @@ namespace VPP
         }
 
         /**
+         * Callback function registered with the VPP API that will be invoked for
+         * each record recieved.
+         * the callback context passed is always the command object that issued
+         * the command.
+         * In this variant it is the reply message itself that has the record embedded
+         * and there are no individual 'records'/details sent.
+         */
+        template <typename DERIVED>
+        static vapi_error_e reply(vapi_ctx_t ctx,
+                                  void *callback_ctx,
+                                  vapi_error_e rv,
+                                  bool is_last,
+                                  T *reply)
+        {
+            DERIVED *cmd = static_cast<DERIVED*>(callback_ctx);
+
+            LOG(ovsagent::DEBUG) << "last:" << is_last << " " << cmd->to_string();
+
+            T *t = (T*) malloc(sizeof(T));
+
+            memcpy(t, reply, sizeof(T));
+            cmd->m_events.push(t);
+            cmd->m_promise.set_value(rc_t::OK);
+
+            return (VAPI_OK);
+        }
+
+        /**
+         * Callback function registered with the VPP API that will be invoked for
+         * each record recieved.
+         * the callback context passed is the obj and message size calculator
+         * In this variant it is the reply message itself that has the record embedded
+         * and there are no individual 'records'/details sent.
+         */
+        template <typename DERIVED>
+        static vapi_error_e reply_vl(vapi_ctx_t ctx,
+                                     void *callback_ctx,
+                                     vapi_error_e rv,
+                                     bool is_last,
+                                     T *reply)
+        {
+            cb_ctx_t *cb_ctx = static_cast<cb_ctx_t*>(callback_ctx);
+            DERIVED *cmd = static_cast<DERIVED*>(cb_ctx->obj);
+
+            LOG(ovsagent::DEBUG) << "last:" << is_last << " " << cmd->to_string();
+
+            size_t s = cb_ctx->msg_size(reply);
+            T * t = (T*) malloc(s);
+
+            memcpy(t, reply, s);
+
+            cmd->m_events.push(t);
+            cmd->m_promise.set_value(rc_t::OK);
+            delete cb_ctx;
+
+            return (VAPI_OK);
+        }
+
+        /**
          * The dump command receives many 'details' before the command
          * completes. save them in the order they arrived.
          */

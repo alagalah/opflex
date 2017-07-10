@@ -112,6 +112,11 @@ bool BridgeDomain::DumpCmd::operator==(const DumpCmd& other) const
     return (true);
 }
 
+static uword vapi_calc_bridge_domain_details_payload_size(vapi_payload_bridge_domain_details *payload)
+{
+  return sizeof(*payload)+ payload->n_sw_ifs * sizeof(payload->sw_if_details[0]);
+}
+
 rc_t BridgeDomain::DumpCmd::issue(Connection &con)
 {
     vapi_msg_bridge_domain_dump *req;
@@ -122,7 +127,7 @@ rc_t BridgeDomain::DumpCmd::issue(Connection &con)
     VAPI_CALL(vapi_bridge_domain_dump(
                   con.ctx(), req,
                   DumpCmd::callback_vl<DumpCmd>,
-                  DumpCmd::mk_cb_ctx(this, vapi_calc_bridge_domain_details_msg_size)));
+                  DumpCmd::mk_cb_ctx(this, vapi_calc_bridge_domain_details_payload_size)));
 
     wait();
 

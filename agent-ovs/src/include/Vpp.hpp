@@ -9,6 +9,8 @@
 #ifndef __VPP_H__
 #define __VPP_H__
 
+#include <array>
+
 #include <boost/asio/ip/address.hpp>
 
 #include "VppEnum.hpp"
@@ -130,6 +132,49 @@ namespace VPP
      * ostream print of a handle_t
      */
     std::ostream & operator<<(std::ostream &os, const handle_t &h);
+
+    /**
+     * Type def of a Ethernet address
+     */
+    struct mac_address_t
+    {
+        mac_address_t(uint8_t bytes[6]);
+        mac_address_t(std::initializer_list<uint8_t> bytes);
+        /**
+         * Convert to byte array
+         */
+        void to_bytes(uint8_t *array) const;
+
+        /**
+         * An all 1's MAC address
+         */
+        const static mac_address_t ONE;
+
+        /**
+         * An all 0's MAC address
+         */
+        const static mac_address_t ZERO;
+
+        /**
+         * Comparison operator
+         */
+        bool operator==(const mac_address_t &m) const;
+
+        /**
+         * String conversion
+         */
+        std::string to_string() const;
+
+        /**
+         * Underlying bytes array
+         */
+        std::array<uint8_t, 6> bytes;
+    };
+
+    /**
+     * Ostream operator for a MAC address
+     */
+    std::ostream &operator<<(std::ostream &os, const mac_address_t &mac);
 };
 
 #endif
