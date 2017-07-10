@@ -314,10 +314,9 @@ void Interface::populate(const KEY &key)
     {
         std::unique_ptr<Interface> itf = Interface::new_interface(*data);
 
-        LOG(ovsagent::DEBUG) << "dump: " << itf->to_string();
-
         if (itf && Interface::type_t::LOCAL != itf->type())
         {
+            LOG(ovsagent::DEBUG) << "dump: " << itf->to_string();
             /*
              * Write each of the discovered interfaces into the OM,
              * but disable the HW Command q whilst we do, so that no

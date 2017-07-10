@@ -17,6 +17,7 @@
 #include "VppRouteDomain.hpp"
 #include "VppL3Config.hpp"
 #include "VppL2Config.hpp"
+#include "VppAclBinding.hpp"
 
 using namespace VPP;
 
@@ -217,6 +218,14 @@ Inspect::Command * Inspect::new_command(const std::string &message)
         {
             return new ShowL3Config();
         }
+        else if (message.find("acl-") != std::string::npos)
+        {
+            return new ShowAclBinding();
+        }
+        else if (message.find("acl") != std::string::npos)
+        {
+            return new ShowAcl();
+        }
         else if (message.find("all"))
         {
             return new ShowAll();
@@ -242,16 +251,18 @@ Inspect::Command * Inspect::new_command(const std::string &message)
 
 void Inspect::ShowHelp::exec(std::ostream &os)
 {
-    os << "Command Options: "                          << std::endl;
-    os << " inst:all        - Show all objects"        << std::endl;
-    os << " inst:interface  - Show all interfaces"     << std::endl;
-    os << " inst:bridge     - Show all Bridge-Domain"  << std::endl;
-    os << " inst:route      - Show all Route-Domaina"  << std::endl;
-    os << " inst:L3Config   - Show all L3 Configs"     << std::endl;
-    os << " inst:L2Config   - Show all L2 Configs"     << std::endl;
-    os << " inst:vxlan      - Show all VXLAN tunnels"  << std::endl;
-    os << " keys            - Show all keys owning objects"  << std::endl;
-    os << " key:XXX         - Show all object referenced by key XXX"  << std::endl;
+    os << "Command Options: "                            << std::endl;
+    os << " inst:all          - Show all objects"        << std::endl;
+    os << " inst:interface    - Show all interfaces"     << std::endl;
+    os << " inst:bridge       - Show all Bridge-Domain"  << std::endl;
+    os << " inst:route        - Show all Route-Domaina"  << std::endl;
+    os << " inst:L3Config     - Show all L3 Configs"     << std::endl;
+    os << " inst:L2Config     - Show all L2 Configs"     << std::endl;
+    os << " inst:vxlan        - Show all VXLAN tunnels"  << std::endl;
+    os << " inst:acl          - Show all ACL lists"      << std::endl;
+    os << " inst:acl-bindings - Show all ACL Bindings"   << std::endl;
+    os << " keys              - Show all keys owning objects"  << std::endl;
+    os << " key:XXX           - Show all object referenced by key XXX"  << std::endl;
     os << std::endl;
 }
 
@@ -285,6 +296,18 @@ void Inspect::ShowRouteDomain::exec(std::ostream &os)
     RouteDomain::dump(os);
 }
 
+void Inspect::ShowAcl::exec(std::ostream &os)
+{
+    ACL::L2List::dump(os);
+    ACL::L3List::dump(os);
+}
+
+void Inspect::ShowAclBinding::exec(std::ostream &os)
+{
+    ACL::L2Binding::dump(os);
+    ACL::L3Binding::dump(os);
+}
+
 void Inspect::ShowAll::exec(std::ostream &os)
 {
     Interface::dump(os);
@@ -293,6 +316,10 @@ void Inspect::ShowAll::exec(std::ostream &os)
     RouteDomain::dump(os);
     L3Config::dump(os);
     VxlanTunnel::dump(os);
+    ACL::L2List::dump(os);
+    ACL::L3List::dump(os);
+    ACL::L2Binding::dump(os);
+    ACL::L3Binding::dump(os);
 }
 
 void Inspect::ShowKey::exec(std::ostream &os)
