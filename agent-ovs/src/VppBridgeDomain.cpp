@@ -17,7 +17,7 @@ using namespace VPP;
 /**
  * A DB of al the interfaces, key on the name
  */
-InstDB<uint32_t, BridgeDomain> BridgeDomain::m_db;
+SingularDB<uint32_t, BridgeDomain> BridgeDomain::m_db;
 
 /**
  * Construct a new object matching the desried state
@@ -80,7 +80,7 @@ std::shared_ptr<BridgeDomain> BridgeDomain::find_or_add(const BridgeDomain &temp
     return (m_db.find_or_add(temp.m_id.data(), temp));
 }
 
-std::shared_ptr<BridgeDomain> BridgeDomain::instance() const
+std::shared_ptr<BridgeDomain> BridgeDomain::singular() const
 {
     return find_or_add(*this);
 }

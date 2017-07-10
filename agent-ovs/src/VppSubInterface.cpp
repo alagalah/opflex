@@ -17,7 +17,7 @@ SubInterface::SubInterface(const Interface &parent,
                            admin_state_t state,
                            vlan_id_t vlan):
     Interface(mk_name(parent, vlan), parent.type(), state),
-    m_parent(parent.instance()),
+    m_parent(parent.singular()),
     m_vlan(vlan)
 {
 }
@@ -27,7 +27,7 @@ SubInterface::SubInterface(const handle_t &handle,
                            admin_state_t state,
                            vlan_id_t vlan):
     Interface(handle, mk_name(parent, vlan), parent.type(), state),
-    m_parent(parent.instance()),
+    m_parent(parent.singular()),
     m_vlan(vlan)
 {
 }
@@ -65,12 +65,12 @@ std::queue<Cmd*> & SubInterface::mk_delete_cmd(std::queue<Cmd*> &q)
     return (q);
 }
 
-std::shared_ptr<SubInterface> SubInterface::instance() const
+std::shared_ptr<SubInterface> SubInterface::singular() const
 {
-    return std::dynamic_pointer_cast<SubInterface>(instance_i());
+    return std::dynamic_pointer_cast<SubInterface>(singular_i());
 }
 
-std::shared_ptr<Interface> SubInterface::instance_i() const
+std::shared_ptr<Interface> SubInterface::singular_i() const
 {
     return m_db.find_or_add(name(), *this);
 }

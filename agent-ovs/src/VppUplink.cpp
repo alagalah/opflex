@@ -94,7 +94,7 @@ void Uplink::configure()
     /*
      * Find and save the interface this created
      */
-    m_uplink = itf.instance();
+    m_uplink = itf.singular();
 
     /*
      * now create the sub-interface on which control and data traffic from

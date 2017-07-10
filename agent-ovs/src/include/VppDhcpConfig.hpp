@@ -18,7 +18,7 @@
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
 #include "VppDumpCmd.hpp"
-#include "VppInstDB.hpp"
+#include "VppSingularDB.hpp"
 #include "VppInterface.hpp"
 #include "VppSubInterface.hpp"
 
@@ -51,9 +51,9 @@ namespace VPP
 
 
         /**
-         * Return the 'instance' of the DHCP config that matches this object
+         * Return the 'singular' of the DHCP config that matches this object
          */
-        std::shared_ptr<DhcpConfig> instance() const;
+        std::shared_ptr<DhcpConfig> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -224,7 +224,7 @@ namespace VPP
         static std::shared_ptr<DhcpConfig> find_or_add(const DhcpConfig &temp);
 
         /*
-         * It's the VPP::OM class that calls instance()
+         * It's the VPP::OM class that calls singular()
          */
         friend class VPP::OM;
     
@@ -254,7 +254,7 @@ namespace VPP
         /**
          * A map of all Dhcp configs keyed against the interface.
          */
-        static InstDB<Interface::key_type, DhcpConfig> m_db;
+        static SingularDB<Interface::key_type, DhcpConfig> m_db;
     };
 };
 

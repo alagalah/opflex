@@ -66,12 +66,12 @@ std::queue<Cmd*> &  TapInterface::mk_delete_cmd(std::queue<Cmd*> &q)
     return (q);
 }
 
-std::shared_ptr<TapInterface> TapInterface::instance() const
+std::shared_ptr<TapInterface> TapInterface::singular() const
 {
-    return std::dynamic_pointer_cast<TapInterface>(instance_i());
+    return std::dynamic_pointer_cast<TapInterface>(singular_i());
 }
 
-std::shared_ptr<Interface> TapInterface::instance_i() const
+std::shared_ptr<Interface> TapInterface::singular_i() const
 {
     return m_db.find_or_add(name(), *this);
 }

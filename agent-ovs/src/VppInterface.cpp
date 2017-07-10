@@ -18,7 +18,7 @@ using namespace VPP;
 /**
  * A DB of all the interfaces, key on the name
  */
-InstDB<const std::string, Interface> Interface::m_db;
+SingularDB<const std::string, Interface> Interface::m_db;
 
 /**
  * A DB of all the interfaces, key on VPP's handle
@@ -61,7 +61,7 @@ Interface::Interface(const std::string &name,
     m_state(itf_state),
     m_type(itf_type),
     m_hdl(handle_t::INVALID),
-    m_rd(rd.instance()),
+    m_rd(rd.singular()),
     m_table_id(m_rd->table_id()),
     m_oper(oper_state_t::DOWN)
 {
@@ -242,14 +242,14 @@ void Interface::set(const oper_state_t &state)
     m_oper = state;
 }
 
-std::shared_ptr<Interface> Interface::instance_i() const
+std::shared_ptr<Interface> Interface::singular_i() const
 {
     return (m_db.find_or_add(name(), *this));
 }
 
-std::shared_ptr<Interface> Interface::instance() const
+std::shared_ptr<Interface> Interface::singular() const
 {
-    return instance_i();
+    return singular_i();
 }
 
 std::shared_ptr<Interface> Interface::find(const std::string &name)

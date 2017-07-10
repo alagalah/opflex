@@ -17,18 +17,18 @@
 namespace VPP
 {
     /**
-     * A Database to store the unique instances of a single object type.
+     * A Database to store the unique 'singular' instances of a single object type.
      * The instances are stored as weak pointers. So the DB does not own these
      * objects, they are owned by object in the KeyDB.
      */
     template <typename KEY, typename OBJ>
-    class InstDB
+    class SingularDB
     {
     public:
         /**
          * Constructor
          */
-        InstDB()
+        SingularDB()
         {
         }
 

@@ -67,10 +67,10 @@ namespace VPP {
             rc_t rc = rc_t::OK;
 
             /*
-             * Find the instance another owner may have created.
+             * Find the singular instance another owner may have created.
              * this always returns something.
              */
-            std::shared_ptr<OBJ> inst(obj.instance());
+            std::shared_ptr<OBJ> inst(obj.singular());
 
             /*
              * Update the existing object with with the new desired state
@@ -103,7 +103,7 @@ namespace VPP {
             else
             {
                 /*
-                 * Add the instance to the owners list
+                 * Add the singular instance to the owners list
                  */
                 objs.insert(ObjectRef(inst));
             }

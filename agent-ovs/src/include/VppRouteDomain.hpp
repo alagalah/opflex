@@ -14,7 +14,7 @@
 
 #include "VppObject.hpp"
 #include "VppOM.hpp"
-#include "VppInstDB.hpp"
+#include "VppSingularDB.hpp"
 #include "VppRoute.hpp"
 
 namespace VPP
@@ -40,9 +40,9 @@ namespace VPP
         ~RouteDomain();
 
         /**
-         * Return the 'instance' of the TAP interface matching this object
+         * Return the matching 'singular instance'
          */
-        std::shared_ptr<RouteDomain> instance() const;
+        std::shared_ptr<RouteDomain> singular() const;
 
         /**
          * Debug print function
@@ -94,7 +94,7 @@ namespace VPP
         /**
          * A map of all interfaces key against the interface's name
          */
-        static InstDB<Route::table_id_t, RouteDomain> m_db;
+        static SingularDB<Route::table_id_t, RouteDomain> m_db;
     };
 };
 

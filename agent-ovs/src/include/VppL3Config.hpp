@@ -18,7 +18,7 @@
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
 #include "VppDumpCmd.hpp"
-#include "VppInstDB.hpp"
+#include "VppSingularDB.hpp"
 #include "VppInterface.hpp"
 #include "VppSubInterface.hpp"
 
@@ -52,9 +52,9 @@ namespace VPP
         ~L3Config();
 
         /**
-         * Return the 'instance' of the L3-Config that matches this object
+         * Return the 'singular instance' of the L3-Config that matches this object
          */
-        std::shared_ptr<L3Config> instance() const;
+        std::shared_ptr<L3Config> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -77,7 +77,7 @@ namespace VPP
         typedef std::pair<Interface::key_type, Route::prefix_t> key_type_t;
 
         /**
-         * Find an instance in the DB for the interface passed
+         * Find an singular instance in the DB for the interface passed
          */
         static std::deque<std::shared_ptr<L3Config>> find(const Interface &i);
 
@@ -201,7 +201,7 @@ namespace VPP
         void update(const L3Config &obj);
 
         /**
-         * Find or add the instance in the DB
+         * Find or add the singular instance in the DB
          */
         static std::shared_ptr<L3Config> find_or_add(const L3Config &temp);
 
@@ -237,7 +237,7 @@ namespace VPP
          * A map of all L3 configs keyed against a combination of the interface
          * and subnet's keys.
          */
-        static InstDB<key_type_t, L3Config> m_db;
+        static SingularDB<key_type_t, L3Config> m_db;
     };
 
     /**

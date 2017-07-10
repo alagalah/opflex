@@ -21,7 +21,7 @@ const std::string VXLAN_TUNNEL_NAME = "vxlan-tunnel-itf";
 /**
  * A DB of al the interfaces, key on the name
  */
-InstDB<VxlanTunnel::endpoint_t, VxlanTunnel> VxlanTunnel::m_db;
+SingularDB<VxlanTunnel::endpoint_t, VxlanTunnel> VxlanTunnel::m_db;
 
 VxlanTunnel::endpoint_t::endpoint_t(const boost::asio::ip::address &src,
                                     const boost::asio::ip::address &dst,
@@ -171,7 +171,7 @@ std::shared_ptr<VxlanTunnel> VxlanTunnel::find_or_add(const VxlanTunnel &temp)
 {
     /*
      * a VXLAN tunnel needs to be in both the interface-find-by-name
-     * and the VxlanTunnel-find-by-endpoint instance databases
+     * and the VxlanTunnel-find-by-endpoint singular databases
      */
     std::shared_ptr<VxlanTunnel> sp;
 
@@ -182,12 +182,12 @@ std::shared_ptr<VxlanTunnel> VxlanTunnel::find_or_add(const VxlanTunnel &temp)
     return (sp);
 }
 
-std::shared_ptr<VxlanTunnel> VxlanTunnel::instance() const
+std::shared_ptr<VxlanTunnel> VxlanTunnel::singular() const
 {
     return (find_or_add(*this));
 }
 
-std::shared_ptr<Interface> VxlanTunnel::instance_i() const
+std::shared_ptr<Interface> VxlanTunnel::singular_i() const
 {
     return find_or_add(*this);
 }

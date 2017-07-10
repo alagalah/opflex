@@ -19,7 +19,7 @@
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
 #include "VppEventCmd.hpp"
-#include "VppInstDB.hpp"
+#include "VppSingularDB.hpp"
 #include "VppEnum.hpp"
 #include "VppRoute.hpp"
 #include "VppRouteDomain.hpp"
@@ -170,9 +170,9 @@ namespace VPP
         Interface(const Interface& o);
 
         /**
-         * Return the matching'instance' of the interface
+         * Return the matching'singular' of the interface
          */
-        std::shared_ptr<Interface> instance() const;
+        std::shared_ptr<Interface> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -673,17 +673,17 @@ namespace VPP
         }
 
         /**
-         * The the instance of the Interface in the Object-Model
+         * The the singular instance of the Interface in the Object-Model
          */
         static std::shared_ptr<Interface> find(const Interface &temp);
 
         /**
-         * The the instance of the Interface in the Object-Model by handle
+         * The the singular instance of the Interface in the Object-Model by handle
          */
         static std::shared_ptr<Interface> find(const handle_t &h);
 
         /**
-         * The the instance of the Interface in the Object-Model by name
+         * The the singular instance of the Interface in the Object-Model by name
          */
         static std::shared_ptr<Interface> find(const std::string &s);
 
@@ -712,12 +712,12 @@ namespace VPP
         HW::Item<handle_t> m_hdl;
 
         /**
-         * Return the matching 'instance' of the interface
+         * Return the matching 'singular' of the interface
          */
-        virtual std::shared_ptr<Interface> instance_i() const;
+        virtual std::shared_ptr<Interface> singular_i() const;
 
         /**
-         * release/remove an interface form the instance store
+         * release/remove an interface form the singular store
          */
         void release();
 
@@ -741,7 +741,7 @@ namespace VPP
         /**
          * A map of all interfaces key against the interface's name
          */
-        static InstDB<const std::string, Interface> m_db;
+        static SingularDB<const std::string, Interface> m_db;
 
     private:
         /**
@@ -750,7 +750,7 @@ namespace VPP
         void update(const Interface &obj);
 
         /*
-         * It's the VPP::OM class that calls instance()
+         * It's the VPP::OM class that calls singular()
          */
         friend class VPP::OM;
 

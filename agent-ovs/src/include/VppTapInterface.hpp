@@ -30,9 +30,9 @@ namespace VPP
         TapInterface(const TapInterface& o);
 
         /**
-         * Return the matching 'instance' of the TAP interface
+         * Return the matching 'singular instance' of the TAP interface
          */
-        std::shared_ptr<TapInterface> instance() const;
+        std::shared_ptr<TapInterface> singular() const;
 
         /**
          * A functor class that creates an interface
@@ -104,7 +104,7 @@ namespace VPP
          * Return the matching 'instance' of the sub-interface
          *  over-ride from the base class
          */
-        std::shared_ptr<Interface> instance_i() const;
+        std::shared_ptr<Interface> singular_i() const;
 
         /**
          * Virtual functions to construct an interface create commands.
@@ -117,7 +117,7 @@ namespace VPP
         virtual std::queue<Cmd*> & mk_delete_cmd(std::queue<Cmd*> &cmds);
 
         /*
-         * It's the VPP::OM class that call instance()
+         * It's the VPP::OM class that call singular()
          */
         friend class VPP::OM;
 

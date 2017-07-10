@@ -17,7 +17,7 @@ using namespace VPP;
  /**
  * A DB of al the interfaces, key on the name
  */
-InstDB<Route::table_id_t, RouteDomain> RouteDomain::m_db;
+SingularDB<Route::table_id_t, RouteDomain> RouteDomain::m_db;
 
 /**
  * Construct a new object matching the desried state
@@ -69,7 +69,7 @@ std::shared_ptr<RouteDomain> RouteDomain::find_or_add(const RouteDomain &temp)
     return (m_db.find_or_add(temp.m_table_id, temp));
 }
 
-std::shared_ptr<RouteDomain> RouteDomain::instance() const
+std::shared_ptr<RouteDomain> RouteDomain::singular() const
 {
     return find_or_add(*this);
 }
