@@ -9,6 +9,9 @@
 #include <algorithm>
 
 #include "VppOM.hpp"
+#include "VppInterface.hpp"
+#include "VppVxlanTunnel.hpp"
+#include "VppBridgeDomain.hpp"
 
 using namespace VPP;
 
@@ -68,6 +71,10 @@ void OM::remove(const KEY &key)
     HW::write();
 }
 
+void OM::replay()
+{
+}
+
 void OM::dump(const KEY & key, std::ostream &os)
 {
     m_db->dump(key, os);
@@ -76,4 +83,19 @@ void OM::dump(const KEY & key, std::ostream &os)
 void OM::dump(std::ostream &os)
 {
     m_db->dump(os);
+}
+
+void OM::populate(const KEY &key)
+{
+    /*
+     * The ordering here is important. build from the bottom up.
+     */
+    Interface::populate(key);
+    VxlanTunnel::populate(key);
+    BridgeDomain::populate(key);
+
+    /*
+     * once we have it all, mark it stale.
+     */
+    mark(key);
 }

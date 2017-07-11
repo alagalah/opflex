@@ -239,7 +239,6 @@ if RENDERER_VPP
 	src/VppRouteDomain.cpp \
 	src/VppVxlanTunnel.cpp \
 	src/VppVxlanTunnelCmds.cpp \
-        src/VppBoot.cpp \
 	src/VppManager.cpp \
 	src/VppInspect.cpp \
 	src/VppHW.cpp \

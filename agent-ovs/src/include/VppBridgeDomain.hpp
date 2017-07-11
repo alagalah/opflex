@@ -158,6 +158,11 @@ namespace VPP
 
     private:
         /**
+         * populate state from VPP
+         */
+        static void populate(const KEY &key);
+
+        /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
          */
         void update(const BridgeDomain &obj);

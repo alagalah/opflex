@@ -12,6 +12,7 @@
 #include "VppInterface.hpp"
 #include "VppRoute.hpp"
 #include "VppCmd.hpp"
+#include "VppL3Config.hpp"
 
 using namespace VPP;
 
@@ -276,4 +277,59 @@ void Interface::remove(const handle_t &handle)
 void Interface::dump(std::ostream &os)
 {
     m_db.dump(os);
+}
+
+void Interface::populate(const KEY &key)
+{
+    /*
+     * dump VPP current states
+     */
+    Interface::DumpCmd::details_type *data;
+    std::shared_ptr<Interface::DumpCmd> cmd(new Interface::DumpCmd());
+
+    HW::enqueue(cmd);
+    HW::write();
+
+    while (data = cmd->pop())
+    {
+        std::unique_ptr<Interface> itf = Interface::new_interface(*data);
+
+        LOG(ovsagent::DEBUG) << "dump: " << itf->to_string();
+
+        if (itf && Interface::type_t::LOCAL != itf->type())
+        {
+            /*
+             * Write each of the discovered interfaces into the OM,
+             * but disable the HW Command q whilst we do, so that no
+             * commands are sent to VPP
+             */
+            VPP::OM::commit(key, *itf);
+
+            /**
+             * Get the address configured on the interface
+             */
+            L3Config::DumpV4Cmd::details_type *record;
+            std::shared_ptr<L3Config::DumpV4Cmd> dcmd =
+                std::make_shared<L3Config::DumpV4Cmd>(L3Config::DumpV4Cmd(itf->handle()));
+
+            HW::enqueue(dcmd);
+            HW::write();
+
+            while (record = dcmd->pop())
+            {
+                const Route::prefix_t pfx(record->is_ipv6,
+                                          record->ip,
+                                          record->prefix_length);
+
+                LOG(ovsagent::DEBUG) << "dump: " << pfx.to_string();
+
+                L3Config l3(*itf, pfx);
+                OM::commit(key, l3);
+
+                free(record);
+            }
+        }
+
+        free(data);
+    }
 }

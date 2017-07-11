@@ -749,6 +749,11 @@ namespace VPP
          */
         void update(const Interface &obj);
 
+        /**
+         * populate state from VPP
+         */
+        static void populate(const KEY &key);
+
         /*
          * It's the VPP::OM class that calls singular()
          */

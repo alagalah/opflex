@@ -196,3 +196,30 @@ void VxlanTunnel::dump(std::ostream &os)
 {
     m_db.dump(os);
 }
+
+void VxlanTunnel::populate(const KEY &key)
+{
+    /*
+     * dump VPP current states
+     */
+    VxlanTunnel::DumpCmd::details_type *data;
+    std::shared_ptr<VxlanTunnel::DumpCmd> cmd(new VxlanTunnel::DumpCmd());
+
+    HW::enqueue(cmd);
+    HW::write();
+
+    while (data = cmd->pop())
+    {
+        handle_t hdl(data->sw_if_index);
+        boost::asio::ip::address src = from_bytes(data->is_ipv6,
+                                                  data->src_address);
+        boost::asio::ip::address dst = from_bytes(data->is_ipv6,
+                                                  data->dst_address);
+
+        VxlanTunnel vt(hdl, src, dst, data->vni);
+
+        LOG(ovsagent::DEBUG) << "dump: " << vt.to_string();
+
+        OM::commit(key, vt);
+    }
+}
