@@ -30,6 +30,11 @@ namespace VPP {
         static void init();
 
         /**
+         * populate the OM with state read from HW.
+         */
+        static void populate(const KEY &key);
+
+        /**
          * Mark all state owned by this key as stale
          */
         static void mark(const KEY &key);
@@ -38,6 +43,11 @@ namespace VPP {
          * Sweep all the key's objects that are stale
          */
         static void sweep(const KEY &key);
+
+        /**
+         * Replay all of the objects to HW.
+         */
+        static void replay();
 
         /**
          * Make the State in VPP reflect tha expressed desired state.

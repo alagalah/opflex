@@ -27,7 +27,6 @@
 #include "VppUplink.hpp"
 #include "VppInterface.hpp"
 #include "VppDhcpConfig.hpp"
-#include "VppBoot.hpp"
 
 /*
  * Fowrad delcare classes to reduce compile time couling
@@ -209,9 +208,6 @@ public:
 
     VPP::Uplink &uplink();
 
-    VPP::Boot &boot();
-
-
 private:
     /**
      * Compare and update changes in an endpoint.
@@ -353,12 +349,12 @@ private:
     /**
      * Handle the Vpp sweep timeout
      */
-    void handleSweepTimer();
+    void handleSweepTimer(const boost::system::error_code& ec);
 
     /**
      * Handle the HW poll timeout
      */
-    void handleHWPollTimer();
+    void handleHWPollTimer(const boost::system::error_code& ec);
 
     Agent& agent;
     IdGenerator& idGen;
@@ -372,11 +368,6 @@ private:
     bool conntrackEnabled;
     uint8_t dhcpMac[6];
     std::string mcastGroupFile;
-
-    /**
-     * Boot sequence manager
-     */
-    VPP::Boot m_boot;
 
     /**
      * The sweep boot state timer.

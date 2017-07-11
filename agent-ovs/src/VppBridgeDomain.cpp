@@ -9,6 +9,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "VppInterface.hpp"
+#include "VppL2Config.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppCmd.hpp"
 
@@ -88,4 +90,43 @@ std::shared_ptr<BridgeDomain> BridgeDomain::singular() const
 void BridgeDomain::dump(std::ostream &os)
 {
     m_db.dump(os);
+}
+
+void BridgeDomain::populate(const KEY &key)
+{
+    /*
+     * dump VPP Bridge domains
+     */
+    BridgeDomain::DumpCmd::details_type *record;
+    std::shared_ptr<BridgeDomain::DumpCmd> cmd(new BridgeDomain::DumpCmd());
+
+    HW::enqueue(cmd);
+    HW::write();
+
+    while (record = cmd->pop())
+    {
+        BridgeDomain bd(record->bd_id);
+
+        LOG(ovsagent::DEBUG) << "dump: " << bd.to_string();
+
+        /*
+         * Write each of the discovered interfaces into the OM,
+         * but disable the HW Command q whilst we do, so that no
+         * commands are sent to VPP
+         */
+        VPP::OM::commit(key, bd);
+
+        /**
+         * For each interface in the BD construct an L2Config
+         */
+        for (int ii = 0; ii < record->n_sw_ifs; ii++)
+        {
+            std::shared_ptr<Interface> itf =
+                Interface::find(record->sw_if_details[ii].sw_if_index);
+            L2Config l2(*itf, bd);
+            OM::commit(key, l2);
+        }
+
+        free(record);
+    }
 }

@@ -41,7 +41,6 @@
 #include "VppBridgeDomain.hpp"
 #include "VppInterface.hpp"
 #include "VppDhcpConfig.hpp"
-#include "VppBoot.hpp"
 
 #include "arp.h"
 #include "eth.h"
@@ -83,6 +82,11 @@ namespace ovsagent {
     static const char* ID_NMSPC_RD      = ID_NAMESPACES[2];
     static const char* ID_NMSPC_CON     = ID_NAMESPACES[3];
     static const char* ID_NMSPC_EXTNET  = ID_NAMESPACES[4];
+
+    /**
+     * An owner of the objects VPP learns during boot-up
+     */
+    static const std::string BOOT_KEY = "__boot__";
 
     VppManager::VppManager(Agent& agent_,
                            IdGenerator& idGen_) :
@@ -162,7 +166,7 @@ namespace ovsagent {
          */
         m_poll_timer.reset(new deadline_timer(agent.getAgentIOService()));
         m_poll_timer->expires_from_now(boost::posix_time::seconds(3));
-        m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this));
+        m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this, error));
     }
 
     void VppManager::handleUplinkConfigure()
@@ -170,26 +174,28 @@ namespace ovsagent {
         m_uplink.configure();
     }
 
-    void VppManager::handleSweepTimer()
+    void VppManager::handleSweepTimer(const boost::system::error_code& ec)
     {
-        m_boot.converged();
+        if (ec) return;
+
+        /*
+         * the sweep timer was not cancelled, continue with purging old state.
+         */
+        VPP::OM::sweep(BOOT_KEY);
     }
 
-    void VppManager::handleHWPollTimer()
+    void VppManager::handleHWPollTimer(const boost::system::error_code& ec)
     {
         if (stopping) return;
+        if (ec) return;
 
         if (!VPP::HW::poll())
         {
             /*
-             * Lost connection to VPP. exit and expect systemd to restart us
-             */
-            exit(EXIT_FAILURE);
-
-            /*
-             * This will be a more sensible option in the future
+             * Lost connection to VPP; reconnect and then replay all the objects
              */
             VPP::HW::connect();
+            VPP::OM::replay();
         }
 
         /*
@@ -197,7 +203,7 @@ namespace ovsagent {
          */
         m_poll_timer.reset(new deadline_timer(agent.getAgentIOService()));
         m_poll_timer->expires_from_now(boost::posix_time::seconds(3));
-        m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this));
+        m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this, error));
     }
 
     void VppManager::handleBoot()
@@ -205,14 +211,14 @@ namespace ovsagent {
         /**
          * Read the state from VPP
          */
-        m_boot.start();
+        VPP::OM::populate(BOOT_KEY);
 
         /**
          * Scehdule a timer to sweep the stale state
          */
         m_sweep_timer.reset(new deadline_timer(agent.getAgentIOService()));
         m_sweep_timer->expires_from_now(boost::posix_time::seconds(30));
-        m_sweep_timer->async_wait(bind(&VppManager::handleSweepTimer, this));
+        m_sweep_timer->async_wait(bind(&VppManager::handleSweepTimer, this, error));
     }
 
     void VppManager::registerModbListeners() {
@@ -231,6 +237,8 @@ namespace ovsagent {
         agent.getExtraConfigManager().unregisterListener(this);
         agent.getPolicyManager().unregisterListener(this);
 
+        m_sweep_timer->cancel();
+        m_poll_timer->cancel();
     }
 
     void VppManager::setFloodScope(FloodScope fscope) {
@@ -904,11 +912,5 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     {
         return m_uplink;
     }
-
-    VPP::Boot &VppManager::boot()
-    {
-        return m_boot;
-    }
-
 
 } // namespace ovsagent
