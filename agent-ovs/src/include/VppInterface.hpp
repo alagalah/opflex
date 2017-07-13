@@ -693,6 +693,11 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
+         * replay the object to create it in hardware
+         */
+        virtual void replay_i(void);
+
+        /**
          * Factory method to construct a new Interface from the VPP record
          */
         static std::unique_ptr<Interface> new_interface(const vapi_payload_sw_interface_details &vd);
@@ -753,6 +758,11 @@ namespace VPP
          * populate state from VPP
          */
         static void populate(const KEY &key);
+
+        /**
+         * Populate VPP from current state, on VPP restart
+         */
+        static void replay(void);
 
         /*
          * It's the VPP::OM class that calls singular()

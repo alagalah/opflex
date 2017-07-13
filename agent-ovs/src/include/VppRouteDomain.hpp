@@ -64,6 +64,11 @@ namespace VPP
          */
         static void dump(std::ostream &os);
 
+        /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
+
     private:
         /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.

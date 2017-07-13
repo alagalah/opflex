@@ -41,6 +41,10 @@ void RouteDomain::sweep()
 {
 }
 
+void RouteDomain::replay_i()
+{
+}
+
 RouteDomain::~RouteDomain()
 {
     // not in the DB anymore.

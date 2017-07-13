@@ -73,6 +73,11 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
+
+        /**
          * A command class that creates an Bridge-Domain
          */
         class CreateCmd: public RpcCmd<HW::Item<uint32_t>, rc_t>
@@ -163,6 +168,11 @@ namespace VPP
         static void populate(const KEY &key);
 
         /**
+         * populate VPP from SingularDB, on VPP restart
+         */
+        static void replay(void);
+
+        /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
          */
         void update(const BridgeDomain &obj);
@@ -181,7 +191,7 @@ namespace VPP
          * Sweep/reap the object if still stale
          */
         void sweep(void);
-    
+
         /**
          * The ID we assign to this BD and the HW result in VPP
          */

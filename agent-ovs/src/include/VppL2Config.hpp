@@ -63,6 +63,11 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
+
+        /**
          * A functor class that binds L2 configuration to an interface
          */
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>

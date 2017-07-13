@@ -134,6 +134,14 @@ void VxlanTunnel::sweep()
     HW::write();
 }
 
+void VxlanTunnel::replay_i()
+{
+   if (m_hdl)
+   {
+       HW::enqueue(new CreateCmd(m_hdl, name(), m_tep));
+   }
+}
+
 VxlanTunnel::~VxlanTunnel()
 {
     sweep();
@@ -222,4 +230,9 @@ void VxlanTunnel::populate(const KEY &key)
 
         OM::commit(key, vt);
     }
+}
+
+void VxlanTunnel::replay()
+{
+    m_db.replay();
 }

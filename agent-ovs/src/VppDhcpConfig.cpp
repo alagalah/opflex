@@ -54,6 +54,13 @@ void DhcpConfig::sweep()
     HW::write();
 }
 
+void DhcpConfig::replay_i()
+{
+    if (m_binding)
+    {
+        HW::enqueue(new BindCmd(m_binding, m_itf->handle(), m_hostname));
+    }
+}
 
 std::string DhcpConfig::to_string() const
 {

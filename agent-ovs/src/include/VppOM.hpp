@@ -47,7 +47,7 @@ namespace VPP {
         /**
          * Replay all of the objects to HW.
          */
-        static void replay();
+        static void replay(void);
 
         /**
          * Make the State in VPP reflect tha expressed desired state.

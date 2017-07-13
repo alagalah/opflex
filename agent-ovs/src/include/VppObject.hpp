@@ -33,6 +33,11 @@ namespace VPP
          */
         virtual void sweep(void) = 0;
 
+        /**
+         * replay the object to create it in hardware
+         */
+        virtual void replay_i(void) = 0;
+
     protected:
         /**
          * Constructable by derived classes only

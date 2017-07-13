@@ -51,6 +51,14 @@ void L3Config::sweep()
     HW::write();
 }
 
+void L3Config::replay_i()
+{
+    if (m_binding)
+    {
+      HW::enqueue(new BindCmd(m_binding, m_itf->handle(), m_pfx));
+    }
+}
+
 const Route::prefix_t& L3Config::prefix() const
 {
     return (m_pfx);
@@ -134,4 +142,9 @@ std::deque<std::shared_ptr<L3Config>> L3Config::find(const Interface &i)
     }
 
     return (l3s);
+}
+
+void L3Config::replay()
+{
+    m_db.replay();
 }
