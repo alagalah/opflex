@@ -73,6 +73,12 @@ void OM::remove(const KEY &key)
 
 void OM::replay()
 {
+
+    Interface::replay();
+    VxlanTunnel::replay();
+    BridgeDomain::replay();
+
+    HW::write();
 }
 
 void OM::dump(const KEY & key, std::ostream &os)

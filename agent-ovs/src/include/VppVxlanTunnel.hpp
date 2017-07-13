@@ -126,6 +126,11 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
+
+        /**
          * A Command class that creates an VXLAN tunnel
          */
         class CreateCmd: public Interface::CreateCmd
@@ -224,6 +229,11 @@ namespace VPP
          * populate state from VPP
          */
         static void populate(const KEY &key);
+
+        /**
+         * Populate VPP from current state, on VPP restart
+         */
+        static void replay(void);
 
         /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.

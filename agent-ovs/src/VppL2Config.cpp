@@ -49,6 +49,17 @@ void L2Config::sweep()
     HW::write();
 }
 
+void L2Config::replay_i()
+{
+    if (m_binding)
+    {
+        HW::enqueue(new BindCmd(m_binding,
+                                m_itf->handle(),
+                                m_bd->id(),
+                                Interface::type_t::BVI == m_itf->type()));
+    }
+}
+
 L2Config::~L2Config()
 {
     sweep();

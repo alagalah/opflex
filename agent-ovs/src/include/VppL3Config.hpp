@@ -72,6 +72,11 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
+
+        /**
          * The key type for L3Configs
          */
         typedef std::pair<Interface::key_type, Route::prefix_t> key_type_t;
@@ -199,6 +204,11 @@ namespace VPP
          * Enquue commonds to the VPP command Q for the update
          */
         void update(const L3Config &obj);
+
+        /**
+         * populate VPP from SingularDB, on VPP restart
+         */
+        void replay(void);
 
         /**
          * Find or add the singular instance in the DB

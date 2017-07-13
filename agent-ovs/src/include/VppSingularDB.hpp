@@ -140,6 +140,17 @@ namespace VPP
             }
         }
 
+        /**
+         * Populate VPP from current state, on VPP restart
+         */
+        void replay()
+        {
+            for (auto entry : m_map)
+            {
+                entry.second.lock()->replay_i();
+            }
+        }
+
     private:
         /**
          * the map of objects against their key

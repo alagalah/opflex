@@ -234,6 +234,11 @@ namespace VPP
         void sweep(void);
 
         /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
+
+        /**
          * A reference counting pointer to the interface on which DHCP config
          * resides. By holding the reference here, we can guarantee that
          * this object will outlive the interface

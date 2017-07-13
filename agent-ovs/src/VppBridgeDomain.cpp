@@ -48,6 +48,14 @@ void BridgeDomain::sweep()
     HW::write();
 }
 
+void BridgeDomain::replay_i()
+{
+   if (rc_t::OK == m_id.rc())
+   {
+       HW::enqueue(new CreateCmd(m_id));
+   }
+}
+
 BridgeDomain::~BridgeDomain()
 {
     sweep();
@@ -129,4 +137,9 @@ void BridgeDomain::populate(const KEY &key)
 
         free(record);
     }
+}
+
+void BridgeDomain::replay()
+{
+    m_db.replay();
 }

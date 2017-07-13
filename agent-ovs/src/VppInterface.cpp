@@ -125,6 +125,26 @@ void Interface::sweep()
     HW::write();
 }
 
+void Interface::replay_i()
+{
+   if (m_hdl)
+   {
+       std::queue<Cmd*> cmds;
+       HW::enqueue(mk_create_cmd(cmds));
+   }
+
+   if (m_state &&
+       Interface::admin_state_t::UP == m_state.data())
+   {
+       HW::enqueue(new StateChangeCmd(m_state, m_hdl));
+   }
+
+   if (m_table_id)
+   {
+       HW::enqueue(new SetTableCmd(m_table_id, m_hdl));
+   }
+}
+
 Interface::~Interface()
 {
     sweep();
@@ -332,4 +352,9 @@ void Interface::populate(const KEY &key)
 
         free(data);
     }
+}
+
+void Interface::replay()
+{
+    m_db.replay();
 }
