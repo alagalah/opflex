@@ -63,11 +63,6 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
-         * replay the object to create it in hardware
-         */
-        void replay_i(void);
-
-        /**
          * A functor class that binds L2 configuration to an interface
          */
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
@@ -170,11 +165,21 @@ namespace VPP
          * It's the VPP::OM class that calls singular()
          */
         friend class VPP::OM;
-    
+
+        /**
+         * It's the VPP::SingularDB class that calls replay_i()
+         */
+        friend class VPP::SingularDB<const handle_t, L2Config>;
+
         /**
          * Sweep/reap the object if still stale
          */
         void sweep(void);
+
+        /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
 
         /**
          * A reference counting pointer the interface that this L2 layer

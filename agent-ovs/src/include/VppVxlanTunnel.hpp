@@ -126,11 +126,6 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
-         * replay the object to create it in hardware
-         */
-        void replay_i(void);
-
-        /**
          * A Command class that creates an VXLAN tunnel
          */
         class CreateCmd: public Interface::CreateCmd
@@ -255,11 +250,21 @@ namespace VPP
          * It's the VPPHW class that updates the objects in HW
          */
         friend class VPP::OM;
-    
+
+        /**
+         * It's the VPP::SingularDB class that calls replay_i()
+         */
+        friend class VPP::SingularDB<endpoint_t, VxlanTunnel>;
+
         /**
          * Sweep/reap the object if still stale
          */
         void sweep(void);
+
+        /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
 
         /**
          * Tunnel enpoint/key

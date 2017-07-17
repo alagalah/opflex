@@ -227,7 +227,12 @@ namespace VPP
          * It's the VPP::OM class that calls singular()
          */
         friend class VPP::OM;
-    
+
+        /**
+         * It's the VPP::SingularDB class that calls replay_i()
+         */
+        friend class VPP::SingularDB<Interface::key_type, DhcpConfig>;
+
         /**
          * Sweep/reap the object if still stale
          */

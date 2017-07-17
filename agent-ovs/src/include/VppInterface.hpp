@@ -693,11 +693,6 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
-         * replay the object to create it in hardware
-         */
-        virtual void replay_i(void);
-
-        /**
          * Factory method to construct a new Interface from the VPP record
          */
         static std::unique_ptr<Interface> new_interface(const vapi_payload_sw_interface_details &vd);
@@ -770,6 +765,11 @@ namespace VPP
         friend class VPP::OM;
 
         /**
+         * It's the VPP::SingularDB class that calls replay_i()
+         */
+        friend class VPP::SingularDB<const std::string, Interface>;
+
+        /**
          * The interfaces name
          */
         const std::string m_name;
@@ -815,6 +815,11 @@ namespace VPP
          * remove an interface from the DB keyed on handle
          */
         static void remove(const handle_t &hdl);
+
+        /**
+         * replay the object to create it in hardware
+         */
+        virtual void replay_i(void);
 
         /**
          * Create commands are firends so they can add interfaces to the

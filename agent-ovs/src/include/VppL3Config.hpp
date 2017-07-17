@@ -72,11 +72,6 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
-         * replay the object to create it in hardware
-         */
-        void replay_i(void);
-
-        /**
          * The key type for L3Configs
          */
         typedef std::pair<Interface::key_type, Route::prefix_t> key_type_t;
@@ -219,11 +214,21 @@ namespace VPP
          * It's the VPPHW class that updates the objects in HW
          */
         friend class VPP::OM;
-    
+
+        /**
+         * It's the VPP::SingularDB class that calls replay_i()
+         */
+        friend class VPP::SingularDB<key_type_t, L3Config>;
+
         /**
          * Sweep/reap the object if still stale
          */
         void sweep(void);
+
+        /**
+         * replay the object to create it in hardware
+         */
+        void replay_i(void);
 
         /**
          * A reference counting pointer the interface that this L3 layer

@@ -84,7 +84,12 @@ namespace VPP
          * It's the VPPHW class that updates the objects in HW
          */
         friend class VPP::OM;
-    
+
+        /**
+         * It's the VPP::SingularDB class that calls replay_i()
+         */
+        friend class VPP::SingularDB<Route::table_id_t, RouteDomain>;
+
         /**
          * Sweep/reap the object if still stale
          */
