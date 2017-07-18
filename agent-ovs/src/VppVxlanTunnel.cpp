@@ -107,6 +107,7 @@ VxlanTunnel::VxlanTunnel(const handle_t &hdl,
                          const boost::asio::ip::address &dst,
                          uint32_t vni):
     Interface(hdl,
+              l2_address_t::ZERO,
               mk_name(src, dst, vni),
               Interface::type_t::VXLAN,
               Interface::admin_state_t::UP),

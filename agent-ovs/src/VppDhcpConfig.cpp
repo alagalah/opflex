@@ -19,9 +19,6 @@ using namespace VPP;
  */
 SingularDB<Interface::key_type, DhcpConfig> DhcpConfig::m_db;
 
-/**
- * Construct a new object matching the desried state
- */
 DhcpConfig::DhcpConfig(const Interface &itf,
                        const std::string &hostname):
     m_itf(itf.singular()),
@@ -30,9 +27,20 @@ DhcpConfig::DhcpConfig(const Interface &itf,
 {
 }
 
+DhcpConfig::DhcpConfig(const Interface &itf,
+                       const std::string &hostname,
+                       const std::vector<uint8_t> &client_id):
+    m_itf(itf.singular()),
+    m_hostname(hostname),
+    m_client_id(client_id),
+    m_binding(0)
+{
+}
+
 DhcpConfig::DhcpConfig(const DhcpConfig& o):
     m_itf(o.m_itf),
     m_hostname(o.m_hostname),
+    m_client_id(o.m_client_id),
     m_binding(0)
 {
 }
@@ -54,11 +62,16 @@ void DhcpConfig::sweep()
     HW::write();
 }
 
+void DhcpConfig::dump(std::ostream &os)
+{
+    m_db.dump(os);
+}
+
 void DhcpConfig::replay_i()
 {
     if (m_binding)
     {
-        HW::enqueue(new BindCmd(m_binding, m_itf->handle(), m_hostname));
+        HW::enqueue(new BindCmd(m_binding, m_itf->handle(), m_hostname, m_client_id));
     }
 }
 
@@ -67,6 +80,14 @@ std::string DhcpConfig::to_string() const
     std::ostringstream s;
     s << "Dhcp-config: " << m_itf->to_string()
       << " hostname:" << m_hostname
+      << " client_id:[";
+
+    for (auto byte : m_client_id)
+    {
+        s << std::to_string(byte) << ",";
+    }
+
+    s << "] "
       << m_binding.to_string();
 
     return (s.str());
@@ -79,7 +100,7 @@ void DhcpConfig::update(const DhcpConfig &desired)
      */
     if (!m_binding)
     {
-        HW::enqueue(new BindCmd(m_binding, m_itf->handle(), m_hostname));
+        HW::enqueue(new BindCmd(m_binding, m_itf->handle(), m_hostname, m_client_id));
     }
 }
 

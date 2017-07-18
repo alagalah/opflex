@@ -200,6 +200,11 @@ namespace VPP
         const key_type & key() const;
 
         /**
+         * Return the L2 Address
+         */
+        const l2_address_t & l2_address() const;
+
+        /**
          * Set the operational state of the interface, as reported by VPP
          */
         void set(const oper_state_t &state);
@@ -664,7 +669,15 @@ namespace VPP
 
             LOG(ovsagent::DEBUG) << cmd->to_string() << " " << reply->retval;
 
-            HW::Item<handle_t> res(reply->sw_if_index,
+            rc_t rc = rc_t::from_vpp_retval(reply->retval);
+            handle_t handle = handle_t::INVALID;
+
+            if (rc_t::OK == rc)
+            {
+                handle = reply->sw_if_index;
+            }
+
+            HW::Item<handle_t> res(handle,
                                    rc_t::from_vpp_retval(reply->retval));
 
             cmd->fulfill(res);
@@ -699,9 +712,10 @@ namespace VPP
 
     protected:
         /**
-         * Construct an interface object with a handle
+         * Construct an interface object with a handle and a HW address
          */
         Interface(const handle_t &handle,
+                  const l2_address_t &l2_address,
                   const std::string &name,
                   type_t type,
                   admin_state_t state);
@@ -795,6 +809,11 @@ namespace VPP
          * HW state of the VPP table mapping
          */
         HW::Item<Route::table_id_t> m_table_id;
+
+        /**
+         * HW state of the L2 address
+         */
+        HW::Item<l2_address_t> m_l2_address;
 
         /**
          * Operational state of the interface

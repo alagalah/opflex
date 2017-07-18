@@ -39,7 +39,7 @@ L2Config::L2Config(const L2Config& o):
 
 void L2Config::sweep()
 {
-    if (m_binding)
+    if (m_binding && handle_t::INVALID != m_itf->handle())
     {
         HW::enqueue(new UnbindCmd(m_binding,
                                   m_itf->handle(),
@@ -51,7 +51,7 @@ void L2Config::sweep()
 
 void L2Config::replay_i()
 {
-    if (m_binding)
+    if (m_binding && handle_t::INVALID != m_itf->handle())
     {
         HW::enqueue(new BindCmd(m_binding,
                                 m_itf->handle(),

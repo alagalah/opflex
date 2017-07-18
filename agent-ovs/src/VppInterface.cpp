@@ -37,11 +37,13 @@ Interface::Interface(const std::string &name,
     m_type(itf_type),
     m_hdl(handle_t::INVALID),
     m_table_id(Route::DEFAULT_TABLE),
+    m_l2_address(l2_address_t::ZERO, rc_t::UNSET),
     m_oper(oper_state_t::DOWN)
 {
 }
 
 Interface::Interface(const handle_t &handle,
+                     const l2_address_t &l2_address,
                      const std::string &name,
                      Interface::type_t type,
                      Interface::admin_state_t state):
@@ -50,6 +52,7 @@ Interface::Interface(const handle_t &handle,
     m_state(state),
     m_type(type),
     m_table_id(Route::DEFAULT_TABLE),
+    m_l2_address(l2_address),
     m_oper(oper_state_t::DOWN)
 {
 }
@@ -64,6 +67,7 @@ Interface::Interface(const std::string &name,
     m_hdl(handle_t::INVALID),
     m_rd(rd.singular()),
     m_table_id(m_rd->table_id()),
+    m_l2_address(l2_address_t::ZERO, rc_t::UNSET),
     m_oper(oper_state_t::DOWN)
 {
 }
@@ -75,6 +79,7 @@ Interface::Interface(const Interface& o):
     m_table_id(o.m_table_id),
     m_rd(o.m_rd),
     m_hdl(o.m_hdl),
+    m_l2_address(o.m_l2_address),
     m_oper(o.m_oper)
 {
 }
@@ -100,6 +105,11 @@ const Interface::type_t & Interface::type() const
 const handle_t & Interface::handle() const
 {
     return (m_hdl.data());
+}
+
+const l2_address_t & Interface::l2_address() const
+{
+    return (m_l2_address.data());
 }
 
 void Interface::sweep()
@@ -162,7 +172,8 @@ std::string Interface::to_string() const
     std::ostringstream s;
     s << "interface:[" << m_name
       << " type:" << m_type.to_string()
-      << " hdl:" << m_hdl.to_string();
+      << " hdl:" << m_hdl.to_string()
+      << " l2-address:" << m_l2_address.to_string();
 
     if (m_rd)
     {

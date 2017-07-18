@@ -7,6 +7,7 @@
  */
 
 #include <iostream>
+#include <algorithm>
 
 #include "VppDhcpConfig.hpp"
 
@@ -16,10 +17,12 @@ using namespace VPP;
 
 DhcpConfig::BindCmd::BindCmd(HW::Item<bool> &item,
                              const handle_t &itf,
-                             const std::string &hostname):
+                             const std::string &hostname,
+                             const std::vector<uint8_t> &client_id):
     RpcCmd(item),
     m_itf(itf),
-    m_hostname(hostname)
+    m_hostname(hostname),
+    m_client_id(client_id)
 {
 }
 
@@ -43,7 +46,12 @@ rc_t DhcpConfig::BindCmd::issue(Connection &con)
            m_hostname.c_str(),
            std::min(sizeof(req->payload.hostname),
                            m_hostname.length()));
-    
+
+    std::copy_n(m_client_id.begin(),
+                std::min(sizeof(req->payload.client_id),
+                         m_client_id.size()),
+                req->payload.client_id);
+
     VAPI_CALL(vapi_dhcp_client_config(
                   con.ctx(),
                   req,

@@ -7,6 +7,7 @@
  */
 
 #include <sstream>
+#include <algorithm>
 
 #include "Vpp.hpp"
 
@@ -64,6 +65,11 @@ bool handle_t::operator==(const handle_t &other) const
     return (m_value == other.m_value);
 }
 
+bool handle_t::operator!=(const handle_t &other) const
+{
+    return (!(*this == other));
+}
+
 bool handle_t::operator<(const handle_t &other) const
 {
     return (m_value < other.m_value);    
@@ -95,9 +101,9 @@ const mac_address_t mac_address_t::ONE({0xff, 0xff, 0xff, 0xff, 0xff, 0xff});
 
 const mac_address_t mac_address_t::ZERO({ 0x0 });
 
-void mac_address_t::to_bytes(uint8_t *array) const
+void mac_address_t::to_bytes(uint8_t *array, uint8_t len) const
 {
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 6 && i < len; i++)
     {
         array[i] = bytes[i];
     }
@@ -125,6 +131,64 @@ bool mac_address_t::operator==(const mac_address_t &mac) const
 std::ostream &VPP::operator<<(std::ostream &os, const mac_address_t &mac)
 {
     os << mac.to_string();
+
+    return (os);
+}
+
+l2_address_t::l2_address_t(const uint8_t b[8], uint8_t n_bytes):
+    bytes(n_bytes)
+{
+    std::copy_n(b, n_bytes, std::begin(bytes));
+}
+
+l2_address_t::l2_address_t(std::initializer_list<uint8_t> i):
+    bytes(i)
+{
+}
+
+const l2_address_t l2_address_t::ONE({0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff});
+
+const l2_address_t l2_address_t::ZERO({ 0x0 });
+
+void l2_address_t::to_bytes(uint8_t *array, uint8_t len) const
+{
+    for (int i = 0; i < bytes.size() && i < len; i++)
+    {
+        array[i] = bytes[i];
+    }
+}
+
+mac_address_t l2_address_t::to_mac() const
+{
+    mac_address_t mac({});
+
+    std::copy_n(bytes.begin(), mac.bytes.size(), mac.bytes.begin());
+
+    return (mac);
+}
+
+std::string l2_address_t::to_string() const
+{
+    std::ostringstream s;
+
+    s << "l2:[";
+    for (auto byte : bytes)
+    {
+        s << std::to_string(byte) << ",";
+    }
+    s << "]";
+
+    return (s.str());
+}
+
+bool l2_address_t::operator==(const l2_address_t &l2) const
+{
+    return (bytes == l2.bytes);
+}
+
+std::ostream &VPP::operator<<(std::ostream &os, const l2_address_t &l2)
+{
+    os << l2.to_string();
 
     return (os);
 }
