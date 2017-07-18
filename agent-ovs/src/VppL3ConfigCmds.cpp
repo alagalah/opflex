@@ -10,6 +10,8 @@
 
 #include "VppL3Config.hpp"
 
+DEFINE_VAPI_MSG_IDS_IP_API_JSON;
+
 using namespace VPP;
 
 L3Config::BindCmd::BindCmd(HW::Item<bool> &item,

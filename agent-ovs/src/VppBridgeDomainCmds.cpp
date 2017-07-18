@@ -13,10 +13,8 @@
 #include "VppBridgeDomain.hpp"
 #include "VppCmd.hpp"
 
-extern "C"
-{
-    #include "l2.api.vapi.h"
-}
+
+DEFINE_VAPI_MSG_IDS_L2_API_JSON;
 
 using namespace VPP;
 

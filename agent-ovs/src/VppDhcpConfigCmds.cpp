@@ -10,6 +10,8 @@
 
 #include "VppDhcpConfig.hpp"
 
+DEFINE_VAPI_MSG_IDS_DHCP_API_JSON;
+
 using namespace VPP;
 
 DhcpConfig::BindCmd::BindCmd(HW::Item<bool> &item,

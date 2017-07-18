@@ -12,6 +12,8 @@
 
 #include "VppVxlanTunnel.hpp"
 
+DEFINE_VAPI_MSG_IDS_VXLAN_API_JSON;
+
 using namespace VPP;
 
 VxlanTunnel::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
