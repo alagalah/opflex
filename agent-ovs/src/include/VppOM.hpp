@@ -70,6 +70,8 @@ namespace VPP {
          * Make the State in VPP reflect tha expressed desired state.
          *  After processing all the objects in the queue, in FIFO order,
          *  any remaining state owned by the KEY is purged.
+         * This is a template function so the object's update() function is
+         * always called with the deirved type.
          */
         template <typename OBJ>
         static rc_t write(const KEY &key, const OBJ &obj)
@@ -80,7 +82,7 @@ namespace VPP {
              * Find the singular instance another owner may have created.
              * this always returns something.
              */
-            std::shared_ptr<OBJ> inst(obj.singular());
+            std::shared_ptr<OBJ> inst = obj.singular();
 
             /*
              * Update the existing object with with the new desired state
