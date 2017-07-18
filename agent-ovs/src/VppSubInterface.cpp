@@ -26,7 +26,7 @@ SubInterface::SubInterface(const handle_t &handle,
                            const Interface &parent,
                            admin_state_t state,
                            vlan_id_t vlan):
-    Interface(handle, mk_name(parent, vlan), parent.type(), state),
+    Interface(handle, l2_address_t::ZERO, mk_name(parent, vlan), parent.type(), state),
     m_parent(parent.singular()),
     m_vlan(vlan)
 {

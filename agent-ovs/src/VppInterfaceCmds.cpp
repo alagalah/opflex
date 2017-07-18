@@ -105,6 +105,7 @@ rc_t Interface::AFPacketCreateCmd::issue(Connection &con)
 
     req = vapi_alloc_af_packet_create(con.ctx());
 
+    req->payload.use_random_hw_addr = 1;
     memset(req->payload.host_if_name, 0,
            sizeof(req->payload.host_if_name));
     memcpy(req->payload.host_if_name, m_name.c_str(),

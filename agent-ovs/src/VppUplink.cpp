@@ -107,8 +107,10 @@ void Uplink::configure()
 
     /**
      * Configure DHCP on the uplink subinterface
+     * We must use the MAC address of the uplink interface as the DHCP client-ID
      */
-    DhcpConfig dc(itf, "agent-opflex");
+    DhcpConfig dc(subitf, "agent-opflex",
+                  m_uplink->l2_address().bytes);
     VPP::OM::write(UPLINK_KEY, dc);
 
     /**

@@ -35,7 +35,7 @@ TapInterface::TapInterface(const handle_t &hdl,
                            const std::string &name,
                            admin_state_t state,
                            Route::prefix_t prefix):
-    Interface(hdl, name, type_t::TAP, state),
+    Interface(hdl, l2_address_t::ZERO, name, type_t::TAP, state),
     m_prefix(prefix)
 {
 }

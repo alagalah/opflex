@@ -177,6 +177,23 @@ namespace VPP
         };
 
         /**
+         * Show All DHPC Configs
+         */
+        class ShowDhcpConfig: public Command
+        {
+        public:
+            /**
+             * Default Constructor
+             */
+            ShowDhcpConfig() = default;
+
+            /**
+             * Execute the command - capture output in ostream
+             */
+            void exec(std::ostream &os);
+        };
+
+        /**
          * Show All ACLs
          */
         class ShowAcl: public Command

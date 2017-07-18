@@ -10,6 +10,7 @@
 #define __VPP_H__
 
 #include <array>
+#include <vector>
 
 #include <boost/asio/ip/address.hpp>
 
@@ -107,6 +108,11 @@ namespace VPP
         bool operator==(const handle_t &other) const;
 
         /**
+         * Comparison operator
+         */
+        bool operator!=(const handle_t &other) const;
+
+        /**
          * less than operator
          */
         bool operator<(const handle_t &other) const;
@@ -143,7 +149,7 @@ namespace VPP
         /**
          * Convert to byte array
          */
-        void to_bytes(uint8_t *array) const;
+        void to_bytes(uint8_t *array, uint8_t len) const;
 
         /**
          * An all 1's MAC address
@@ -172,9 +178,57 @@ namespace VPP
     };
 
     /**
+     * Type def of a L2 address as read from VPP
+     */
+    struct l2_address_t
+    {
+        l2_address_t(const uint8_t bytes[8], uint8_t n_bytes);
+        l2_address_t(std::initializer_list<uint8_t> bytes);
+        /**
+         * Convert to byte array
+         */
+        void to_bytes(uint8_t *array, uint8_t len) const;
+
+        /**
+         * An all 1's L2 address
+         */
+        const static l2_address_t ONE;
+
+        /**
+         * An all 0's L2 address
+         */
+        const static l2_address_t ZERO;
+
+        /**
+         * Comparison operator
+         */
+        bool operator==(const l2_address_t &m) const;
+
+        /**
+         * String conversion
+         */
+        std::string to_string() const;
+
+        /**
+         * MAC address conversion
+         */
+        mac_address_t to_mac() const;
+
+        /**
+         * Underlying bytes array - filled from least to most significant
+         */
+        std::vector<uint8_t> bytes;
+    };
+
+    /**
      * Ostream operator for a MAC address
      */
     std::ostream &operator<<(std::ostream &os, const mac_address_t &mac);
+
+    /**
+     * Ostream operator for a MAC address
+     */
+    std::ostream &operator<<(std::ostream &os, const l2_address_t &l2);
 };
 
 #endif

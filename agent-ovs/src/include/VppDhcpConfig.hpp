@@ -11,6 +11,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <stdint.h>
 
 #include "VppObject.hpp"
@@ -40,6 +41,13 @@ namespace VPP
          */
         DhcpConfig(const Interface &itf,
                    const std::string &hostname);
+
+        /**
+         * Construct a new object matching the desried state
+         */
+        DhcpConfig(const Interface &itf,
+                   const std::string &hostname,
+                   const std::vector<uint8_t> &client_id);
         /**
          * Copy Constructor
          */
@@ -61,6 +69,11 @@ namespace VPP
         std::string to_string() const;
 
         /**
+         * Dump all DHCP configs into the stream provided
+         */
+        static void dump(std::ostream &os);
+
+        /**
          * A command class that binds the DHCP config to the interface
          */
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
@@ -71,7 +84,8 @@ namespace VPP
              */
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
-                    const std::string &hostname);
+                    const std::string &hostname,
+                    const std::vector<uint8_t> &client_id);
 
             /**
              * Issue the command to VPP/HW
@@ -96,6 +110,11 @@ namespace VPP
              * The DHCP client's hostname
              */
             const std::string m_hostname;
+
+            /**
+             * The DHCP client's ID
+             */
+            const std::vector<uint8_t> m_client_id;
         };
 
         /**
@@ -254,6 +273,11 @@ namespace VPP
          * The hostname in the DHCP configuration
          */
         const std::string m_hostname;
+
+        /**
+         * The option-61 client_id in the DHCP configuration
+         */
+        const std::vector<uint8_t> m_client_id;
 
         /**
          * HW configuration for the binding. The bool representing the

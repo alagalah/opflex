@@ -27,6 +27,7 @@ Interface::new_interface(const vapi_payload_sw_interface_details &vd)
     type_t type = Interface::type_t::from_string(name);
     admin_state_t state = Interface::admin_state_t::from_int(vd.link_up_down);
     handle_t hdl(vd.sw_if_index);
+    l2_address_t l2_address(vd.l2_address, vd.l2_address_length);
 
     if (type_t::AFPACKET == type)
     {
@@ -77,7 +78,7 @@ Interface::new_interface(const vapi_payload_sw_interface_details &vd)
     }
     else
     {
-        up_itf.reset(new Interface(hdl, name, type, state));
+        up_itf.reset(new Interface(hdl, l2_address, name, type, state));
     }
 
     return (up_itf);

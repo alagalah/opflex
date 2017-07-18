@@ -17,6 +17,7 @@
 #include "VppRouteDomain.hpp"
 #include "VppL3Config.hpp"
 #include "VppL2Config.hpp"
+#include "VppDhcpConfig.hpp"
 #include "VppAclBinding.hpp"
 
 using namespace VPP;
@@ -212,7 +213,12 @@ Inspect::Command * Inspect::new_command(const std::string &message)
                  (message.find("l2") != std::string::npos))
         {
             return new ShowL2Config();
-        } 
+        }
+        else if ((message.find("DhcpConfig") != std::string::npos) ||
+                 (message.find("dhcp") != std::string::npos))
+        {
+            return new ShowDhcpConfig();
+        }
         else if ((message.find("L23onfig") != std::string::npos) ||
                  (message.find("l3") != std::string::npos))
         {
@@ -259,6 +265,7 @@ void Inspect::ShowHelp::exec(std::ostream &os)
     os << " inst:L3Config     - Show all L3 Configs"     << std::endl;
     os << " inst:L2Config     - Show all L2 Configs"     << std::endl;
     os << " inst:vxlan        - Show all VXLAN tunnels"  << std::endl;
+    os << " inst:dhcp         - Show all DHCP configs"   << std::endl;
     os << " inst:acl          - Show all ACL lists"      << std::endl;
     os << " inst:acl-bindings - Show all ACL Bindings"   << std::endl;
     os << " keys              - Show all keys owning objects"  << std::endl;
@@ -284,6 +291,11 @@ void Inspect::ShowBridgeDomain::exec(std::ostream &os)
 void Inspect::ShowL2Config::exec(std::ostream &os)
 {
     L2Config::dump(os);
+}
+
+void Inspect::ShowDhcpConfig::exec(std::ostream &os)
+{
+    DhcpConfig::dump(os);
 }
 
 void Inspect::ShowL3Config::exec(std::ostream &os)
@@ -315,6 +327,7 @@ void Inspect::ShowAll::exec(std::ostream &os)
     L2Config::dump(os);
     RouteDomain::dump(os);
     L3Config::dump(os);
+    DhcpConfig::dump(os);
     VxlanTunnel::dump(os);
     ACL::L2List::dump(os);
     ACL::L3List::dump(os);
