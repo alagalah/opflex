@@ -8,6 +8,8 @@
 
 #include "VppAclList.hpp"
 
+DEFINE_VAPI_MSG_IDS_ACL_API_JSON;
+
 namespace VPP
 {
     namespace ACL
