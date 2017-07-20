@@ -17,6 +17,7 @@
 #include "VppRoute.hpp"
 #include "VppRouteDomain.hpp"
 #include "VppInterface.hpp"
+#include "VppInspect.hpp"
 
 extern "C"
 {
@@ -221,14 +222,39 @@ namespace VPP
 
     private:
         /**
-         * populate state from VPP
+         * Class definition for listeners to OM events
          */
-        static void populate(const KEY &key);
+        class EventHandler: public OM::Listener, public Inspect::CommandHandler
+        {
+        public:
+            EventHandler();
+            virtual ~EventHandler() = default;
+
+            /**
+             * Handle a populate event
+             */
+            void handle_populate(const KeyDB::key_t & key);
+
+            /**
+             * Handle a replay event
+             */
+            void handle_replay();
+
+            /**
+             * Show the object in the Singular DB
+             */
+            void show(std::ostream &os);
+
+            /**
+             * Get the sortable Id of the listener
+             */
+            dependency_t order() const;
+        };
 
         /**
-         * Populate VPP from current state, on VPP restart
+         * Event handle to register with OM
          */
-        static void replay(void);
+        static EventHandler m_evh;
 
         /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
@@ -252,7 +278,7 @@ namespace VPP
         friend class VPP::OM;
 
         /**
-         * It's the VPP::SingularDB class that calls replay_i()
+         * It's the VPP::SingularDB class that calls replay()
          */
         friend class VPP::SingularDB<endpoint_t, VxlanTunnel>;
 
@@ -264,7 +290,7 @@ namespace VPP
         /**
          * replay the object to create it in hardware
          */
-        void replay_i(void);
+        void replay(void);
 
         /**
          * Tunnel enpoint/key

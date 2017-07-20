@@ -15,14 +15,6 @@
 
 #include "VppObject.hpp"
 
-/**
- * In the opflex world each entity is known by a URI which can be converted
- * into a string. We use the string type, since it allows us to keep this VPP
- * specific code independent of opflex types. I might consider making this
- * a template parameter one day...
- */
-typedef const std::string KEY;
-
 namespace VPP
 {
     /**
@@ -43,19 +35,27 @@ namespace VPP
     {
     public:
         /**
+         * In the opflex world each entity is known by a URI which can be converted
+         * into a string. We use the string type, since it allows us to keep this VPP
+         * specific code independent of opflex types. I might consider making this
+         * a template parameter one day...
+         */
+        typedef const std::string key_t;
+
+        /**
          * Find the objects owned by the key
          */
-        ObjectRefList& find(const KEY &k);
+        ObjectRefList& find(const key_t &k);
 
         /**
          * flush, i.e. un-reference, all objects owned by the key
          */
-        void flush(const KEY &k);
+        void flush(const key_t &k);
 
         /**
          * Print each of the object in the DB into the stream provided
          */
-        void dump(const KEY & key, std::ostream &os)
+        void dump(const key_t & key, std::ostream &os)
         {
             ObjectRefList& orlist = find(key);
 
@@ -80,7 +80,7 @@ namespace VPP
         /**
          * A map of keys versus the object they reference
          */
-        std::map<KEY, ObjectRefList> m_objs;
+        std::map<key_t, ObjectRefList> m_objs;
     };
 };
 

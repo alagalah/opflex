@@ -36,7 +36,7 @@ namespace VPP
         /**
          * replay the object to create it in hardware
          */
-        virtual void replay_i(void) = 0;
+        virtual void replay(void) = 0;
 
     protected:
         /**

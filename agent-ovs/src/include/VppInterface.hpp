@@ -24,6 +24,7 @@
 #include "VppRoute.hpp"
 #include "VppRouteDomain.hpp"
 #include "VppDumpCmd.hpp"
+#include "VppInspect.hpp"
 
 extern "C"
 {
@@ -41,6 +42,11 @@ namespace VPP
     class Interface: public Object
     {
     public:
+        /**
+         * Dependency level interface
+         */
+        const static dependency_t dependency_value = dependency_t::INTERFACE;
+
         /**
          * The key for interface's key
          */
@@ -759,19 +765,41 @@ namespace VPP
 
     private:
         /**
+         * Class definition for listeners to OM events
+         */
+        class EventHandler: public OM::Listener, public Inspect::CommandHandler
+        {
+        public:
+            EventHandler();
+            virtual ~EventHandler() = default;
+
+            /**
+             * Handle a populate event
+             */
+            void handle_populate(const KeyDB::key_t & key);
+
+            /**
+             * Handle a replay event
+             */
+            void handle_replay();
+
+            /**
+             * Show the object in the Singular DB
+             */
+            void show(std::ostream &os);
+
+            /**
+             * Get the sortable Id of the listener
+             */
+            dependency_t order() const;
+        };
+
+        static EventHandler m_evh;
+
+        /**
          * Commit the acculmulated changes into VPP. i.e. to a 'HW" write.
          */
         void update(const Interface &obj);
-
-        /**
-         * populate state from VPP
-         */
-        static void populate(const KEY &key);
-
-        /**
-         * Populate VPP from current state, on VPP restart
-         */
-        static void replay(void);
 
         /*
          * It's the VPP::OM class that calls singular()
@@ -779,7 +807,7 @@ namespace VPP
         friend class VPP::OM;
 
         /**
-         * It's the VPP::SingularDB class that calls replay_i()
+         * It's the VPP::SingularDB class that calls replay()
          */
         friend class VPP::SingularDB<const std::string, Interface>;
 
@@ -838,7 +866,7 @@ namespace VPP
         /**
          * replay the object to create it in hardware
          */
-        virtual void replay_i(void);
+        virtual void replay(void);
 
         /**
          * Create commands are firends so they can add interfaces to the

@@ -41,7 +41,7 @@ void RouteDomain::sweep()
 {
 }
 
-void RouteDomain::replay_i()
+void RouteDomain::replay()
 {
 }
 

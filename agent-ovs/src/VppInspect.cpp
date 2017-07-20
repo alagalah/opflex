@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <boost/algorithm/string.hpp>
+//#include <boost/algorithm/string/trim.hpp>
 
 #include "VppInspect.hpp"
 #include "VppInterface.hpp"
@@ -21,6 +22,10 @@
 #include "VppAclBinding.hpp"
 
 using namespace VPP;
+
+std::unique_ptr<std::map<std::string, Inspect::CommandHandler*>> Inspect::m_cmd_handlers;
+
+std::unique_ptr<std::deque<std::pair<std::vector<std::string>, std::string>>> Inspect::m_help_handlers;
 
 Inspect::Inspect(const std::string &sock_name):
     m_sock_name(sock_name)
@@ -132,16 +137,74 @@ void Inspect::on_read(uv_stream_t *client,
         std::ostringstream output;
         std::string message(buf->base);
         message = message.substr(0, nread);
+        boost::trim(message);
 
-        Command *cmd = new_command(message);
-
-        if (cmd)
+        if (message.length())
         {
-            cmd->exec(output);
-            do_write(client, output);
+            if (message.find("help") != std::string::npos)
+            {
+                output << "Command Options: " << std::endl;
+                output << "  keys              - Show all keys owning objects"  << std::endl;
+                output << "  key:XXX           - Show all object referenced by key XXX"  << std::endl;
+                output << "  all               - Show All objects" << std::endl;
+                output << "Individual Object Types:" << std::endl;
 
-            delete cmd;
+                for (auto h : *m_help_handlers)
+                {
+                    output << "  {";
+
+                    for (auto s: h.first)
+                    {
+                        output << s << " ";
+                    }
+                    output << "} - \t";
+                    output << h.second;
+                    output << std::endl;
+                }
+            }
+            else if (message.find("keys") != std::string::npos)
+            {
+                OM::dump(output);
+            }
+            else if (message.find("key") != std::string::npos)
+            {
+                std::vector<std::string> results;
+                boost::split(results, message, boost::is_any_of(":\n"));
+
+                OM::dump(results[1], output);
+            }
+            else if (message.find("all") != std::string::npos)
+            {
+                /*
+                 * get the unique set of handlers, then invoke each
+                 */
+                std::set<CommandHandler*> hdlrs;
+                for (auto h : *m_cmd_handlers)
+                {
+                    hdlrs.insert(h.second);
+                }
+                for (auto h : hdlrs)
+                {
+                    h->show(output);
+                }
+            }
+            else
+            {
+                auto it = m_cmd_handlers->find(message);
+
+                if (it != m_cmd_handlers->end())
+                {
+                    it->second->show(output);
+                }
+                else
+                {
+                    output << "Unknown Command: " << message << std::endl;
+                }
+            }
         }
+        output << "# ";
+
+        do_write((uv_stream_t*) client, output);
     }
     else if (nread < 0)
     {
@@ -172,10 +235,10 @@ void Inspect::on_connection(uv_stream_t* server,
     if (uv_accept(server, (uv_stream_t*) client) == 0)
     {
         std::ostringstream output;
-        ShowHelp sh;
 
         output << "Welcome: VPP Inspect" << std::endl;
-        sh.exec(output);
+        output << "# ";
+
         do_write((uv_stream_t*) client, output);
 
         uv_read_start((uv_stream_t*) client,
@@ -188,164 +251,20 @@ void Inspect::on_connection(uv_stream_t* server,
     }
 }
 
-Inspect::Command * Inspect::new_command(const std::string &message)
+void Inspect::register_handler(const std::vector<std::string> &cmds,
+                               const std::string &help,
+                               CommandHandler *handler)
 {
-    if (message.find("inst") != std::string::npos)
+    if (!m_cmd_handlers)
     {
-        if ((message.find("interface") != std::string::npos) ||
-            (message.find("intf") != std::string::npos))
-        {
-            return new ShowInterface();
-        }
-        else if (message.find("bridge") != std::string::npos)
-        {
-            return new ShowBridgeDomain();
-        }
-        else if (message.find("vxlan") != std::string::npos)
-        {
-            return new ShowVxlan();
-        }
-        else if (message.find("route") != std::string::npos)
-        {
-            return new ShowBridgeDomain();
-        }
-        else if ((message.find("L2Config") != std::string::npos) ||
-                 (message.find("l2") != std::string::npos))
-        {
-            return new ShowL2Config();
-        }
-        else if ((message.find("DhcpConfig") != std::string::npos) ||
-                 (message.find("dhcp") != std::string::npos))
-        {
-            return new ShowDhcpConfig();
-        }
-        else if ((message.find("L23onfig") != std::string::npos) ||
-                 (message.find("l3") != std::string::npos))
-        {
-            return new ShowL3Config();
-        }
-        else if (message.find("acl-") != std::string::npos)
-        {
-            return new ShowAclBinding();
-        }
-        else if (message.find("acl") != std::string::npos)
-        {
-            return new ShowAcl();
-        }
-        else if (message.find("all"))
-        {
-            return new ShowAll();
-        }
+        m_cmd_handlers.reset(new std::map<std::string, CommandHandler*>);
+        m_help_handlers.reset(new std::deque<std::pair<std::vector<std::string>,
+                                                       std::string>>);
     }
-    else if (message.find("keys") != std::string::npos)
+
+    for (auto cmd : cmds)
     {
-        return new ShowKeys();
+        (*m_cmd_handlers)[cmd] = handler;
     }
-    else if (message.find("key") != std::string::npos)
-    {
-        std::vector<std::string> results;
-        boost::split(results, message, boost::is_any_of(":\n"));
-
-        return new ShowKey(results[1]);
-    }
-    else if (message.find("help") != std::string::npos)
-    {
-        return new ShowHelp();
-    }
-    return (nullptr);
-}
-
-void Inspect::ShowHelp::exec(std::ostream &os)
-{
-    os << "Command Options: "                            << std::endl;
-    os << " inst:all          - Show all objects"        << std::endl;
-    os << " inst:interface    - Show all interfaces"     << std::endl;
-    os << " inst:bridge       - Show all Bridge-Domain"  << std::endl;
-    os << " inst:route        - Show all Route-Domaina"  << std::endl;
-    os << " inst:L3Config     - Show all L3 Configs"     << std::endl;
-    os << " inst:L2Config     - Show all L2 Configs"     << std::endl;
-    os << " inst:vxlan        - Show all VXLAN tunnels"  << std::endl;
-    os << " inst:dhcp         - Show all DHCP configs"   << std::endl;
-    os << " inst:acl          - Show all ACL lists"      << std::endl;
-    os << " inst:acl-bindings - Show all ACL Bindings"   << std::endl;
-    os << " keys              - Show all keys owning objects"  << std::endl;
-    os << " key:XXX           - Show all object referenced by key XXX"  << std::endl;
-    os << std::endl;
-}
-
-void Inspect::ShowInterface::exec(std::ostream &os)
-{
-    Interface::dump(os);
-}
-
-void Inspect::ShowVxlan::exec(std::ostream &os)
-{
-    VxlanTunnel::dump(os);
-}
-
-void Inspect::ShowBridgeDomain::exec(std::ostream &os)
-{
-    BridgeDomain::dump(os);
-}
-
-void Inspect::ShowL2Config::exec(std::ostream &os)
-{
-    L2Config::dump(os);
-}
-
-void Inspect::ShowDhcpConfig::exec(std::ostream &os)
-{
-    DhcpConfig::dump(os);
-}
-
-void Inspect::ShowL3Config::exec(std::ostream &os)
-{
-    L3Config::dump(os);
-}
-
-void Inspect::ShowRouteDomain::exec(std::ostream &os)
-{
-    RouteDomain::dump(os);
-}
-
-void Inspect::ShowAcl::exec(std::ostream &os)
-{
-    ACL::L2List::dump(os);
-    ACL::L3List::dump(os);
-}
-
-void Inspect::ShowAclBinding::exec(std::ostream &os)
-{
-    ACL::L2Binding::dump(os);
-    ACL::L3Binding::dump(os);
-}
-
-void Inspect::ShowAll::exec(std::ostream &os)
-{
-    Interface::dump(os);
-    BridgeDomain::dump(os);
-    L2Config::dump(os);
-    RouteDomain::dump(os);
-    L3Config::dump(os);
-    DhcpConfig::dump(os);
-    VxlanTunnel::dump(os);
-    ACL::L2List::dump(os);
-    ACL::L3List::dump(os);
-    ACL::L2Binding::dump(os);
-    ACL::L3Binding::dump(os);
-}
-
-void Inspect::ShowKey::exec(std::ostream &os)
-{
-    OM::dump(m_key, os);
-}
-
-void Inspect::ShowKeys::exec(std::ostream &os)
-{
-    OM::dump(os);
-}
-
-Inspect::ShowKey::ShowKey(const std::string &key):
-    m_key(key)
-{
+    m_help_handlers->push_front(std::make_pair(cmds, help));
 }

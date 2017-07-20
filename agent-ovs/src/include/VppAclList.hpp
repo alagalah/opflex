@@ -21,6 +21,7 @@
 #include "VppDumpCmd.hpp"
 #include "VppSingularDB.hpp"
 #include "VppOM.hpp"
+#include "VppInspect.hpp"
 
 extern "C"
 {
@@ -39,6 +40,11 @@ namespace VPP
         class List: public Object
         {
         public:
+            /**
+             * Dependency level 'ACL'
+             */
+            const static dependency_t dependency_value = dependency_t::ACL;
+
             /**
              * The KEY can be used to uniquely identify the ACL.
              * (other choices for keys, like the summation of the properties
@@ -67,10 +73,11 @@ namespace VPP
             }
 
             List(const key_t &key,
-                const rules_t &rules):
+                 const rules_t &rules):
                 m_key(key),
                 m_rules(rules)
             {
+                m_evh.order();
             }
 
             /**
@@ -346,9 +353,52 @@ namespace VPP
 
         private:
             /**
-             * populate state from VPP
+             * Class definition for listeners to OM events
              */
-            static void populate(const KEY &key);
+            class EventHandler: public OM::Listener, public Inspect::CommandHandler
+            {
+            public:
+                EventHandler()
+                {
+                    OM::register_listener(this);
+                    Inspect::register_handler({"acl"}, "ACL Lists", this);
+                }
+                virtual ~EventHandler() = default;
+
+                /**
+                 * Handle a populate event
+                 */
+                void handle_populate(const KeyDB::key_t & key);
+
+                /**
+                 * Handle a replay event
+                 */
+                void handle_replay()
+                {
+                    m_db.replay();
+                }
+
+                /**
+                 * Show the object in the Singular DB
+                 */
+                void show(std::ostream &os)
+                {
+                    m_db.dump(os);
+                }
+
+                /**
+                 * Get the sortable Id of the listener
+                 */
+                dependency_t order() const
+                {
+                    return (dependency_t::ACL);
+                }
+            };
+
+            /**
+             * EventHandler to register with OM
+             */
+            static EventHandler m_evh;
 
             /**
              * Enquue commonds to the VPP command Q for the update
@@ -389,7 +439,7 @@ namespace VPP
             friend class VPP::OM;
 
             /**
-             * It's the VPP::SingularDB class that calls replay_i()
+             * It's the VPP::SingularDB class that calls replay()
              */
             friend class VPP::SingularDB<key_t, List>;
 
@@ -408,20 +458,12 @@ namespace VPP
             /**
              * Replay the objects state to HW
              */
-            void replay_i(void)
+            void replay(void)
             {
                 if (m_hdl)
                 {
                     HW::enqueue(new UpdateCmd(m_hdl, m_key, m_rules));
                 }
-            }
-
-            /**
-             * populate VPP from SingularDB, on VPP restart
-             */
-            static void replay(void)
-            {
-                m_db.replay();
             }
 
             /**
@@ -468,6 +510,10 @@ namespace VPP
         template <typename RULE, typename DETAILS>
         std::map<const handle_t,
                  std::weak_ptr<ACL::List<RULE, DETAILS> > > List<RULE, DETAILS>::m_hdl_db;
+
+        template <typename RULE, typename DETAILS>
+        typename ACL::List<RULE, DETAILS>::EventHandler List<RULE, DETAILS>::m_evh;
+
     };
 };
 

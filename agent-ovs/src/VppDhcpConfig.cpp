@@ -19,6 +19,8 @@ using namespace VPP;
  */
 SingularDB<Interface::key_type, DhcpConfig> DhcpConfig::m_db;
 
+DhcpConfig::EventHandler DhcpConfig::m_evh;
+
 DhcpConfig::DhcpConfig(const Interface &itf,
                        const std::string &hostname):
     m_itf(itf.singular()),
@@ -67,7 +69,7 @@ void DhcpConfig::dump(std::ostream &os)
     m_db.dump(os);
 }
 
-void DhcpConfig::replay_i()
+void DhcpConfig::replay()
 {
     if (m_binding)
     {
@@ -122,4 +124,30 @@ DhcpConfig::EventListener::EventListener():
 HW::Item<bool> &DhcpConfig::EventListener::status()
 {
     return (m_status);
+}
+
+DhcpConfig::EventHandler::EventHandler()
+{
+    OM::register_listener(this);
+    Inspect::register_handler({"dhcp"}, "DHCP configurations", this);
+}
+
+void DhcpConfig::EventHandler::handle_replay()
+{
+    m_db.replay();
+}
+
+void DhcpConfig::EventHandler::handle_populate(const KeyDB::key_t &key)
+{
+    // FIXME
+}
+
+dependency_t DhcpConfig::EventHandler::order() const
+{
+    return (dependency_t::BINDING);
+}
+
+void DhcpConfig::EventHandler::show(std::ostream &os)
+{
+    m_db.dump(os);
 }

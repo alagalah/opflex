@@ -12,7 +12,7 @@ namespace VPP
 {
     namespace ACL
     {
-        template <> void L2Binding::populate(const KEY &key)
+        template <> void L2Binding::EventHandler::handle_populate(const KeyDB::key_t &key)
         {
             /*
              * dump VPP Bridge domains
@@ -41,7 +41,7 @@ namespace VPP
             }
         }
 
-        template <> void L3Binding::populate(const KEY &key)
+        template <> void L3Binding::EventHandler::handle_populate(const KeyDB::key_t &key)
         {
         }
     };

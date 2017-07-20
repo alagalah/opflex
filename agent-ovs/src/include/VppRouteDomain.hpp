@@ -27,6 +27,11 @@ namespace VPP
     {
     public:
         /**
+         * Dependency level domain
+         */
+        const static dependency_t dependency_value = dependency_t::FORWARDING_DOMAIN;
+
+        /**
          * Construct a new object matching the desried state
          */
         RouteDomain(Route::table_id_t id);
@@ -67,7 +72,7 @@ namespace VPP
         /**
          * replay the object to create it in hardware
          */
-        void replay_i(void);
+        void replay(void);
 
     private:
         /**
@@ -86,7 +91,7 @@ namespace VPP
         friend class VPP::OM;
 
         /**
-         * It's the VPP::SingularDB class that calls replay_i()
+         * It's the VPP::SingularDB class that calls replay()
          */
         friend class VPP::SingularDB<Route::table_id_t, RouteDomain>;
 

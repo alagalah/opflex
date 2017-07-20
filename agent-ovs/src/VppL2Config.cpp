@@ -15,9 +15,11 @@
 using namespace VPP;
 
 /**
- * A DB of al the interfaces, key on the name
+ * A DB of all the L2 Configs
  */
 SingularDB<const handle_t, L2Config> L2Config::m_db;
+
+L2Config::EventHandler L2Config::m_evh;
 
 /**
  * Construct a new object matching the desried state
@@ -49,7 +51,7 @@ void L2Config::sweep()
     HW::write();
 }
 
-void L2Config::replay_i()
+void L2Config::replay()
 {
     if (m_binding && handle_t::INVALID != m_itf->handle())
     {
@@ -104,6 +106,34 @@ std::shared_ptr<L2Config> L2Config::singular() const
 }
 
 void L2Config::dump(std::ostream &os)
+{
+    m_db.dump(os);
+}
+
+L2Config::EventHandler::EventHandler()
+{
+    OM::register_listener(this);
+    Inspect::register_handler({"l2"}, "L2 Bindings", this);
+}
+
+void L2Config::EventHandler::handle_replay()
+{
+    m_db.replay();
+}
+
+void L2Config::EventHandler::handle_populate(const KeyDB::key_t &key)
+{
+    /**
+     * This is done while populating the bridge-domain
+     */
+}
+
+dependency_t L2Config::EventHandler::order() const
+{
+    return (dependency_t::BINDING);
+}
+
+void L2Config::EventHandler::show(std::ostream &os)
 {
     m_db.dump(os);
 }

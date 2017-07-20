@@ -12,8 +12,9 @@ namespace VPP
 {
     namespace ACL
     {
-        template <> void L2List::populate(const KEY &key)
+        template <> void L2List::EventHandler::handle_populate(const KeyDB::key_t &key)
         {
+            m_evh.order();
             /*
              * dump VPP Bridge domains
              */
@@ -53,7 +54,8 @@ namespace VPP
                 free(record);
             }
         }
-        template <> void L3List::populate(const KEY &key)
+
+        template <> void L3List::EventHandler::handle_populate(const KeyDB::key_t &key)
         {
         }
     };

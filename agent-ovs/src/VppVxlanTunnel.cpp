@@ -17,9 +17,12 @@ using namespace VPP;
 
 const std::string VXLAN_TUNNEL_NAME = "vxlan-tunnel-itf";
 
+VxlanTunnel::EventHandler VxlanTunnel::m_evh;
 
 /**
- * A DB of al the interfaces, key on the name
+ * A DB of all VxlanTunnels
+ * this does not register as a listener for replay events, since the tunnels
+ * are also in the base-class Interface DB and so will be poked from there.
  */
 SingularDB<VxlanTunnel::endpoint_t, VxlanTunnel> VxlanTunnel::m_db;
 
@@ -135,7 +138,7 @@ void VxlanTunnel::sweep()
     HW::write();
 }
 
-void VxlanTunnel::replay_i()
+void VxlanTunnel::replay()
 {
    if (m_hdl)
    {
@@ -206,7 +209,7 @@ void VxlanTunnel::dump(std::ostream &os)
     m_db.dump(os);
 }
 
-void VxlanTunnel::populate(const KEY &key)
+void VxlanTunnel::EventHandler::handle_populate(const KeyDB::key_t &key)
 {
     /*
      * dump VPP current states
@@ -233,7 +236,23 @@ void VxlanTunnel::populate(const KEY &key)
     }
 }
 
-void VxlanTunnel::replay()
+VxlanTunnel::EventHandler::EventHandler()
 {
-    m_db.replay();
+    OM::register_listener(this);
+    Inspect::register_handler({"vxlan"}, "VXLAN Tunnels", this);
+}
+
+void VxlanTunnel::EventHandler::handle_replay()
+{
+    // replay is handled from the interface DB
+}
+
+dependency_t VxlanTunnel::EventHandler::order() const
+{
+    return (dependency_t::TUNNEL);
+}
+
+void VxlanTunnel::EventHandler::show(std::ostream &os)
+{
+    m_db.dump(os);
 }

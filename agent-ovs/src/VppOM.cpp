@@ -9,15 +9,12 @@
 #include <algorithm>
 
 #include "VppOM.hpp"
-#include "VppInterface.hpp"
-#include "VppVxlanTunnel.hpp"
-#include "VppBridgeDomain.hpp"
-#include "VppAclList.hpp"
-#include "VppAclBinding.hpp"
 
 using namespace VPP;
 
 KeyDB *OM::m_db;
+
+std::unique_ptr<OM::ListenerList> OM::m_listeners;
 
 /**
  * Initalse the connection to VPP
@@ -27,7 +24,7 @@ void OM::init()
     m_db = new KeyDB();
 }
 
-void OM::mark(const KEY &key)
+void OM::mark(const KeyDB::key_t &key)
 {
     /*
      * Find if the object already stored on behalf of this key.
@@ -43,7 +40,7 @@ void OM::mark(const KEY &key)
     std::for_each(objs.begin(), objs.end(), mark_obj);
 }
 
-void OM::sweep(const KEY &key)
+void OM::sweep(const KeyDB::key_t &key)
 {
     /*
      * Find if the object already stored on behalf of this key.
@@ -60,7 +57,7 @@ void OM::sweep(const KEY &key)
     HW::write();
 }
 
-void OM::remove(const KEY &key)
+void OM::remove(const KeyDB::key_t &key)
 {
     /*
      * Simply reset the list for this key. This will desctruct the
@@ -75,15 +72,18 @@ void OM::remove(const KEY &key)
 
 void OM::replay()
 {
-
-    Interface::replay();
-    VxlanTunnel::replay();
-    BridgeDomain::replay();
+    /*
+     * the listeners are sorted in dependency order
+     */
+    for (Listener *l : *m_listeners)
+    {
+        l->handle_replay();
+    }
 
     HW::write();
 }
 
-void OM::dump(const KEY & key, std::ostream &os)
+void OM::dump(const KeyDB::key_t & key, std::ostream &os)
 {
     m_db->dump(key, os);
 }
@@ -93,21 +93,30 @@ void OM::dump(std::ostream &os)
     m_db->dump(os);
 }
 
-void OM::populate(const KEY &key)
+void OM::populate(const KeyDB::key_t &key)
 {
     /*
-     * The ordering here is important. build from the bottom up.
+     * the listeners are sorted in dependency order
      */
-    Interface::populate(key);
-    VxlanTunnel::populate(key);
-    BridgeDomain::populate(key);
-    ACL::L2List::populate(key);
-    ACL::L3List::populate(key);
-    ACL::L2Binding::populate(key);
-    ACL::L3Binding::populate(key);
+    for (Listener *l : *m_listeners)
+    {
+        l->handle_populate(key);
+    }
 
     /*
      * once we have it all, mark it stale.
      */
     mark(key);
+}
+
+bool OM::register_listener(OM::Listener *listener)
+{
+    if (!m_listeners)
+    {
+        m_listeners.reset(new ListenerList);
+    }
+
+    m_listeners->insert(listener);
+
+    return (true);
 }

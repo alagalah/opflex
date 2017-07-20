@@ -16,6 +16,8 @@ using namespace VPP;
 
 SingularDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> L3Config::m_db;
 
+L3Config::EventHandler L3Config::m_evh;
+
 /**
  * Construct a new object matching the desried state
  */
@@ -51,7 +53,7 @@ void L3Config::sweep()
     HW::write();
 }
 
-void L3Config::replay_i()
+void L3Config::replay()
 {
     if (m_binding)
     {
@@ -144,7 +146,30 @@ std::deque<std::shared_ptr<L3Config>> L3Config::find(const Interface &i)
     return (l3s);
 }
 
-void L3Config::replay()
+L3Config::EventHandler::EventHandler()
+{
+    OM::register_listener(this);
+    Inspect::register_handler({"l3"}, "L3 Bindings", this);
+}
+
+void L3Config::EventHandler::handle_replay()
 {
     m_db.replay();
+}
+
+void L3Config::EventHandler::handle_populate(const KeyDB::key_t &key)
+{
+    /**
+     * This is done while populating the interfaces
+     */
+}
+
+dependency_t L3Config::EventHandler::order() const
+{
+    return (dependency_t::BINDING);
+}
+
+void L3Config::EventHandler::show(std::ostream &os)
+{
+    m_db.dump(os);
 }
