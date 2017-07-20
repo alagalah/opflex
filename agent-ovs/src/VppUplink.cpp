@@ -11,6 +11,8 @@
 #include "VppInterface.hpp"
 #include "VppSubInterface.hpp"
 #include "VppL3Binding.hpp"
+#include "VppLldpGlobal.hpp"
+#include "VppLldpConfig.hpp"
 
 using namespace VPP;
 
@@ -89,12 +91,20 @@ void Uplink::configure()
     Interface itf(m_iface,
                   Interface::type_t::AFPACKET,
                   Interface::admin_state_t::UP);
-    VPP::OM::write(UPLINK_KEY, itf);
+    OM::write(UPLINK_KEY, itf);
 
     /*
      * Find and save the interface this created
      */
     m_uplink = itf.singular();
+
+    /**
+     * Enable LLDP on this uplionk
+     */
+    LldpGlobal lg("agent-opflex", 5, 2);
+    OM::write(UPLINK_KEY, lg);
+    LldpConfig lc(*m_uplink, "uplink-interface");
+    OM::write(UPLINK_KEY, lc);
 
     /*
      * now create the sub-interface on which control and data traffic from
@@ -103,7 +113,7 @@ void Uplink::configure()
     SubInterface subitf(itf,
                         Interface::admin_state_t::UP,
                         m_vlan);
-    VPP::OM::write(UPLINK_KEY, subitf);
+    OM::write(UPLINK_KEY, subitf);
 
     /**
      * Configure DHCP on the uplink subinterface
@@ -111,7 +121,7 @@ void Uplink::configure()
      */
     DhcpConfig dc(subitf, "agent-opflex",
                   m_uplink->l2_address().bytes);
-    VPP::OM::write(UPLINK_KEY, dc);
+    OM::write(UPLINK_KEY, dc);
 
     /**
      * In the case of a agent restart, the DHCP process will already be complete
