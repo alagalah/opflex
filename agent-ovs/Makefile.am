@@ -231,6 +231,10 @@ if RENDERER_VPP
 	src/VppL3BindingCmds.cpp \
 	src/VppDhcpConfig.cpp \
 	src/VppDhcpConfigCmds.cpp \
+	src/VppLldpConfig.cpp \
+	src/VppLldpConfigCmds.cpp \
+	src/VppLldpGlobal.cpp \
+	src/VppLldpGlobalCmds.cpp \
         src/VppTapInterface.cpp \
 	src/VppSubInterface.cpp \
 	src/VppSubInterfaceCmds.cpp \

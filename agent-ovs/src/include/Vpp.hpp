@@ -38,9 +38,14 @@ namespace VPP
     enum class dependency_t
     {
         /**
+         * Global Configuration has no dependency
+         */
+        GLOBAL = 0,
+
+        /**
          * Interfaces are the root of the dependency graph
          */
-        INTERFACE = 0,
+        INTERFACE,
 
         /**
          * Tunnel or virtual interfaces next
