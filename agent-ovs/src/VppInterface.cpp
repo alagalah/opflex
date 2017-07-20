@@ -12,7 +12,7 @@
 #include "VppInterface.hpp"
 #include "VppRoute.hpp"
 #include "VppCmd.hpp"
-#include "VppL3Config.hpp"
+#include "VppL3Binding.hpp"
 
 using namespace VPP;
 
@@ -340,9 +340,9 @@ void Interface::EventHandler::handle_populate(const KeyDB::key_t &key)
             /**
              * Get the address configured on the interface
              */
-            L3Config::DumpV4Cmd::details_type *record;
-            std::shared_ptr<L3Config::DumpV4Cmd> dcmd =
-                std::make_shared<L3Config::DumpV4Cmd>(L3Config::DumpV4Cmd(itf->handle()));
+            L3Binding::DumpV4Cmd::details_type *record;
+            std::shared_ptr<L3Binding::DumpV4Cmd> dcmd =
+                std::make_shared<L3Binding::DumpV4Cmd>(L3Binding::DumpV4Cmd(itf->handle()));
 
             HW::enqueue(dcmd);
             HW::write();
@@ -355,7 +355,7 @@ void Interface::EventHandler::handle_populate(const KeyDB::key_t &key)
 
                 LOG(ovsagent::DEBUG) << "dump: " << pfx.to_string();
 
-                L3Config l3(*itf, pfx);
+                L3Binding l3(*itf, pfx);
                 OM::commit(key, l3);
 
                 free(record);

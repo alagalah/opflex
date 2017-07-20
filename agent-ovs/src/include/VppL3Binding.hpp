@@ -6,8 +6,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_L2_INTERFACE_H__
-#define __VPP_L2_INTERFACE_H__
+#ifndef __VPP_L3_INTERFACE_H__
+#define __VPP_L3_INTERFACE_H__
 
 #include <string>
 #include <map>
@@ -17,19 +17,23 @@
 #include "VppOM.hpp"
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
+#include "VppDumpCmd.hpp"
 #include "VppSingularDB.hpp"
 #include "VppInterface.hpp"
-#include "VppBridgeDomain.hpp"
-#include "VppVxlanTunnel.hpp"
+#include "VppSubInterface.hpp"
 #include "VppInspect.hpp"
+
+extern "C"
+{
+    #include "ip.api.vapi.h"
+}
 
 namespace VPP
 {
     /**
-     * A base class for all Object in the VPP Object-Model.
-     *  provides the abstract interface.
+     * A representation of L3 configuration on an interface
      */
-    class L2Config: public Object
+    class L3Binding: public Object
     {
     public:
         /**
@@ -40,23 +44,23 @@ namespace VPP
         /**
          * Construct a new object matching the desried state
          */
-        L2Config(const Interface &itf,
-                 const BridgeDomain &bd);
-
+        L3Binding(const Interface &itf,
+                 const Route::prefix_t &pfx);
+        
         /**
          * Copy Constructor
          */
-        L2Config(const L2Config& o);
+        L3Binding(const L3Binding& o);
 
         /**
          * Destructor
          */
-        ~L2Config();
+        ~L3Binding();
 
         /**
-         * Return the 'singular instance' of the L2 config that matches this object
+         * Return the 'singular instance' of the L3-Config that matches this object
          */
-        std::shared_ptr<L2Config> singular() const;
+        std::shared_ptr<L3Binding> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -64,12 +68,27 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * Dump all L2Configs into the stream provided
+         * Return the prefix associated with this L3config
+         */
+        const Route::prefix_t& prefix() const;
+
+        /**
+         * Dump all L3Bindings into the stream provided
          */
         static void dump(std::ostream &os);
 
         /**
-         * A functor class that binds L2 configuration to an interface
+         * The key type for L3Bindings
+         */
+        typedef std::pair<Interface::key_type, Route::prefix_t> key_type_t;
+
+        /**
+         * Find an singular instance in the DB for the interface passed
+         */
+        static std::deque<std::shared_ptr<L3Binding>> find(const Interface &i);
+
+        /**
+         * A functor class that binds the L3 config to the interface
          */
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
@@ -79,8 +98,7 @@ namespace VPP
              */
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
-                    uint32_t bd,
-                    bool is_bvi);
+                    const Route::prefix_t &pfx);
 
             /**
              * Issue the command to VPP/HW
@@ -97,23 +115,18 @@ namespace VPP
             bool operator==(const BindCmd&i) const;
         private:
             /**
-             * The interface to bind
+             * Reference to the interface to bind to
              */
-            const handle_t m_itf;
+            const handle_t &m_itf;
 
             /**
-             * The bridge-domain to bind to
+             * The prefix to bind
              */
-            uint32_t m_bd;
-
-            /**
-             * Is it a BVI interface that is being bound
-             */
-            bool m_is_bvi;
+            const Route::prefix_t m_pfx;
         };
 
         /**
-         * A cmd class that Unbinds L2 configuration from an interface
+         * A cmd class that Unbinds L3 Config from an interface
          */
         class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
@@ -121,10 +134,9 @@ namespace VPP
             /**
              * Constructor
              */
-            UnbindCmd(HW::Item<bool> &item,
+           UnbindCmd(HW::Item<bool> &item,
                       const handle_t &itf,
-                      uint32_t bd,
-                      bool is_bvi);
+                      const Route::prefix_t &pfx);
 
             /**
              * Issue the command to VPP/HW
@@ -141,19 +153,51 @@ namespace VPP
             bool operator==(const UnbindCmd&i) const;
         private:
             /**
-             * The interface to bind
+             * Reference to the interface to unbind fomr
              */
             const handle_t m_itf;
 
             /**
-             * The bridge-domain to bind to
+             * The prefix to unbind
              */
-            uint32_t m_bd;
+           const Route::prefix_t m_pfx;
+        };
+
+        /**
+         * A cmd class that Dumps all the IPv4 L3 configs
+         */
+        class DumpV4Cmd: public DumpCmd<vapi_payload_ip_address_details>
+        {
+        public:
+            /**
+             * Constructor
+             */
+            DumpV4Cmd(const handle_t &itf);
+            DumpV4Cmd(const DumpV4Cmd &d);
 
             /**
-             * Is it a BVI interface that is being bound
+             * Issue the command to VPP/HW
              */
-            bool m_is_bvi;
+            rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
+            std::string to_string() const;
+
+            /**
+             * Comparison operator - only used for UT
+             */
+            bool operator==(const DumpV4Cmd&i) const;
+        private:
+            /**
+             * HW reutrn code
+             */
+            HW::Item<bool> item;
+
+            /**
+             * The interface to get the addresses for
+             */
+            const handle_t m_itf;
         };
 
     private:
@@ -195,22 +239,22 @@ namespace VPP
         /**
          * Enquue commonds to the VPP command Q for the update
          */
-        void update(const L2Config &obj);
+        void update(const L3Binding &obj);
 
         /**
-         * Find or Add the singular instance in the DB
+         * Find or add the singular instance in the DB
          */
-        static std::shared_ptr<L2Config> find_or_add(const L2Config &temp);
+        static std::shared_ptr<L3Binding> find_or_add(const L3Binding &temp);
 
         /*
-         * It's the VPP::OM class that calls singular()
+         * It's the VPPHW class that updates the objects in HW
          */
         friend class VPP::OM;
 
         /**
-         * It's the VPP::SingularDB class that calls replay()
+        e* It's the VPP::SingularDB class that calls replay()
          */
-        friend class VPP::SingularDB<const handle_t, L2Config>;
+        friend class VPP::SingularDB<key_type_t, L3Binding>;
 
         /**
          * Sweep/reap the object if still stale
@@ -223,18 +267,16 @@ namespace VPP
         void replay(void);
 
         /**
-         * A reference counting pointer the interface that this L2 layer
+         * A reference counting pointer the interface that this L3 layer
          * represents. By holding the reference here, we can guarantee that
          * this object will outlive the interface
          */
         const std::shared_ptr<Interface> m_itf;
     
         /**
-         * A reference counting pointer the Bridge-Domain that this L2
-         * interface is bound to. By holding the reference here, we can
-         * guarantee that this object will outlive the BD.
+         * The prefix for this L3 configuration
          */
-        const std::shared_ptr<BridgeDomain> m_bd;
+        Route::prefix_t m_pfx;
 
         /**
          * HW configuration for the binding. The bool representing the
@@ -243,10 +285,16 @@ namespace VPP
         HW::Item<bool> m_binding;
 
         /**
-         * A map of all L2 interfaces key against the interface's handle_t
+         * A map of all L3 configs keyed against a combination of the interface
+         * and subnet's keys.
          */
-        static SingularDB<const handle_t, L2Config> m_db;
+        static SingularDB<key_type_t, L3Binding> m_db;
     };
+
+    /**
+     * Ostream output for the key
+     */
+    std::ostream &operator<<(std::ostream &os, const L3Binding::key_type_t &key);
 };
 
 #endif

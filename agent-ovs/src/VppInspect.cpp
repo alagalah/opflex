@@ -10,16 +10,11 @@
 #include <vector>
 #include <string>
 #include <boost/algorithm/string.hpp>
-//#include <boost/algorithm/string/trim.hpp>
 
+#include "logging.h"
+
+#include "VppOM.hpp"
 #include "VppInspect.hpp"
-#include "VppInterface.hpp"
-#include "VppBridgeDomain.hpp"
-#include "VppRouteDomain.hpp"
-#include "VppL3Config.hpp"
-#include "VppL2Config.hpp"
-#include "VppDhcpConfig.hpp"
-#include "VppAclBinding.hpp"
 
 using namespace VPP;
 
