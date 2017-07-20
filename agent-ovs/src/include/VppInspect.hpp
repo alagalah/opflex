@@ -9,6 +9,8 @@
 #ifndef __VPP_INSPECT_H__
 #define __VPP_INSPECT_H__
 
+#include <map>
+#include <vector>
 #include <string>
 #include <sstream>
 #include <uv.h>
@@ -34,259 +36,32 @@ namespace VPP
          */
         ~Inspect();
 
+        /**
+         * Inspect command handler Handler
+         */
+        class CommandHandler
+        {
+        public:
+            CommandHandler() = default;
+            virtual ~CommandHandler() = default;
+
+            /**
+             * Show each object
+             */
+            virtual void show(std::ostream &os) = 0;
+        };
+
+        /**
+         * Register a command handler for inspection
+         */
+        static void register_handler(const std::vector<std::string> &cmds,
+                                     const std::string &help,
+                                     CommandHandler *ch);
     private:
         /**
          * Call operator for running in the thread
          */
         static void run(void* ctx);
-
-        /**
-         * Base class for all the command objects
-         */
-        class Command
-        {
-        public:
-            /**
-             * Virtual Destructor
-             */
-            virtual ~Command() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            virtual void exec(std::ostream &os) = 0;
-        protected:
-            Command() = default;
-        };
-
-        /**
-         * Show All object types
-         */
-        class ShowAll: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowAll() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All Interfaces
-         */
-        class ShowInterface: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowInterface() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All Vxlam Tunnels
-         */
-        class ShowVxlan: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowVxlan() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-        /**
-         * Show All Bridge-Domains
-         */
-        class ShowBridgeDomain: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowBridgeDomain() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All Route-Domains
-         */
-        class ShowRouteDomain: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowRouteDomain() = default;
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All L3 Configs
-         */
-        class ShowL3Config: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowL3Config() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All L2 Configs
-         */
-        class ShowL2Config: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowL2Config() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All DHPC Configs
-         */
-        class ShowDhcpConfig: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowDhcpConfig() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All ACLs
-         */
-        class ShowAcl: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowAcl() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All ACL Bindings
-         */
-        class ShowAclBinding: public Command
-        {
-        public:
-            /**
-             * Default Constructor
-             */
-            ShowAclBinding() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show All Objects referenced by a given KEY
-         */
-        class ShowKey: public Command
-        {
-        public:
-            /**
-             * Constructor
-             */
-            ShowKey(const std::string &key);
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        private:
-            /**
-             * The KEY owning the objects to display
-             */
-            std::string m_key;
-        };
-
-        /**
-         * Show All KEYs
-         */
-        class ShowKeys: public Command
-        {
-        public:
-            /**
-             * Constructor
-             */
-            ShowKeys() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Show Help
-         */
-        class ShowHelp: public Command
-        {
-        public:
-            /**
-             * Constructor
-             */
-            ShowHelp() = default;
-
-            /**
-             * Execute the command - capture output in ostream
-             */
-            void exec(std::ostream &os);
-        };
-
-        /**
-         * Construct a command from the message on the socket
-         */
-        static Command* new_command(const std::string &command);
 
         /**
          * A write request
@@ -354,6 +129,15 @@ namespace VPP
          * The inspect unix domain socket name, from the config file
          */
         std::string m_sock_name;
+
+        /**
+         * command handler list
+         */
+        static std::unique_ptr<std::map<std::string, CommandHandler*>> m_cmd_handlers;
+        /**
+         * help handler list
+         */
+        static std::unique_ptr<std::deque<std::pair<std::vector<std::string>, std::string>>> m_help_handlers;
     };
 };
 

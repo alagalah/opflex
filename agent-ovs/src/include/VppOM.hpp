@@ -13,7 +13,7 @@
 #include <queue>
 #include <algorithm>
 #include <memory>
-#include <list>
+#include <set>
 
 #include "VppKeyDB.hpp"
 #include "VppHW.hpp"
@@ -32,17 +32,17 @@ namespace VPP {
         /**
          * populate the OM with state read from HW.
          */
-        static void populate(const KEY &key);
+        static void populate(const KeyDB::key_t &key);
 
         /**
          * Mark all state owned by this key as stale
          */
-        static void mark(const KEY &key);
+        static void mark(const KeyDB::key_t &key);
 
         /**
          * Sweep all the key's objects that are stale
          */
-        static void sweep(const KEY &key);
+        static void sweep(const KeyDB::key_t &key);
 
         /**
          * Replay all of the objects to HW.
@@ -55,7 +55,7 @@ namespace VPP {
          *  data from HW
          */
         template <typename OBJ>
-        static rc_t commit(const KEY &key, const OBJ &obj)
+        static rc_t commit(const KeyDB::key_t &key, const OBJ &obj)
         {
             rc_t rc = rc_t::OK;
 
@@ -69,12 +69,12 @@ namespace VPP {
         /**
          * Make the State in VPP reflect tha expressed desired state.
          *  After processing all the objects in the queue, in FIFO order,
-         *  any remaining state owned by the KEY is purged.
+         *  any remaining state owned by the KeyDB::key_t is purged.
          * This is a template function so the object's update() function is
          * always called with the deirved type.
          */
         template <typename OBJ>
-        static rc_t write(const KEY &key, const OBJ &obj)
+        static rc_t write(const KeyDB::key_t &key, const OBJ &obj)
         {
             rc_t rc = rc_t::OK;
 
@@ -126,23 +126,82 @@ namespace VPP {
         /**
          * Remove all object in the OM referenced by the key
          */
-        static void remove(const KEY &key);
+        static void remove(const KeyDB::key_t &key);
 
         /**
          * Print each of the object in the DB into the stream provided
          */
-        static void dump(const KEY & key, std::ostream &os);
+        static void dump(const KeyDB::key_t & key, std::ostream &os);
 
         /**
          * Print each of the KEYS
          */
         static void dump(std::ostream &os);
 
+        /**
+         * Class definition for listeners to OM events
+         */
+        class Listener
+        {
+        public:
+            Listener() = default;
+            virtual ~Listener() = default;
+
+            /**
+             * Handle a populate event
+             */
+            virtual void handle_populate(const KeyDB::key_t & key) = 0;
+
+            /**
+             * Handle a replay event
+             */
+            virtual void handle_replay() = 0;
+
+            /**
+             * Get the sortable Id of the listener
+             */
+            virtual dependency_t order() const = 0;
+
+            /**
+             * less than operator for set sorting
+             */
+            bool operator<(const Listener &listener) const
+            {
+                return (order() < listener.order());
+            }
+        };
+
+        /**
+         * Register a listener of events
+         */
+        static bool register_listener(Listener *listener);
+
     private:
         /**
          * Database of object state created for each key
          */
         static KeyDB *m_db;
+
+        /**
+         * Comparator to keep thte pointers to Listeners in sorted order
+         */
+        struct listener_comparator_t
+        {
+            bool operator() (const Listener *l1, const Listener *l2) const
+            {
+                return (l1->order() < l2->order());
+            }
+        };
+
+        /**
+         * convenient typedef for the sorted set of listeners
+         */
+        typedef std::multiset<Listener*, listener_comparator_t> ListenerList;
+
+        /**
+         * The listeners for events
+         */
+        static std::unique_ptr<ListenerList> m_listeners;
     };
 }
 #endif

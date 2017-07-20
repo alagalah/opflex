@@ -21,6 +21,8 @@ using namespace VPP;
  */
 SingularDB<uint32_t, BridgeDomain> BridgeDomain::m_db;
 
+BridgeDomain::EventHandler BridgeDomain::m_evh;
+
 /**
  * Construct a new object matching the desried state
  */
@@ -48,7 +50,7 @@ void BridgeDomain::sweep()
     HW::write();
 }
 
-void BridgeDomain::replay_i()
+void BridgeDomain::replay()
 {
    if (rc_t::OK == m_id.rc())
    {
@@ -100,7 +102,7 @@ void BridgeDomain::dump(std::ostream &os)
     m_db.dump(os);
 }
 
-void BridgeDomain::populate(const KEY &key)
+void BridgeDomain::EventHandler::handle_populate(const KeyDB::key_t &key)
 {
     /*
      * dump VPP Bridge domains
@@ -139,7 +141,23 @@ void BridgeDomain::populate(const KEY &key)
     }
 }
 
-void BridgeDomain::replay()
+BridgeDomain::EventHandler::EventHandler()
+{
+    OM::register_listener(this);
+    Inspect::register_handler({"bd", "bridge"}, "Bridge Domains", this);
+}
+
+void BridgeDomain::EventHandler::handle_replay()
 {
     m_db.replay();
+}
+
+dependency_t BridgeDomain::EventHandler::order() const
+{
+    return (dependency_t::FORWARDING_DOMAIN);
+}
+
+void BridgeDomain::EventHandler::show(std::ostream &os)
+{
+    m_db.dump(os);
 }

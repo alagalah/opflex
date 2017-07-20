@@ -215,13 +215,6 @@ namespace ovsagent {
          * Read the state from VPP
          */
         VPP::OM::populate(BOOT_KEY);
-
-        /**
-         * Scehdule a timer to sweep the stale state
-         */
-        m_sweep_timer.reset(new deadline_timer(agent.getAgentIOService()));
-        m_sweep_timer->expires_from_now(boost::posix_time::seconds(30));
-        m_sweep_timer->async_wait(bind(&VppManager::handleSweepTimer, this, error));
     }
 
     void VppManager::registerModbListeners() {
@@ -722,7 +715,17 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
     void VppManager::handleConfigUpdate(const opflex::modb::URI& configURI) {
         LOG(DEBUG) << "Updating platform config " << configURI;
+
         initPlatformConfig();
+
+        /**
+         * Now that we are known to be opflex connected,
+         * Scehdule a timer to sweep the state we read when we first connected
+         * to VPP.
+         */
+        m_sweep_timer.reset(new deadline_timer(agent.getAgentIOService()));
+        m_sweep_timer->expires_from_now(boost::posix_time::seconds(30));
+        m_sweep_timer->async_wait(bind(&VppManager::handleSweepTimer, this, error));
     }
 
     void VppManager::handlePortStatusUpdate(const string& portName,

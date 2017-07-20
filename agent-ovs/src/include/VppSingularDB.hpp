@@ -147,7 +147,7 @@ namespace VPP
         {
             for (auto entry : m_map)
             {
-                entry.second.lock()->replay_i();
+                entry.second.lock()->replay();
             }
         }
 

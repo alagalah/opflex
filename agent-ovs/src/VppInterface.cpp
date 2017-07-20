@@ -26,6 +26,8 @@ SingularDB<const std::string, Interface> Interface::m_db;
  */
 std::map<handle_t, std::weak_ptr<Interface>> Interface::m_hdl_db;
 
+Interface::EventHandler Interface::m_evh;
+
 /**
  * Construct a new object matching the desried state
  */
@@ -135,7 +137,7 @@ void Interface::sweep()
     HW::write();
 }
 
-void Interface::replay_i()
+void Interface::replay()
 {
    if (m_hdl)
    {
@@ -310,7 +312,7 @@ void Interface::dump(std::ostream &os)
     m_db.dump(os);
 }
 
-void Interface::populate(const KEY &key)
+void Interface::EventHandler::handle_populate(const KeyDB::key_t &key)
 {
     /*
      * dump VPP current states
@@ -364,7 +366,23 @@ void Interface::populate(const KEY &key)
     }
 }
 
-void Interface::replay()
+Interface::EventHandler::EventHandler()
+{
+    OM::register_listener(this);
+    Inspect::register_handler({"interface", "intf"}, "Interfaces", this);
+}
+
+void Interface::EventHandler::handle_replay()
 {
     m_db.replay();
+}
+
+dependency_t Interface::EventHandler::order() const
+{
+    return (dependency_t::INTERFACE);
+}
+
+void Interface::EventHandler::show(std::ostream &os)
+{
+    m_db.dump(os);
 }

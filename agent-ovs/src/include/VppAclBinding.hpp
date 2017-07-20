@@ -21,6 +21,7 @@
 #include "VppAclTypes.hpp"
 #include "VppInterface.hpp"
 #include "VppAclList.hpp"
+#include "VppInspect.hpp"
 
 namespace VPP
 {
@@ -33,6 +34,11 @@ namespace VPP
         template <typename LIST, typename DETAILS>
         class Binding: public Object
         {
+        /**
+         * Dependency level 'Binding'
+         */
+        const static dependency_t dependency_value = dependency_t::BINDING;
+
         public:
             /**
              * The key for a binding is the direction and the interface
@@ -50,6 +56,7 @@ namespace VPP
                 m_acl(acl.singular()),
                 m_binding(0)
             {
+                m_evh.order();
             }
 
             /**
@@ -269,9 +276,52 @@ namespace VPP
 
         private:
             /**
-             * populate state from VPP
+             * Class definition for listeners to OM events
              */
-            static void populate(const KEY &key);
+            class EventHandler: public OM::Listener, public Inspect::CommandHandler
+            {
+            public:
+                EventHandler()
+                {
+                    OM::register_listener(this);
+                    Inspect::register_handler({"acl-binding"}, "ACL Bindings", this);
+                }
+                virtual ~EventHandler() = default;
+
+                /**
+                 * Handle a populate event
+                 */
+                void handle_populate(const KeyDB::key_t & key);
+
+                /**
+                 * Handle a replay event
+                 */
+                void handle_replay()
+                {
+                    m_db.replay();
+                }
+
+                /**
+                 * Show the object in the Singular DB
+                 */
+                void show(std::ostream &os)
+                {
+                    m_db.dump(os);
+                }
+
+                /**
+                 * Get the sortable Id of the listener
+                 */
+                dependency_t order() const
+                {
+                    return (dependency_t::BINDING);
+                }
+            };
+
+            /**
+             * EventHandler to register with OM
+             */
+            static EventHandler m_evh;
 
             /**
              * Enquue commonds to the VPP command Q for the update
@@ -304,7 +354,7 @@ namespace VPP
             friend class VPP::OM;
 
             /**
-             * It's the VPP::SingularDB class that calls replay_i()
+             * It's the VPP::SingularDB class that calls replay()
              */
             friend class VPP::SingularDB<key_t, Binding>;
 
@@ -326,7 +376,7 @@ namespace VPP
             /**
              * Replay the objects state to HW
              */
-            void replay_i(void)
+            void replay(void)
             {
                 if (m_binding)
                 {
@@ -335,14 +385,6 @@ namespace VPP
                                             m_itf->handle(),
                                             m_acl->handle()));
                 }
-            }
-
-            /**
-             * populate VPP from SingularDB, on VPP restart
-             */
-            static void replay(void)
-            {
-                m_db.replay();
             }
 
             /**
@@ -394,6 +436,8 @@ namespace VPP
         SingularDB<typename ACL::Binding<LIST, DETAILS>::key_t,
                    ACL::Binding<LIST, DETAILS>> Binding<LIST, DETAILS>::m_db;
         
+        template <typename LIST, typename DETAILS>
+        typename ACL::Binding<LIST, DETAILS>::EventHandler Binding<LIST, DETAILS>::m_evh;
     };
 
     std::ostream &operator<<(std::ostream &os,

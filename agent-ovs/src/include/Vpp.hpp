@@ -30,9 +30,42 @@
 
 namespace VPP
 {
-   /**
-    * Error codes that VPP will return during a HW write
-    */
+    /**
+     * There needs to be a strict order in which object types are read from VPP
+     *  (at boot time) and replayed to VPP (if VPP restarts). That ordering is
+     * defined in this enum types
+     */
+    enum class dependency_t
+    {
+        /**
+         * Interfaces are the root of the dependency graph
+         */
+        INTERFACE = 0,
+
+        /**
+         * Tunnel or virtual interfaces next
+         */
+        TUNNEL,
+
+        /**
+         * next bridge/route-domains in which interfaces can be placed.
+         */
+        FORWARDING_DOMAIN,
+
+        /**
+         * ACLs
+         */
+        ACL,
+
+        /**
+         * Then L2/objects that bind to interfaces, BD, ACLS, etc
+         */
+        BINDING,
+    };
+
+    /**
+     * Error codes that VPP will return during a HW write
+     */
     struct rc_t: public Enum<rc_t>
     {
         /**

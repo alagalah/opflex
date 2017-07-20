@@ -21,6 +21,7 @@
 #include "VppSingularDB.hpp"
 #include "VppInterface.hpp"
 #include "VppSubInterface.hpp"
+#include "VppInspect.hpp"
 
 extern "C"
 {
@@ -35,6 +36,11 @@ namespace VPP
     class L3Config: public Object
     {
     public:
+        /**
+         * Dependency level 'Binding'
+         */
+        const static dependency_t dependency_value = dependency_t::BINDING;
+
         /**
          * Construct a new object matching the desried state
          */
@@ -196,14 +202,44 @@ namespace VPP
 
     private:
         /**
+         * Class definition for listeners to OM events
+         */
+        class EventHandler: public OM::Listener, public Inspect::CommandHandler
+        {
+        public:
+            EventHandler();
+            virtual ~EventHandler() = default;
+
+            /**
+             * Handle a populate event
+             */
+            void handle_populate(const KeyDB::key_t & key);
+
+            /**
+             * Handle a replay event
+             */
+            void handle_replay();
+
+            /**
+             * Show the object in the Singular DB
+             */
+            void show(std::ostream &os);
+
+            /**
+             * Get the sortable Id of the listener
+             */
+            dependency_t order() const;
+        };
+
+        /**
+         * EventHandler to register with OM
+         */
+        static EventHandler m_evh;
+
+        /**
          * Enquue commonds to the VPP command Q for the update
          */
         void update(const L3Config &obj);
-
-        /**
-         * populate VPP from SingularDB, on VPP restart
-         */
-        void replay(void);
 
         /**
          * Find or add the singular instance in the DB
@@ -216,7 +252,7 @@ namespace VPP
         friend class VPP::OM;
 
         /**
-         * It's the VPP::SingularDB class that calls replay_i()
+        e* It's the VPP::SingularDB class that calls replay()
          */
         friend class VPP::SingularDB<key_type_t, L3Config>;
 
@@ -228,7 +264,7 @@ namespace VPP
         /**
          * replay the object to create it in hardware
          */
-        void replay_i(void);
+        void replay(void);
 
         /**
          * A reference counting pointer the interface that this L3 layer
