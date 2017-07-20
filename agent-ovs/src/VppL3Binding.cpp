@@ -9,19 +9,19 @@
 #include <cassert>
 #include <iostream>
 
-#include "VppL3Config.hpp"
+#include "VppL3Binding.hpp"
 #include "VppCmd.hpp"
 
 using namespace VPP;
 
-SingularDB<std::pair<Interface::key_type, Route::prefix_t>, L3Config> L3Config::m_db;
+SingularDB<std::pair<Interface::key_type, Route::prefix_t>, L3Binding> L3Binding::m_db;
 
-L3Config::EventHandler L3Config::m_evh;
+L3Binding::EventHandler L3Binding::m_evh;
 
 /**
  * Construct a new object matching the desried state
  */
-L3Config::L3Config(const Interface &itf,
+L3Binding::L3Binding(const Interface &itf,
                    const Route::prefix_t &pfx):
     m_itf(itf.singular()),
     m_pfx(pfx),
@@ -29,14 +29,14 @@ L3Config::L3Config(const Interface &itf,
 {
 }
 
-L3Config::L3Config(const L3Config& o):
+L3Binding::L3Binding(const L3Binding& o):
     m_itf(o.m_itf),
     m_pfx(o.m_pfx),
     m_binding(true)
 {
 }
 
-L3Config::~L3Config()
+L3Binding::~L3Binding()
 {
     sweep();
 
@@ -44,7 +44,7 @@ L3Config::~L3Config()
     m_db.release(make_pair(m_itf->key(), m_pfx), this);
 }
 
-void L3Config::sweep()
+void L3Binding::sweep()
 {
     if (m_binding)
     {
@@ -53,7 +53,7 @@ void L3Config::sweep()
     HW::write();
 }
 
-void L3Config::replay()
+void L3Binding::replay()
 {
     if (m_binding)
     {
@@ -61,13 +61,13 @@ void L3Config::replay()
     }
 }
 
-const Route::prefix_t& L3Config::prefix() const
+const Route::prefix_t& L3Binding::prefix() const
 {
     return (m_pfx);
 }
 
 
-std::string L3Config::to_string() const
+std::string L3Binding::to_string() const
 {
     std::ostringstream s;
     s << "L3-config:[" << m_itf->to_string()
@@ -79,7 +79,7 @@ std::string L3Config::to_string() const
     return (s.str());
 }
 
-void L3Config::update(const L3Config &desired)
+void L3Binding::update(const L3Binding &desired)
 {
     /*
      * the desired state is always that the interface should be created
@@ -90,22 +90,22 @@ void L3Config::update(const L3Config &desired)
     }
 }
 
-std::shared_ptr<L3Config> L3Config::find_or_add(const L3Config &temp)
+std::shared_ptr<L3Binding> L3Binding::find_or_add(const L3Binding &temp)
 {
     return (m_db.find_or_add(make_pair(temp.m_itf->key(), temp.m_pfx), temp));
 }
 
-std::shared_ptr<L3Config> L3Config::singular() const
+std::shared_ptr<L3Binding> L3Binding::singular() const
 {
     return find_or_add(*this);
 }
 
-void L3Config::dump(std::ostream &os)
+void L3Binding::dump(std::ostream &os)
 {
     m_db.dump(os);
 }
 
-std::ostream& VPP::operator<<(std::ostream &os, const L3Config::key_type_t &key)
+std::ostream& VPP::operator<<(std::ostream &os, const L3Binding::key_type_t &key)
 {
     os << "["
        << key.first
@@ -116,14 +116,14 @@ std::ostream& VPP::operator<<(std::ostream &os, const L3Config::key_type_t &key)
     return (os);
 }
 
-std::deque<std::shared_ptr<L3Config>> L3Config::find(const Interface &i)
+std::deque<std::shared_ptr<L3Binding>> L3Binding::find(const Interface &i)
 {
     /*
      * Loop throught the entire map looking for matching interface.
      * not the most efficient algorithm, but it will do for now. The
      * number of L3 configs is low and this is only called during bootup
      */
-    std::deque<std::shared_ptr<L3Config>> l3s;
+    std::deque<std::shared_ptr<L3Binding>> l3s;
 
     auto it = m_db.cbegin();
 
@@ -146,30 +146,30 @@ std::deque<std::shared_ptr<L3Config>> L3Config::find(const Interface &i)
     return (l3s);
 }
 
-L3Config::EventHandler::EventHandler()
+L3Binding::EventHandler::EventHandler()
 {
     OM::register_listener(this);
     Inspect::register_handler({"l3"}, "L3 Bindings", this);
 }
 
-void L3Config::EventHandler::handle_replay()
+void L3Binding::EventHandler::handle_replay()
 {
     m_db.replay();
 }
 
-void L3Config::EventHandler::handle_populate(const KeyDB::key_t &key)
+void L3Binding::EventHandler::handle_populate(const KeyDB::key_t &key)
 {
     /**
      * This is done while populating the interfaces
      */
 }
 
-dependency_t L3Config::EventHandler::order() const
+dependency_t L3Binding::EventHandler::order() const
 {
     return (dependency_t::BINDING);
 }
 
-void L3Config::EventHandler::show(std::ostream &os)
+void L3Binding::EventHandler::show(std::ostream &os)
 {
     m_db.dump(os);
 }

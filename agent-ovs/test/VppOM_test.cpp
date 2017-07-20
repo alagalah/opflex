@@ -17,8 +17,8 @@
 #include "logging.h"
 #include "VppOM.hpp"
 #include "VppInterface.hpp"
-#include "VppL2Config.hpp"
-#include "VppL3Config.hpp"
+#include "VppL2Binding.hpp"
+#include "VppL3Binding.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppRouteDomain.hpp"
 #include "VppVxlanTunnel.hpp"
@@ -121,13 +121,13 @@ public:
             {
                 rc = handle_derived<Interface::SetTag>(f_exp, f_act);
             }
-            else if (typeid(*f_exp) == typeid(L3Config::BindCmd))
+            else if (typeid(*f_exp) == typeid(L3Binding::BindCmd))
             {
-                rc = handle_derived<L3Config::BindCmd>(f_exp, f_act);
+                rc = handle_derived<L3Binding::BindCmd>(f_exp, f_act);
             }
-            else if (typeid(*f_exp) == typeid(L3Config::UnbindCmd))
+            else if (typeid(*f_exp) == typeid(L3Binding::UnbindCmd))
             {
-                rc = handle_derived<L3Config::UnbindCmd>(f_exp, f_act);
+                rc = handle_derived<L3Binding::UnbindCmd>(f_exp, f_act);
             }
             else if (typeid(*f_exp) == typeid(BridgeDomain::CreateCmd))
             {
@@ -137,13 +137,13 @@ public:
             {
                 rc = handle_derived<BridgeDomain::DeleteCmd>(f_exp, f_act);
             }
-            else if (typeid(*f_exp) == typeid(L2Config::BindCmd))
+            else if (typeid(*f_exp) == typeid(L2Binding::BindCmd))
             {
-                rc = handle_derived<L2Config::BindCmd>(f_exp, f_act);
+                rc = handle_derived<L2Binding::BindCmd>(f_exp, f_act);
             }
-            else if (typeid(*f_exp) == typeid(L2Config::UnbindCmd))
+            else if (typeid(*f_exp) == typeid(L2Binding::UnbindCmd))
             {
-                rc = handle_derived<L2Config::UnbindCmd>(f_exp, f_act);
+                rc = handle_derived<L2Binding::UnbindCmd>(f_exp, f_act);
             }
             else if (typeid(*f_exp) == typeid(VxlanTunnel::CreateCmd))
             {
@@ -411,7 +411,7 @@ BOOST_AUTO_TEST_CASE(bvi) {
     const std::string ernest = "ErnestHemmingway";
     const std::string graham = "GrahamGreene";
     rc_t rc = rc_t::OK;
-    L3Config *l3;
+    L3Binding *l3;
 
     HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP,
                                                 rc_t::OK);
@@ -435,14 +435,14 @@ BOOST_AUTO_TEST_CASE(bvi) {
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
     TRY_CHECK_RC(OM::write(ernest, itf));
 
-    l3 = new L3Config(itf, pfx_10);
+    l3 = new L3Binding(itf, pfx_10);
     HW::Item<bool> hw_l3_bind(true, rc_t::OK);
     HW::Item<bool> hw_l3_unbind(false, rc_t::OK);
-    ADD_EXPECT(L3Config::BindCmd(hw_l3_bind, hw_ifh.data(), pfx_10));
+    ADD_EXPECT(L3Binding::BindCmd(hw_l3_bind, hw_ifh.data(), pfx_10));
     TRY_CHECK_RC(OM::write(ernest, *l3));
 
     delete l3;
-    ADD_EXPECT(L3Config::UnbindCmd(hw_l3_unbind, hw_ifh.data(), pfx_10));
+    ADD_EXPECT(L3Binding::UnbindCmd(hw_l3_unbind, hw_ifh.data(), pfx_10));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
     ADD_EXPECT(Interface::LoopbackDeleteCmd(hw_ifh));
     TRY_CHECK(OM::remove(ernest));
@@ -470,13 +470,13 @@ BOOST_AUTO_TEST_CASE(bvi) {
 
     TRY_CHECK_RC(OM::write(graham, itf2));
 
-    l3 = new L3Config(itf2, pfx_10);
-    ADD_EXPECT(L3Config::BindCmd(hw_l3_bind, hw_ifh2.data(), pfx_10));
+    l3 = new L3Binding(itf2, pfx_10);
+    ADD_EXPECT(L3Binding::BindCmd(hw_l3_bind, hw_ifh2.data(), pfx_10));
     TRY_CHECK_RC(OM::write(graham, *l3));
 
     delete l3;
 
-    ADD_EXPECT(L3Config::UnbindCmd(hw_l3_unbind, hw_ifh2.data(), pfx_10));
+    ADD_EXPECT(L3Binding::UnbindCmd(hw_l3_unbind, hw_ifh2.data(), pfx_10));
     ADD_EXPECT(Interface::SetTableCmd(hw_rd_unbind, hw_ifh2));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
     ADD_EXPECT(Interface::LoopbackDeleteCmd(hw_ifh2));
@@ -518,10 +518,10 @@ BOOST_AUTO_TEST_CASE(bridge) {
     // L2-interface create and bind
     // this needs to be delete'd before the flush below, since it too maintains
     // references to the BD and Interface
-    L2Config *l2itf = new L2Config(itf1, bd1);
+    L2Binding *l2itf = new L2Binding(itf1, bd1);
     HW::Item<bool> hw_l2_bind(true, rc_t::OK);
 
-    ADD_EXPECT(L2Config::BindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Binding::BindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
     TRY_CHECK_RC(OM::write(franz, *l2itf));
 
     /*
@@ -540,16 +540,16 @@ BOOST_AUTO_TEST_CASE(bridge) {
     // BD add is a no-op since it exists
     TRY_CHECK_RC(OM::write(dante, bd1));
 
-    L2Config *l2itf2 = new L2Config(itf2, bd1);
+    L2Binding *l2itf2 = new L2Binding(itf2, bd1);
 
-    ADD_EXPECT(L2Config::BindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Binding::BindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
     TRY_CHECK_RC(OM::write(dante, *l2itf2));
 
     // flush Franz's state
     delete l2itf;
     HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN,
                                                   rc_t::OK);
-    ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Binding::UnbindCmd(hw_l2_bind, hw_ifh.data(), hw_bd.data(), false));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
     ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
     TRY_CHECK(OM::remove(franz));
@@ -557,10 +557,10 @@ BOOST_AUTO_TEST_CASE(bridge) {
     // flush Dante's state - the order the interface and BD are deleted
     // is an uncontrollable artifact of the C++ object destruction.
     delete l2itf2;
-    ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
-    ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
+    ADD_EXPECT(L2Binding::UnbindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
     ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2, itf1_name));
+    ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
     TRY_CHECK(OM::remove(dante));
 }
 
@@ -596,16 +596,16 @@ BOOST_AUTO_TEST_CASE(vxlan) {
     // L2-interface create and bind
     // this needs to be delete'd before the flush below, since it too maintains
     // references to the BD and Interface
-    L2Config *l2itf = new L2Config(vxt, bd1);
+    L2Binding *l2itf = new L2Binding(vxt, bd1);
     HW::Item<bool> hw_l2_bind(true, rc_t::OK);
 
-    ADD_EXPECT(L2Config::BindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Binding::BindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
     TRY_CHECK_RC(OM::write(franz, *l2itf));
 
     // flush Franz's state
     delete l2itf;
     HW::Item<handle_t> hw_vxtdel(3, rc_t::NOOP);
-    ADD_EXPECT(L2Config::UnbindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
+    ADD_EXPECT(L2Binding::UnbindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
     ADD_EXPECT(VxlanTunnel::DeleteCmd(hw_vxtdel, ep));
     TRY_CHECK(OM::remove(franz));
@@ -727,9 +727,9 @@ BOOST_AUTO_TEST_CASE(acl) {
                                                   rc_t::OK);
     ADD_EXPECT(ACL::L3Binding::UnbindCmd(hw_binding, ACL::direction_t::INPUT,
                                          hw_ifh.data(), hw_acl.data()));
+    ADD_EXPECT(ACL::L3List::DeleteCmd(hw_acl));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
     ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
-    ADD_EXPECT(ACL::L3List::DeleteCmd(hw_acl));
 
     TRY_CHECK(OM::remove(fyodor));
 }

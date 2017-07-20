@@ -219,10 +219,10 @@ if RENDERER_VPP
 	src/VppInterfaceFactory.cpp \
 	src/VppInterfaceCmds.cpp \
 	src/VppInterfaceTypes.cpp \
-	src/VppL2Config.cpp \
-	src/VppL2ConfigCmds.cpp \
-	src/VppL3Config.cpp \
-	src/VppL3ConfigCmds.cpp \
+	src/VppL2Binding.cpp \
+	src/VppL2BindingCmds.cpp \
+	src/VppL3Binding.cpp \
+	src/VppL3BindingCmds.cpp \
 	src/VppDhcpConfig.cpp \
 	src/VppDhcpConfigCmds.cpp \
         src/VppTapInterface.cpp \

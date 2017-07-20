@@ -36,8 +36,8 @@
 #include "Packets.h"
 #include "VppOM.hpp"
 #include "VppInterface.hpp"
-#include "VppL2Config.hpp"
-#include "VppL3Config.hpp"
+#include "VppL2Binding.hpp"
+#include "VppL3Binding.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppInterface.hpp"
 #include "VppDhcpConfig.hpp"
@@ -508,7 +508,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             return;
         }
 
-        VPP::L2Config l2itf(itf, bd);
+        VPP::L2Binding l2itf(itf, bd);
 
         if (VPP::rc_t::OK != VPP::OM::write(uuid, l2itf))
         {
@@ -576,7 +576,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         /*
          * Add the encap-link to the BD
          */
-        VPP::L2Config l2(*encap_link, bd);
+        VPP::L2Binding l2(*encap_link, bd);
         VPP::OM::write(epg_uuid, l2);
 
         /*
@@ -611,7 +611,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                            rd);
         VPP::OM::write(epg_uuid, bvi);
 
-        VPP::L2Config l2(bvi, bd);
+        VPP::L2Binding l2(bvi, bd);
         VPP::OM::write(epg_uuid, l2);
 
         for (shared_ptr<Subnet>& sn : subnets)
@@ -623,7 +623,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             {
                 VPP::Route::prefix_t pfx(routerIp.get(), sn->getPrefixLen().get());
 
-                VPP::L3Config l3(bvi, pfx);
+                VPP::L3Binding l3(bvi, pfx);
                 VPP::OM::write(epg_uuid, l3);
             }
         }

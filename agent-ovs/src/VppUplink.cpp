@@ -10,7 +10,7 @@
 #include "VppUplink.hpp"
 #include "VppInterface.hpp"
 #include "VppSubInterface.hpp"
-#include "VppL3Config.hpp"
+#include "VppL3Binding.hpp"
 
 using namespace VPP;
 
@@ -72,7 +72,7 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
     SubInterface subitf(*m_uplink,
                         Interface::admin_state_t::UP,
                         m_vlan);
-    L3Config l3(subitf, pfx);
+    L3Binding l3(subitf, pfx);
     OM::commit(UPLINK_KEY, l3);
 
     /*
@@ -118,14 +118,14 @@ void Uplink::configure()
      * in VPP and we won't get notified. So let's cehck here if there alreay
      * exists an L3 config on the interface
      */
-    std::deque<std::shared_ptr<L3Config>> l3s = L3Config::find(itf);
+    std::deque<std::shared_ptr<L3Binding>> l3s = L3Binding::find(itf);
 
     if (l3s.size())
     {
         /*
          * there should only be one. we'll pick the first
          */
-        std::shared_ptr<L3Config> l3 = l3s.front();
+        std::shared_ptr<L3Binding> l3 = l3s.front();
 
         /*
          * Claim ownership.

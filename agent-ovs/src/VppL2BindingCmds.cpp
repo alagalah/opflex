@@ -8,11 +8,11 @@
 
 #include <iostream>
 
-#include "VppL2Config.hpp"
+#include "VppL2Binding.hpp"
 
 using namespace VPP;
 
-L2Config::BindCmd::BindCmd(HW::Item<bool> &item,
+L2Binding::BindCmd::BindCmd(HW::Item<bool> &item,
                            const handle_t &itf,
                            uint32_t bd,
                            bool is_bvi):
@@ -23,14 +23,14 @@ L2Config::BindCmd::BindCmd(HW::Item<bool> &item,
 {
 }
 
-bool L2Config::BindCmd::operator==(const BindCmd& other) const
+bool L2Binding::BindCmd::operator==(const BindCmd& other) const
 {
     return ((m_itf == other.m_itf) &&
             (m_bd == other.m_bd) &&
             (m_is_bvi == other.m_is_bvi));
 }
 
-rc_t L2Config::BindCmd::issue(Connection &con)
+rc_t L2Binding::BindCmd::issue(Connection &con)
 {
     vapi_msg_sw_interface_set_l2_bridge* req;
     
@@ -53,7 +53,7 @@ rc_t L2Config::BindCmd::issue(Connection &con)
     return (rc_t::OK);
 }
 
-std::string L2Config::BindCmd::to_string() const
+std::string L2Binding::BindCmd::to_string() const
 {
     std::ostringstream s;
     s << "L2-config-BD-bind: " << m_hw_item.to_string()
@@ -63,7 +63,7 @@ std::string L2Config::BindCmd::to_string() const
     return (s.str());
 }
 
-L2Config::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
+L2Binding::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
                                const handle_t &itf,
                                uint32_t bd,
                                bool is_bvi):
@@ -74,14 +74,14 @@ L2Config::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
 {
 }
 
-bool L2Config::UnbindCmd::operator==(const UnbindCmd& other) const
+bool L2Binding::UnbindCmd::operator==(const UnbindCmd& other) const
 {
     return ((m_itf == other.m_itf) &&
             (m_bd == other.m_bd) &&
             (m_is_bvi == other.m_is_bvi));
 }
 
-rc_t L2Config::UnbindCmd::issue(Connection &con)
+rc_t L2Binding::UnbindCmd::issue(Connection &con)
 {
     vapi_msg_sw_interface_set_l2_bridge* req;
 
@@ -105,7 +105,7 @@ rc_t L2Config::UnbindCmd::issue(Connection &con)
     return (rc_t::OK);
 }
 
-std::string L2Config::UnbindCmd::to_string() const
+std::string L2Binding::UnbindCmd::to_string() const
 {
     std::ostringstream s;
     s << "L2-config-BD-unbind: " << m_hw_item.to_string()

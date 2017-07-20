@@ -10,7 +10,7 @@
 #include <iostream>
 
 #include "VppInterface.hpp"
-#include "VppL2Config.hpp"
+#include "VppL2Binding.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppCmd.hpp"
 
@@ -127,13 +127,13 @@ void BridgeDomain::EventHandler::handle_populate(const KeyDB::key_t &key)
         VPP::OM::commit(key, bd);
 
         /**
-         * For each interface in the BD construct an L2Config
+         * For each interface in the BD construct an L2Binding
          */
         for (int ii = 0; ii < record->n_sw_ifs; ii++)
         {
             std::shared_ptr<Interface> itf =
                 Interface::find(record->sw_if_details[ii].sw_if_index);
-            L2Config l2(*itf, bd);
+            L2Binding l2(*itf, bd);
             OM::commit(key, l2);
         }
 
