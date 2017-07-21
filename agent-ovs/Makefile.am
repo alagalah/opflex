@@ -216,15 +216,18 @@ endif
 
 if RENDERER_VPP
   libagent_ovs_la_SOURCES += \
+	src/Vpp.cpp \
+	src/VppHW.cpp \
+	src/VppOM.cpp \
 	src/VppRenderer.cpp \
 	src/VppConnection.cpp \
 	src/VppUplink.cpp \
 	src/VppObject.cpp \
 	src/VppCmd.cpp \
+	src/VppInterfaceTypes.cpp \
 	src/VppInterface.cpp \
 	src/VppInterfaceFactory.cpp \
 	src/VppInterfaceCmds.cpp \
-	src/VppInterfaceTypes.cpp \
 	src/VppL2Binding.cpp \
 	src/VppL2BindingCmds.cpp \
 	src/VppL3Binding.cpp \
@@ -252,9 +255,6 @@ if RENDERER_VPP
 	src/VppAclBindingCmds.cpp \
 	src/VppManager.cpp \
 	src/VppInspect.cpp \
-	src/VppHW.cpp \
-	src/Vpp.cpp \
-	src/VppOM.cpp \
 	src/VppKeyDB.cpp \
 	src/VppRoute.cpp
 endif

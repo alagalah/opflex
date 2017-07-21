@@ -12,7 +12,7 @@
 #include <boost/assign/list_inserter.hpp>
 
 #include <iostream>
-#include <queue>
+#include <deque>
 
 #include "logging.h"
 #include "VppOM.hpp"
@@ -46,7 +46,8 @@ public:
 class MockCmdQ : public HW::CmdQ
 {
 public:
-    MockCmdQ()
+    MockCmdQ():
+        m_strict_order(true)
     {
     }
     ~MockCmdQ()
@@ -54,19 +55,24 @@ public:
     }
     void expect(Cmd *f)
     {
-        m_exp_queue.push(f);
+        m_exp_queue.push_back(f);
     }
     void enqueue(Cmd *f)
     {
-        m_act_queue.push(f);
+        m_act_queue.push_back(f);
     }
     void enqueue(std::queue<Cmd*> &cmds)
     {
         while (cmds.size())
         {
-            m_act_queue.push(cmds.front());
+            m_act_queue.push_back(cmds.front());
             cmds.pop();
         }
+    }
+
+    void strict_order(bool on)
+    {
+        m_strict_order = on;
     }
 
     bool is_empty()
@@ -82,137 +88,165 @@ public:
 
         while (m_act_queue.size())
         {
-            f_exp = m_exp_queue.front();
-            f_act = m_act_queue.front();
+            auto it_exp = m_exp_queue.begin();
+            auto it_act = m_act_queue.begin();
 
-            std::cout << " Exp: " << f_exp->to_string() << std::endl;
-            std::cout << "  Act: " << f_act->to_string() << std::endl;
+            f_act = *it_act;
 
-            if (typeid(*f_exp) != typeid(*f_act))
+            std::cout << " Act: " << f_act->to_string() << std::endl;
+            while (it_exp != m_exp_queue.end())
             {
+                f_exp = *it_exp;
+                try
+                {
+                    std::cout << "  Exp: " << f_exp->to_string() << std::endl;
+
+                    if (typeid(*f_exp) != typeid(*f_act))
+                    {
+                        throw ExpException();
+                    }
+
+                    if (typeid(*f_exp) == typeid(Interface::AFPacketCreateCmd))
+                    {
+                        rc = handle_derived<Interface::AFPacketCreateCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(Interface::LoopbackCreateCmd))
+                    {
+                        rc = handle_derived<Interface::LoopbackCreateCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(Interface::LoopbackDeleteCmd))
+                    {
+                        rc = handle_derived<Interface::LoopbackDeleteCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(Interface::AFPacketDeleteCmd))
+                    {
+                        rc = handle_derived<Interface::AFPacketDeleteCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(Interface::StateChangeCmd))
+                    {
+                        rc = handle_derived<Interface::StateChangeCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(Interface::SetTableCmd))
+                    {
+                        rc = handle_derived<Interface::SetTableCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(Interface::SetTag))
+                    {
+                        rc = handle_derived<Interface::SetTag>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(L3Binding::BindCmd))
+                    {
+                        rc = handle_derived<L3Binding::BindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(L3Binding::UnbindCmd))
+                    {
+                        rc = handle_derived<L3Binding::UnbindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(BridgeDomain::CreateCmd))
+                    {
+                        rc = handle_derived<BridgeDomain::CreateCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(BridgeDomain::DeleteCmd))
+                    {
+                        rc = handle_derived<BridgeDomain::DeleteCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(L2Binding::BindCmd))
+                    {
+                        rc = handle_derived<L2Binding::BindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(L2Binding::UnbindCmd))
+                    {
+                        rc = handle_derived<L2Binding::UnbindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(VxlanTunnel::CreateCmd))
+                    {
+                        rc = handle_derived<VxlanTunnel::CreateCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(VxlanTunnel::DeleteCmd))
+                    {
+                        rc = handle_derived<VxlanTunnel::DeleteCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(SubInterface::CreateCmd))
+                    {
+                        rc = handle_derived<SubInterface::CreateCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(SubInterface::DeleteCmd))
+                    {
+                        rc = handle_derived<SubInterface::DeleteCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ACL::L3List::UpdateCmd))
+                    {
+                        rc = handle_derived<ACL::L3List::UpdateCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ACL::L3List::DeleteCmd))
+                    {
+                        rc = handle_derived<ACL::L3List::DeleteCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ACL::L3Binding::BindCmd))
+                    {
+                        rc = handle_derived<ACL::L3Binding::BindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ACL::L3Binding::UnbindCmd))
+                    {
+                        rc = handle_derived<ACL::L3Binding::UnbindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ACL::L2List::UpdateCmd))
+                    {
+                        rc = handle_derived<ACL::L2List::UpdateCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ACL::L2List::DeleteCmd))
+                    {
+                        rc = handle_derived<ACL::L2List::DeleteCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ACL::L2Binding::BindCmd))
+                    {
+                        rc = handle_derived<ACL::L2Binding::BindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ACL::L2Binding::UnbindCmd))
+                    {
+                        rc = handle_derived<ACL::L2Binding::UnbindCmd>(f_exp, f_act);
+                    }
+                    else
+                    {
+                        throw ExpException();
+                    }
+
+                    // if we get here then we found the match.
+                    m_exp_queue.erase(it_exp);
+                    m_act_queue.erase(it_act);
+                    delete f_exp;
+                    delete f_act;
+
+                    // return any injected failures to the agent
+                    if (rc_t::OK != rc)
+                    {
+                        return (rc);
+                    }
+
+                    ++it_act;
+                    ++it_exp;
+
+                    break;
+                }
+                catch (ExpException &e)
+                {
+                    // The expected and actual do not match
+                    if (m_strict_order)
+                    {
+                        // in strict ordering mode this is fatal, so rethrow
+                        throw e;
+                    }
+                    else
+                    {
+                        // move the interator onto the next in the expected list and
+                        // check for a match
+                        ++it_exp;
+                    }
+                }
+            }
+            // got to the end of the expected queue => no match
+            if (it_exp == m_exp_queue.end())
                 throw ExpException();
-            }
-
-            if (typeid(*f_exp) == typeid(Interface::AFPacketCreateCmd))
-            {
-                rc = handle_derived<Interface::AFPacketCreateCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(Interface::LoopbackCreateCmd))
-            {
-                rc = handle_derived<Interface::LoopbackCreateCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(Interface::LoopbackDeleteCmd))
-            {
-                rc = handle_derived<Interface::LoopbackDeleteCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(Interface::AFPacketDeleteCmd))
-            {
-                rc = handle_derived<Interface::AFPacketDeleteCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(Interface::StateChangeCmd))
-            {
-                rc = handle_derived<Interface::StateChangeCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(Interface::SetTableCmd))
-            {
-                rc = handle_derived<Interface::SetTableCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(Interface::SetTag))
-            {
-                rc = handle_derived<Interface::SetTag>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(L3Binding::BindCmd))
-            {
-                rc = handle_derived<L3Binding::BindCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(L3Binding::UnbindCmd))
-            {
-                rc = handle_derived<L3Binding::UnbindCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(BridgeDomain::CreateCmd))
-            {
-                rc = handle_derived<BridgeDomain::CreateCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(BridgeDomain::DeleteCmd))
-            {
-                rc = handle_derived<BridgeDomain::DeleteCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(L2Binding::BindCmd))
-            {
-                rc = handle_derived<L2Binding::BindCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(L2Binding::UnbindCmd))
-            {
-                rc = handle_derived<L2Binding::UnbindCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(VxlanTunnel::CreateCmd))
-            {
-                rc = handle_derived<VxlanTunnel::CreateCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(VxlanTunnel::DeleteCmd))
-            {
-                rc = handle_derived<VxlanTunnel::DeleteCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(SubInterface::CreateCmd))
-            {
-                rc = handle_derived<SubInterface::CreateCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(SubInterface::DeleteCmd))
-            {
-                rc = handle_derived<SubInterface::DeleteCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(ACL::L3List::UpdateCmd))
-            {
-                rc = handle_derived<ACL::L3List::UpdateCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(ACL::L3List::DeleteCmd))
-            {
-                rc = handle_derived<ACL::L3List::DeleteCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(ACL::L3Binding::BindCmd))
-            {
-                rc = handle_derived<ACL::L3Binding::BindCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(ACL::L3Binding::UnbindCmd))
-            {
-                rc = handle_derived<ACL::L3Binding::UnbindCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(ACL::L2List::UpdateCmd))
-            {
-                rc = handle_derived<ACL::L2List::UpdateCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(ACL::L2List::DeleteCmd))
-            {
-                rc = handle_derived<ACL::L2List::DeleteCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(ACL::L2Binding::BindCmd))
-            {
-                rc = handle_derived<ACL::L2Binding::BindCmd>(f_exp, f_act);
-            }
-            else if (typeid(*f_exp) == typeid(ACL::L2Binding::UnbindCmd))
-            {
-                rc = handle_derived<ACL::L2Binding::UnbindCmd>(f_exp, f_act);
-            }
-            else
-            {
-                throw ExpException();
-            }
-
-            m_exp_queue.pop();
-            m_act_queue.pop();
-            delete f_exp;
-            delete f_act;
-
-            // return any injected failures to the agent
-            if (rc_t::OK != rc)
-            {
-                return (rc);
-            }
-        }
-
-        if (m_act_queue.size())
-        {
-            throw ExpException();
         }
 
         return (rc);
@@ -238,10 +272,13 @@ private:
     }
 
     // The Q to push the expectations on
-    std::queue<Cmd*> m_exp_queue;
+    std::deque<Cmd*> m_exp_queue;
 
     // the queue to push the actual events on
-    std::queue<Cmd*> m_act_queue;
+    std::deque<Cmd*> m_act_queue;
+
+    // control whether the expected queue is strictly ordered.
+    bool m_strict_order;
 };
 
 class VppInit {
@@ -290,6 +327,9 @@ BOOST_AUTO_TEST_SUITE(VppOM_test)
 
 #define ADD_EXPECT(stmt)                      \
     vi.f->expect(new stmt)
+
+#define STRICT_ORDER_OFF()                        \
+    vi.f->strict_order(false)
 
 BOOST_AUTO_TEST_CASE(interface) {
     VppInit vi;
@@ -557,6 +597,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
     // flush Dante's state - the order the interface and BD are deleted
     // is an uncontrollable artifact of the C++ object destruction.
     delete l2itf2;
+    STRICT_ORDER_OFF();
     ADD_EXPECT(L2Binding::UnbindCmd(hw_l2_bind, hw_ifh2.data(), hw_bd.data(), false));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
     ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2, itf1_name));
@@ -605,6 +646,7 @@ BOOST_AUTO_TEST_CASE(vxlan) {
     // flush Franz's state
     delete l2itf;
     HW::Item<handle_t> hw_vxtdel(3, rc_t::NOOP);
+    STRICT_ORDER_OFF();
     ADD_EXPECT(L2Binding::UnbindCmd(hw_l2_bind, hw_vxt.data(), hw_bd.data(), false));
     ADD_EXPECT(BridgeDomain::DeleteCmd(hw_bd));
     ADD_EXPECT(VxlanTunnel::DeleteCmd(hw_vxtdel, ep));
@@ -725,6 +767,7 @@ BOOST_AUTO_TEST_CASE(acl) {
     delete l3b;
     HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN,
                                                   rc_t::OK);
+    STRICT_ORDER_OFF();
     ADD_EXPECT(ACL::L3Binding::UnbindCmd(hw_binding, ACL::direction_t::INPUT,
                                          hw_ifh.data(), hw_acl.data()));
     ADD_EXPECT(ACL::L3List::DeleteCmd(hw_acl));
