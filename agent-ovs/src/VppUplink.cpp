@@ -83,7 +83,7 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
     m_vxlan.src = pfx.address();
 }
 
-void Uplink::configure()
+void Uplink::configure(const std::string &hostName)
 {
     /*
      * Consruct the uplink physical, so we now 'own' it
@@ -101,7 +101,7 @@ void Uplink::configure()
     /**
      * Enable LLDP on this uplionk
      */
-    LldpGlobal lg("agent-opflex", 5, 2);
+    LldpGlobal lg(hostName, 5, 2);
     OM::write(UPLINK_KEY, lg);
     LldpConfig lc(*m_uplink, "uplink-interface");
     OM::write(UPLINK_KEY, lc);
@@ -119,7 +119,7 @@ void Uplink::configure()
      * Configure DHCP on the uplink subinterface
      * We must use the MAC address of the uplink interface as the DHCP client-ID
      */
-    DhcpConfig dc(subitf, "agent-opflex",
+    DhcpConfig dc(subitf, hostName,
                   m_uplink->l2_address().bytes);
     OM::write(UPLINK_KEY, dc);
 

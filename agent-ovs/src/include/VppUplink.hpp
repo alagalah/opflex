@@ -72,7 +72,7 @@ namespace VPP
         /**
          * make the control channel/interfaces
          */
-        void configure();
+        void configure(const std::string &hostName);
 
         /**
          * Handle notifications about DHCP complete

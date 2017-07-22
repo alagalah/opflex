@@ -17,6 +17,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/asio/placeholders.hpp>
+#include <boost/asio/ip/host_name.hpp>
 
 #include <netinet/icmp6.h>
 
@@ -172,7 +173,7 @@ namespace ovsagent {
 
     void VppManager::handleUplinkConfigure()
     {
-        m_uplink.configure();
+        m_uplink.configure(boost::asio::ip::host_name());
     }
 
     void VppManager::handleSweepTimer(const boost::system::error_code& ec)
