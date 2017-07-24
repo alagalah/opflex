@@ -7,6 +7,7 @@
  */
 
 #include <sstream>
+#include <iomanip>
 #include <algorithm>
 
 #include "Vpp.hpp"
@@ -112,11 +113,16 @@ void mac_address_t::to_bytes(uint8_t *array, uint8_t len) const
 std::string mac_address_t::to_string() const
 {
     std::ostringstream s;
+    bool first = true;
 
+    s.fill('0');
+    s << std::hex;
     s << "mac:[";
     for (auto byte : bytes)
     {
-        s << std::to_string(byte) << ",";
+        if (first) first = false;
+        else s << ":";
+        s << std::setw(2) << static_cast<unsigned int>(byte);
     }
     s << "]";
 
@@ -170,13 +176,16 @@ mac_address_t l2_address_t::to_mac() const
 std::string l2_address_t::to_string() const
 {
     std::ostringstream s;
+    bool first = true;
 
-    s << "l2:[";
+    s.fill('0');
+    s << std::hex;
     for (auto byte : bytes)
     {
-        s << std::to_string(byte) << ",";
+        if (first) first = false;
+        else s << ":";
+        s << std::setw(2) << static_cast<unsigned int>(byte);
     }
-    s << "]";
 
     return (s.str());
 }

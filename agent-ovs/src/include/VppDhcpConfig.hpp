@@ -53,7 +53,7 @@ namespace VPP
          */
         DhcpConfig(const Interface &itf,
                    const std::string &hostname,
-                   const std::vector<uint8_t> &client_id);
+                   const std::string &client_id);
         /**
          * Copy Constructor
          */
@@ -91,7 +91,7 @@ namespace VPP
             BindCmd(HW::Item<bool> &item,
                     const handle_t &itf,
                     const std::string &hostname,
-                    const std::vector<uint8_t> &client_id);
+                    const std::string &client_id);
 
             /**
              * Issue the command to VPP/HW
@@ -120,7 +120,7 @@ namespace VPP
             /**
              * The DHCP client's ID
              */
-            const std::vector<uint8_t> m_client_id;
+            const std::string m_client_id;
         };
 
         /**
@@ -318,7 +318,7 @@ namespace VPP
         /**
          * The option-61 client_id in the DHCP configuration
          */
-        const std::vector<uint8_t> m_client_id;
+        const std::string m_client_id;
 
         /**
          * HW configuration for the binding. The bool representing the

@@ -120,7 +120,7 @@ void Uplink::configure(const std::string &hostName)
      * We must use the MAC address of the uplink interface as the DHCP client-ID
      */
     DhcpConfig dc(subitf, hostName,
-                  m_uplink->l2_address().bytes);
+                  "01:" + m_uplink->l2_address().to_string());
     OM::write(UPLINK_KEY, dc);
 
     /**
