@@ -31,7 +31,7 @@ DhcpConfig::DhcpConfig(const Interface &itf,
 
 DhcpConfig::DhcpConfig(const Interface &itf,
                        const std::string &hostname,
-                       const std::vector<uint8_t> &client_id):
+                       const std::string &client_id):
     m_itf(itf.singular()),
     m_hostname(hostname),
     m_client_id(client_id),
@@ -82,14 +82,8 @@ std::string DhcpConfig::to_string() const
     std::ostringstream s;
     s << "Dhcp-config: " << m_itf->to_string()
       << " hostname:" << m_hostname
-      << " client_id:[";
-
-    for (auto byte : m_client_id)
-    {
-        s << std::to_string(byte) << ",";
-    }
-
-    s << "] "
+      << " client_id:[" << m_client_id
+      << "] "
       << m_binding.to_string();
 
     return (s.str());

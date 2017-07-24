@@ -18,7 +18,7 @@ using namespace VPP;
 DhcpConfig::BindCmd::BindCmd(HW::Item<bool> &item,
                              const handle_t &itf,
                              const std::string &hostname,
-                             const std::vector<uint8_t> &client_id):
+                             const std::string &client_id):
     RpcCmd(item),
     m_itf(itf),
     m_hostname(hostname),
