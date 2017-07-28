@@ -26,6 +26,12 @@ namespace VPP
         TapInterface(const std::string &name,
                      admin_state_t state,
                      Route::prefix_t prefix);
+
+        TapInterface(const std::string &name,
+                     admin_state_t state,
+                     Route::prefix_t prefix,
+                     const l2_address_t &l2_address);
+
         ~TapInterface();
         TapInterface(const TapInterface& o);
 
@@ -43,7 +49,8 @@ namespace VPP
         public:
             CreateCmd(HW::Item<handle_t> &item,
                       const std::string &name,
-                      Route::prefix_t &prefix);
+                      Route::prefix_t &prefix,
+                      const l2_address_t &l2_address);
 
             /**
              * Issue the command to VPP/HW
@@ -61,6 +68,7 @@ namespace VPP
         private:
             const std::string &m_name;
             Route::prefix_t &m_prefix;
+            const l2_address_t &m_l2_address;
         };
 
         /**
@@ -95,6 +103,7 @@ namespace VPP
                      admin_state_t state,
                      Route::prefix_t prefix);
 
+        l2_address_t m_l2_address;
         /**
          * Interface is a friend so it can construct with handles
          */

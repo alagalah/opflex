@@ -27,7 +27,18 @@ TapInterface::TapInterface(const std::string &name,
                            admin_state_t state,
                            Route::prefix_t prefix):
     Interface(name, type_t::TAP, state),
-    m_prefix(prefix)
+    m_prefix(prefix),
+    m_l2_address(l2_address_t::ZERO)
+{
+}
+
+TapInterface::TapInterface(const std::string &name,
+                           admin_state_t state,
+                           Route::prefix_t prefix,
+                           const l2_address_t &l2_address):
+    Interface(name, type_t::TAP, state),
+    m_prefix(prefix),
+    m_l2_address(l2_address)
 {
 }
 
@@ -36,7 +47,8 @@ TapInterface::TapInterface(const handle_t &hdl,
                            admin_state_t state,
                            Route::prefix_t prefix):
     Interface(hdl, l2_address_t::ZERO, name, type_t::TAP, state),
-    m_prefix(prefix)
+    m_prefix(prefix),
+    m_l2_address(l2_address_t::ZERO)
 {
 }
 
@@ -48,13 +60,14 @@ TapInterface::~TapInterface()
 
 TapInterface::TapInterface(const TapInterface& o):
     Interface(o),
-    m_prefix(o.m_prefix)
+    m_prefix(o.m_prefix),
+    m_l2_address(o.m_l2_address)
 {
 }
 
 std::queue<Cmd*> &  TapInterface::mk_create_cmd(std::queue<Cmd*> &q)
 {
-    q.push(new CreateCmd(m_hdl, name(), m_prefix));
+    q.push(new CreateCmd(m_hdl, name(), m_prefix, m_l2_address));
 
     return (q);
 }
@@ -78,10 +91,12 @@ std::shared_ptr<Interface> TapInterface::singular_i() const
 
 TapInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
                                        const std::string &name,
-                                       Route::prefix_t &prefix):
+                                       Route::prefix_t &prefix,
+                                       const l2_address_t &l2_address):
     RpcCmd(item),
     m_name(name),
-    m_prefix(prefix)
+    m_prefix(prefix),
+    m_l2_address(l2_address)
 {
 }
 
@@ -106,6 +121,10 @@ rc_t TapInterface::CreateCmd::issue(Connection &con)
                  &req->payload.ip4_mask_width);
            req->payload.ip4_address_set = 1;
        }
+    }
+
+    if (m_l2_address != l2_address_t::ZERO) {
+       m_l2_address.to_bytes(req->payload.mac_address, 6);
     }
 
     VAPI_CALL(vapi_tap_connect(con.ctx(), req,
