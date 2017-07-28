@@ -42,6 +42,15 @@ TapInterface::TapInterface(const std::string &name,
 {
 }
 
+TapInterface::TapInterface(const std::string &name,
+                           admin_state_t state,
+                           const l2_address_t &l2_address):
+    Interface(name, type_t::TAP, state),
+    m_prefix(Route::prefix_t::ZERO),
+    m_l2_address(l2_address)
+{
+}
+
 TapInterface::TapInterface(const handle_t &hdl,
                            const std::string &name,
                            admin_state_t state,
@@ -125,6 +134,8 @@ rc_t TapInterface::CreateCmd::issue(Connection &con)
 
     if (m_l2_address != l2_address_t::ZERO) {
        m_l2_address.to_bytes(req->payload.mac_address, 6);
+    } else {
+       req->payload.use_random_mac = 1;
     }
 
     VAPI_CALL(vapi_tap_connect(con.ctx(), req,
@@ -141,7 +152,7 @@ std::string TapInterface::CreateCmd::to_string() const
 {
     std::ostringstream s;
     s << "tap-intf-create: " << m_hw_item.to_string()
-      << " ip-prefix:" << m_prefix.to_string(); 
+      << " ip-prefix:" << m_prefix.to_string();
 
     return (s.str());
 }

@@ -22,7 +22,7 @@ namespace VPP
     {
 
     public:
-        
+
         TapInterface(const std::string &name,
                      admin_state_t state,
                      Route::prefix_t prefix);
@@ -30,6 +30,10 @@ namespace VPP
         TapInterface(const std::string &name,
                      admin_state_t state,
                      Route::prefix_t prefix,
+                     const l2_address_t &l2_address);
+
+        TapInterface(const std::string &name,
+                     admin_state_t state,
                      const l2_address_t &l2_address);
 
         ~TapInterface();
@@ -72,7 +76,7 @@ namespace VPP
         };
 
         /**
-         * 
+         *
          */
         class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
         {
