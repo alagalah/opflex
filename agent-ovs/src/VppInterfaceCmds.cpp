@@ -158,6 +158,8 @@ rc_t Interface::TapCreateCmd::issue(Connection &con)
            std::min(m_name.length(),
                     sizeof(req->payload.tap_name)));
 
+    req->payload.use_random_mac = 1;
+
     VAPI_CALL(vapi_tap_connect(con.ctx(), req,
                                Interface::create_callback<
                                    vapi_payload_tap_connect_reply,

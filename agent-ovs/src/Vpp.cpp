@@ -195,6 +195,11 @@ bool l2_address_t::operator==(const l2_address_t &l2) const
     return (bytes == l2.bytes);
 }
 
+bool l2_address_t::operator!=(const l2_address_t &l2) const
+{
+    return (bytes != l2.bytes);
+}
+
 std::ostream &VPP::operator<<(std::ostream &os, const l2_address_t &l2)
 {
     os << l2.to_string();

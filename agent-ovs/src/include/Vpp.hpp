@@ -243,6 +243,11 @@ namespace VPP
         bool operator==(const l2_address_t &m) const;
 
         /**
+         * Comparison operator
+         */
+        bool operator!=(const l2_address_t &m) const;
+
+        /**
          * String conversion
          */
         std::string to_string() const;
