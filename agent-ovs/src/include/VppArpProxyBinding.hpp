@@ -33,11 +33,6 @@ namespace VPP
     {
     public:
         /**
-         * Dependency level 'Binding'
-         */
-        const static dependency_t dependency_value = dependency_t::BINDING;
-
-        /**
          * Construct a new object matching the desried state
          */
         ArpProxyBinding(const Interface &itf,

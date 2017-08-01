@@ -31,11 +31,6 @@ namespace VPP
     {
     public:
         /**
-         * Dependency level 'Binding'
-         */
-        const static dependency_t dependency_value = dependency_t::GLOBAL;
-
-        /**
          * Key type
          */
         typedef std::pair<boost::asio::ip::address_v4,

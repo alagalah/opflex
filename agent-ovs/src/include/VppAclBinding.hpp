@@ -34,11 +34,6 @@ namespace VPP
         template <typename LIST, typename DETAILS>
         class Binding: public Object
         {
-        /**
-         * Dependency level 'Binding'
-         */
-        const static dependency_t dependency_value = dependency_t::BINDING;
-
         public:
             /**
              * The key for a binding is the direction and the interface
