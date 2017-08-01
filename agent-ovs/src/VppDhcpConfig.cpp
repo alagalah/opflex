@@ -25,13 +25,14 @@ DhcpConfig::DhcpConfig(const Interface &itf,
                        const std::string &hostname):
     m_itf(itf.singular()),
     m_hostname(hostname),
-    m_binding(0)
+    m_binding(0),
+    m_client_id(l2_address_t::ZERO)
 {
 }
 
 DhcpConfig::DhcpConfig(const Interface &itf,
                        const std::string &hostname,
-                       const std::string &client_id):
+                       const l2_address_t &client_id):
     m_itf(itf.singular()),
     m_hostname(hostname),
     m_client_id(client_id),
@@ -82,7 +83,7 @@ std::string DhcpConfig::to_string() const
     std::ostringstream s;
     s << "Dhcp-config: " << m_itf->to_string()
       << " hostname:" << m_hostname
-      << " client_id:[" << m_client_id
+      << " client_id:[" << m_client_id.to_string()
       << "] "
       << m_binding.to_string();
 
