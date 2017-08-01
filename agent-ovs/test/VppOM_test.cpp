@@ -29,6 +29,7 @@
 #include "VppAclL2Rule.hpp"
 #include "VppArpProxyConfig.hpp"
 #include "VppArpProxyBinding.hpp"
+#include "VppIpUnnumbered.hpp"
 
 using namespace boost;
 using namespace VPP;
@@ -90,6 +91,7 @@ public:
 
         while (m_act_queue.size())
         {
+            bool matched = false;
             auto it_exp = m_exp_queue.begin();
             auto it_act = m_act_queue.begin();
 
@@ -224,6 +226,14 @@ public:
                     {
                         rc = handle_derived<ArpProxyConfig::UnconfigCmd>(f_exp, f_act);
                     }
+                    else if (typeid(*f_exp) == typeid(IpUnnumbered::ConfigCmd))
+                    {
+                        rc = handle_derived<IpUnnumbered::ConfigCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(IpUnnumbered::UnconfigCmd))
+                    {
+                        rc = handle_derived<IpUnnumbered::UnconfigCmd>(f_exp, f_act);
+                    }
                     else
                     {
                         throw ExpException();
@@ -241,9 +251,7 @@ public:
                         return (rc);
                     }
 
-                    ++it_act;
-                    ++it_exp;
-
+                    matched = true;
                     break;
                 }
                 catch (ExpException &e)
@@ -262,8 +270,8 @@ public:
                     }
                 }
             }
-            // got to the end of the expected queue => no match
-            if (it_exp == m_exp_queue.end())
+
+            if (!matched)
                 throw ExpException();
         }
 
@@ -833,6 +841,65 @@ BOOST_AUTO_TEST_CASE(arp_proxy) {
     ADD_EXPECT(ArpProxyConfig::UnconfigCmd(hw_ap_cfg, low, high));
 
     TRY_CHECK(OM::remove(kurt));
+}
+
+BOOST_AUTO_TEST_CASE(ip_unnumbered) {
+    VppInit vi;
+    const std::string eric = "EricAmbler";
+    rc_t rc = rc_t::OK;
+
+    /*
+     * Interface 1 has the L3 address
+     */
+    std::string itf1_name = "host1";
+    Interface itf1(itf1_name,
+                   Interface::type_t::AFPACKET,
+                   Interface::admin_state_t::UP);
+    HW::Item<handle_t> hw_ifh(2, rc_t::OK);
+    HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP, rc_t::OK);
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
+    TRY_CHECK_RC(OM::write(eric, itf1));
+
+    Route::prefix_t pfx_10("10.10.10.10", 24);
+    L3Binding *l3 = new L3Binding(itf1, pfx_10);
+    HW::Item<bool> hw_l3_bind(true, rc_t::OK);
+    HW::Item<bool> hw_l3_unbind(false, rc_t::OK);
+    ADD_EXPECT(L3Binding::BindCmd(hw_l3_bind, hw_ifh.data(), pfx_10));
+    TRY_CHECK_RC(OM::write(eric, *l3));
+
+    /*
+     * Interface 2 is unnumbered
+     */
+    std::string itf2_name = "host2";
+    Interface itf2(itf2_name,
+                   Interface::type_t::AFPACKET,
+                   Interface::admin_state_t::UP);
+
+    HW::Item<handle_t> hw_ifh2(4, rc_t::OK);
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh2, itf2_name));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh2));
+    TRY_CHECK_RC(OM::write(eric, itf2));
+
+    IpUnnumbered *ipun = new IpUnnumbered(itf2, itf1);
+    HW::Item<bool> hw_ip_cfg(true, rc_t::OK);
+    HW::Item<bool> hw_ip_uncfg(false, rc_t::OK);
+    ADD_EXPECT(IpUnnumbered::ConfigCmd(hw_ip_cfg, hw_ifh2.data(), hw_ifh.data()));
+    TRY_CHECK_RC(OM::write(eric, *ipun));
+
+    delete l3;
+    delete ipun;
+
+    HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN, rc_t::OK);
+    STRICT_ORDER_OFF();
+    ADD_EXPECT(IpUnnumbered::UnconfigCmd(hw_ip_uncfg, hw_ifh2.data(), hw_ifh.data()));
+    ADD_EXPECT(L3Binding::UnbindCmd(hw_l3_unbind, hw_ifh.data(), pfx_10));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh2));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh2, itf2_name));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
+
+    TRY_CHECK(OM::remove(eric));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

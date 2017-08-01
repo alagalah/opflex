@@ -226,6 +226,8 @@ if RENDERER_VPP
 	src/VppL2BindingCmds.cpp \
 	src/VppL3Binding.cpp \
 	src/VppL3BindingCmds.cpp \
+	src/VppIpUnnumbered.cpp \
+	src/VppIpUnnumberedCmds.cpp \
 	src/VppDhcpConfig.cpp \
 	src/VppDhcpConfigCmds.cpp \
 	src/VppArpProxyConfig.cpp \

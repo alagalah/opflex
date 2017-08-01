@@ -38,11 +38,6 @@ namespace VPP
     {
     public:
         /**
-         * Dependency level 'interface'
-         */
-        const static dependency_t dependency_value = dependency_t::GLOBAL;
-
-        /**
          * Construct a new object matching the desried state
          */
         LldpGlobal(const std::string &system_name,

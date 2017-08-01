@@ -6,57 +6,50 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_LLDP_BINDING_H__
-#define __VPP_LLDP_BINDING_H__
+#ifndef __VPP_IP_UNNUMBERED_H__
+#define __VPP_IP_UNNUMBERED_H__
 
 #include <string>
-#include <map>
-#include <vector>
-#include <stdint.h>
 
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppHW.hpp"
 #include "VppRpcCmd.hpp"
-#include "VppDumpCmd.hpp"
 #include "VppSingularDB.hpp"
 #include "VppInterface.hpp"
-#include "VppSubInterface.hpp"
 #include "VppInspect.hpp"
-
-extern "C"
-{
-    #include "lldp.api.vapi.h"
-}
 
 namespace VPP
 {
     /**
-     * A representation of LLDP client configuration on an interface
+     * A representation of IP unnumbered configuration on an interface
      */
-    class LldpBinding: public Object
+    class IpUnnumbered: public Object
     {
     public:
         /**
          * Construct a new object matching the desried state
+         *
+         * @param itf - The Interface with no IP address
+         * @param l3_itf - The interface that has the IP address we wish to share.
          */
-        LldpBinding(const Interface &itf,
-                   const std::string &hostname);
-
+        IpUnnumbered(const Interface &itf,
+                     const Interface &l3_itf);
+        
         /**
          * Copy Constructor
          */
-        LldpBinding(const LldpBinding& o);
+        IpUnnumbered(const IpUnnumbered& o);
+
         /**
          * Destructor
          */
-        ~LldpBinding();
-
+        ~IpUnnumbered();
 
         /**
-         * Return the 'singular' of the LLDP binding that matches this object
+         * Return the 'singular instance' of the L3-Config that matches this object
          */
-        std::shared_ptr<LldpBinding> singular() const;
+        std::shared_ptr<IpUnnumbered> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -64,22 +57,32 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * Dump all LLDP bindings into the stream provided
+         * Dump all IpUnnumbereds into the stream provided
          */
         static void dump(std::ostream &os);
 
         /**
-         * A command class that binds the LLDP config to the interface
+         * The key type for IpUnnumbereds
          */
-        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        typedef Interface::key_type key_t;
+
+        /**
+         * Find an singular instance in the DB for the interface passed
+         */
+        static std::shared_ptr<IpUnnumbered> find(const Interface &i);
+
+        /**
+         * A command class that configures the IP unnumbered
+         */
+        class ConfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             /**
              * Constructor
              */
-            BindCmd(HW::Item<bool> &item,
-                    const handle_t &itf,
-                    const std::string &port_desc);
+            ConfigCmd(HW::Item<bool> &item,
+                      const handle_t &itf,
+                      const handle_t &l3_itf);
 
             /**
              * Issue the command to VPP/HW
@@ -93,30 +96,30 @@ namespace VPP
             /**
              * Comparison operator - only used for UT
              */
-            bool operator==(const BindCmd&i) const;
+            bool operator==(const ConfigCmd&i) const;
         private:
             /**
-             * Reference to the HW::Item of the interface to bind
+             * Reference to the interface for which the address is required
              */
             const handle_t &m_itf;
-
             /**
-             * The LLDP client's hostname
+             * Reference to the interface which has an address
              */
-            const std::string m_port_desc;
+            const handle_t &m_l3_itf;
         };
 
         /**
-         * A cmd class that Unbinds Lldp Config from an interface
+         * A cmd class that Unconfigs L3 Config from an interface
          */
-        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnconfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             /**
              * Constructor
              */
-            UnbindCmd(HW::Item<bool> &item,
-                      const handle_t &itf);
+           UnconfigCmd(HW::Item<bool> &item,
+                       const handle_t &itf,
+                       const handle_t &l3_itf);
 
             /**
              * Issue the command to VPP/HW
@@ -130,12 +133,16 @@ namespace VPP
             /**
              * Comparison operator - only used for UT
              */
-            bool operator==(const UnbindCmd&i) const;
+            bool operator==(const UnconfigCmd&i) const;
         private:
             /**
-             * Reference to the HW::Item of the interface to unbind
+             * Reference to the interface for which the address is required
              */
             const handle_t &m_itf;
+            /**
+             * Reference to the interface which has an address
+             */
+            const handle_t &m_l3_itf;
         };
 
     private:
@@ -177,22 +184,22 @@ namespace VPP
         /**
          * Enquue commonds to the VPP command Q for the update
          */
-        void update(const LldpBinding &obj);
+        void update(const IpUnnumbered &obj);
 
         /**
-         * Find or add LLDP binding to the OM
+         * Find or add the singular instance in the DB
          */
-        static std::shared_ptr<LldpBinding> find_or_add(const LldpBinding &temp);
+        static std::shared_ptr<IpUnnumbered> find_or_add(const IpUnnumbered &temp);
 
         /*
-         * It's the VPP::OM class that calls singular()
+         * It's the VPPHW class that updates the objects in HW
          */
         friend class VPP::OM;
 
         /**
-         * It's the VPP::SingularDB class that calls replay()
+        e* It's the VPP::SingularDB class that calls replay()
          */
-        friend class VPP::SingularDB<Interface::key_type, LldpBinding>;
+        friend class VPP::SingularDB<key_t, IpUnnumbered>;
 
         /**
          * Sweep/reap the object if still stale
@@ -205,27 +212,25 @@ namespace VPP
         void replay(void);
 
         /**
-         * A reference counting pointer to the interface on which LLDP config
-         * resides. By holding the reference here, we can guarantee that
-         * this object will outlive the interface
+         * A reference counting pointer the interface that requires an address.
          */
         const std::shared_ptr<Interface> m_itf;
-    
         /**
-         * The port-description in the LLDP configuration
+         * A reference counting pointer the interface that has an address.
          */
-        const std::string m_port_desc;
+        const std::shared_ptr<Interface> m_l3_itf;
 
         /**
          * HW configuration for the binding. The bool representing the
          * do/don't bind.
          */
-        HW::Item<bool> m_binding;
+        HW::Item<bool> m_config;
 
         /**
-         * A map of all Lldp bindings keyed against the interface.
+         * A map of all L3 configs keyed against a combination of the interface
+         * and subnet's keys.
          */
-        static SingularDB<Interface::key_type, LldpBinding> m_db;
+        static SingularDB<key_t, IpUnnumbered> m_db;
     };
 };
 

@@ -41,11 +41,6 @@ namespace VPP
         {
         public:
             /**
-             * Dependency level 'ACL'
-             */
-            const static dependency_t dependency_value = dependency_t::ACL;
-
-            /**
              * The KEY can be used to uniquely identify the ACL.
              * (other choices for keys, like the summation of the properties
              * of the rules, are rather too cumbersome to use
