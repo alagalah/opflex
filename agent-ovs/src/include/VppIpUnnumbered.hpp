@@ -6,12 +6,10 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_L2_INTERFACE_H__
-#define __VPP_L2_INTERFACE_H__
+#ifndef __VPP_IP_UNNUMBERED_H__
+#define __VPP_IP_UNNUMBERED_H__
 
 #include <string>
-#include <map>
-#include <stdint.h>
 
 #include "VppObject.hpp"
 #include "VppOM.hpp"
@@ -19,39 +17,39 @@
 #include "VppRpcCmd.hpp"
 #include "VppSingularDB.hpp"
 #include "VppInterface.hpp"
-#include "VppBridgeDomain.hpp"
-#include "VppVxlanTunnel.hpp"
 #include "VppInspect.hpp"
 
 namespace VPP
 {
     /**
-     * A base class for all Object in the VPP Object-Model.
-     *  provides the abstract interface.
+     * A representation of IP unnumbered configuration on an interface
      */
-    class L2Binding: public Object
+    class IpUnnumbered: public Object
     {
     public:
         /**
          * Construct a new object matching the desried state
+         *
+         * @param itf - The Interface with no IP address
+         * @param l3_itf - The interface that has the IP address we wish to share.
          */
-        L2Binding(const Interface &itf,
-                 const BridgeDomain &bd);
-
+        IpUnnumbered(const Interface &itf,
+                     const Interface &l3_itf);
+        
         /**
          * Copy Constructor
          */
-        L2Binding(const L2Binding& o);
+        IpUnnumbered(const IpUnnumbered& o);
 
         /**
          * Destructor
          */
-        ~L2Binding();
+        ~IpUnnumbered();
 
         /**
-         * Return the 'singular instance' of the L2 config that matches this object
+         * Return the 'singular instance' of the L3-Config that matches this object
          */
-        std::shared_ptr<L2Binding> singular() const;
+        std::shared_ptr<IpUnnumbered> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -59,23 +57,32 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * Dump all L2Bindings into the stream provided
+         * Dump all IpUnnumbereds into the stream provided
          */
         static void dump(std::ostream &os);
 
         /**
-         * A functor class that binds L2 configuration to an interface
+         * The key type for IpUnnumbereds
          */
-        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        typedef Interface::key_type key_t;
+
+        /**
+         * Find an singular instance in the DB for the interface passed
+         */
+        static std::shared_ptr<IpUnnumbered> find(const Interface &i);
+
+        /**
+         * A command class that configures the IP unnumbered
+         */
+        class ConfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             /**
              * Constructor
              */
-            BindCmd(HW::Item<bool> &item,
-                    const handle_t &itf,
-                    uint32_t bd,
-                    bool is_bvi);
+            ConfigCmd(HW::Item<bool> &item,
+                      const handle_t &itf,
+                      const handle_t &l3_itf);
 
             /**
              * Issue the command to VPP/HW
@@ -89,37 +96,30 @@ namespace VPP
             /**
              * Comparison operator - only used for UT
              */
-            bool operator==(const BindCmd&i) const;
+            bool operator==(const ConfigCmd&i) const;
         private:
             /**
-             * The interface to bind
+             * Reference to the interface for which the address is required
              */
-            const handle_t m_itf;
-
+            const handle_t &m_itf;
             /**
-             * The bridge-domain to bind to
+             * Reference to the interface which has an address
              */
-            uint32_t m_bd;
-
-            /**
-             * Is it a BVI interface that is being bound
-             */
-            bool m_is_bvi;
+            const handle_t &m_l3_itf;
         };
 
         /**
-         * A cmd class that Unbinds L2 configuration from an interface
+         * A cmd class that Unconfigs L3 Config from an interface
          */
-        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnconfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             /**
              * Constructor
              */
-            UnbindCmd(HW::Item<bool> &item,
-                      const handle_t &itf,
-                      uint32_t bd,
-                      bool is_bvi);
+           UnconfigCmd(HW::Item<bool> &item,
+                       const handle_t &itf,
+                       const handle_t &l3_itf);
 
             /**
              * Issue the command to VPP/HW
@@ -133,22 +133,16 @@ namespace VPP
             /**
              * Comparison operator - only used for UT
              */
-            bool operator==(const UnbindCmd&i) const;
+            bool operator==(const UnconfigCmd&i) const;
         private:
             /**
-             * The interface to bind
+             * Reference to the interface for which the address is required
              */
-            const handle_t m_itf;
-
+            const handle_t &m_itf;
             /**
-             * The bridge-domain to bind to
+             * Reference to the interface which has an address
              */
-            uint32_t m_bd;
-
-            /**
-             * Is it a BVI interface that is being bound
-             */
-            bool m_is_bvi;
+            const handle_t &m_l3_itf;
         };
 
     private:
@@ -190,22 +184,22 @@ namespace VPP
         /**
          * Enquue commonds to the VPP command Q for the update
          */
-        void update(const L2Binding &obj);
+        void update(const IpUnnumbered &obj);
 
         /**
-         * Find or Add the singular instance in the DB
+         * Find or add the singular instance in the DB
          */
-        static std::shared_ptr<L2Binding> find_or_add(const L2Binding &temp);
+        static std::shared_ptr<IpUnnumbered> find_or_add(const IpUnnumbered &temp);
 
         /*
-         * It's the VPP::OM class that calls singular()
+         * It's the VPPHW class that updates the objects in HW
          */
         friend class VPP::OM;
 
         /**
-         * It's the VPP::SingularDB class that calls replay()
+        e* It's the VPP::SingularDB class that calls replay()
          */
-        friend class VPP::SingularDB<const handle_t, L2Binding>;
+        friend class VPP::SingularDB<key_t, IpUnnumbered>;
 
         /**
          * Sweep/reap the object if still stale
@@ -218,29 +212,25 @@ namespace VPP
         void replay(void);
 
         /**
-         * A reference counting pointer the interface that this L2 layer
-         * represents. By holding the reference here, we can guarantee that
-         * this object will outlive the interface
+         * A reference counting pointer the interface that requires an address.
          */
         const std::shared_ptr<Interface> m_itf;
-    
         /**
-         * A reference counting pointer the Bridge-Domain that this L2
-         * interface is bound to. By holding the reference here, we can
-         * guarantee that this object will outlive the BD.
+         * A reference counting pointer the interface that has an address.
          */
-        const std::shared_ptr<BridgeDomain> m_bd;
+        const std::shared_ptr<Interface> m_l3_itf;
 
         /**
          * HW configuration for the binding. The bool representing the
          * do/don't bind.
          */
-        HW::Item<bool> m_binding;
+        HW::Item<bool> m_config;
 
         /**
-         * A map of all L2 interfaces key against the interface's handle_t
+         * A map of all L3 configs keyed against a combination of the interface
+         * and subnet's keys.
          */
-        static SingularDB<const handle_t, L2Binding> m_db;
+        static SingularDB<key_t, IpUnnumbered> m_db;
     };
 };
 

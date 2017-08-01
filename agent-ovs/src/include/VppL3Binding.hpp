@@ -6,8 +6,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_L3_INTERFACE_H__
-#define __VPP_L3_INTERFACE_H__
+#ifndef __VPP_L3_BINDING_H__
+#define __VPP_L3_BINDING_H__
 
 #include <string>
 #include <map>
@@ -37,15 +37,10 @@ namespace VPP
     {
     public:
         /**
-         * Dependency level 'Binding'
-         */
-        const static dependency_t dependency_value = dependency_t::BINDING;
-
-        /**
          * Construct a new object matching the desried state
          */
         L3Binding(const Interface &itf,
-                 const Route::prefix_t &pfx);
+                  const Route::prefix_t &pfx);
         
         /**
          * Copy Constructor

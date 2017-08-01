@@ -9,28 +9,28 @@
 #include <iostream>
 #include <algorithm>
 
-#include "VppLldpConfig.hpp"
+#include "VppLldpBinding.hpp"
 
 DEFINE_VAPI_MSG_IDS_LLDP_API_JSON;
 
 using namespace VPP;
 
-LldpConfig::BindCmd::BindCmd(HW::Item<bool> &item,
-                             const handle_t &itf,
-                             const std::string &port_desc):
+LldpBinding::BindCmd::BindCmd(HW::Item<bool> &item,
+                              const handle_t &itf,
+                              const std::string &port_desc):
     RpcCmd(item),
     m_itf(itf),
     m_port_desc(port_desc)
 {
 }
 
-bool LldpConfig::BindCmd::operator==(const BindCmd& other) const
+bool LldpBinding::BindCmd::operator==(const BindCmd& other) const
 {
     return ((m_itf == other.m_itf) &&
             (m_port_desc == other.m_port_desc));
 }
 
-rc_t LldpConfig::BindCmd::issue(Connection &con)
+rc_t LldpBinding::BindCmd::issue(Connection &con)
 {
     vapi_msg_sw_interface_set_lldp *req;
 
@@ -55,29 +55,29 @@ rc_t LldpConfig::BindCmd::issue(Connection &con)
     return rc_t::OK;
 }
 
-std::string LldpConfig::BindCmd::to_string() const
+std::string LldpBinding::BindCmd::to_string() const
 {
     std::ostringstream s;
-    s << "Lldp-config-bind: " << m_hw_item.to_string()
+    s << "Lldp-bind: " << m_hw_item.to_string()
       << " itf:" << m_itf.to_string()
       << " port_desc:" << m_port_desc;
 
     return (s.str());
 }
 
-LldpConfig::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
+LldpBinding::UnbindCmd::UnbindCmd(HW::Item<bool> &item,
                                  const handle_t &itf):
     RpcCmd(item),
     m_itf(itf)
 {
 }
 
-bool LldpConfig::UnbindCmd::operator==(const UnbindCmd& other) const
+bool LldpBinding::UnbindCmd::operator==(const UnbindCmd& other) const
 {
     return (m_itf == other.m_itf);
 }
 
-rc_t LldpConfig::UnbindCmd::issue(Connection &con)
+rc_t LldpBinding::UnbindCmd::issue(Connection &con)
 {
     vapi_msg_sw_interface_set_lldp *req;
 
@@ -98,10 +98,10 @@ rc_t LldpConfig::UnbindCmd::issue(Connection &con)
     return rc_t::OK;
 }
 
-std::string LldpConfig::UnbindCmd::to_string() const
+std::string LldpBinding::UnbindCmd::to_string() const
 {
     std::ostringstream s;
-    s << "Lldp-config-unbind: " << m_hw_item.to_string()
+    s << "Lldp-unbind: " << m_hw_item.to_string()
       << " itf:" << m_itf.to_string();
 
     return (s.str());

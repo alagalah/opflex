@@ -6,8 +6,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_LLDP_GLOBAL_H__
-#define __VPP_LLDP_GLOBAL_H__
+#ifndef __VPP_ARP_PROXY_CONFIG_H__
+#define __VPP_ARP_PROXY_CONFIG_H__
 
 #include <string>
 #include <map>
@@ -20,44 +20,42 @@
 #include "VppRpcCmd.hpp"
 #include "VppDumpCmd.hpp"
 #include "VppSingularDB.hpp"
-#include "VppInterface.hpp"
-#include "VppSubInterface.hpp"
 #include "VppInspect.hpp"
-
-extern "C"
-{
-    #include "lldp.api.vapi.h"
-}
 
 namespace VPP
 {
     /**
-     * A representation of LLDP global configuration
+     * A representation of LLDP client configuration on an interface
      */
-    class LldpGlobal: public Object
+    class ArpProxyConfig: public Object
     {
     public:
         /**
+         * Key type
+         */
+        typedef std::pair<boost::asio::ip::address_v4,
+                          boost::asio::ip::address_v4> key_t;
+
+        /**
          * Construct a new object matching the desried state
          */
-        LldpGlobal(const std::string &system_name,
-                   uint32_t tx_hold,
-                   uint32_t tx_interval);
+        ArpProxyConfig(const boost::asio::ip::address_v4 &low,
+                       const boost::asio::ip::address_v4 &high);
 
         /**
          * Copy Constructor
          */
-        LldpGlobal(const LldpGlobal& o);
+        ArpProxyConfig(const ArpProxyConfig& o);
 
         /**
          * Destructor
          */
-        ~LldpGlobal();
+        ~ArpProxyConfig();
 
         /**
-         * Return the 'singular' of the LLDP global that matches this object
+         * Return the 'singular' of the LLDP config that matches this object
          */
-        std::shared_ptr<LldpGlobal> singular() const;
+        std::shared_ptr<ArpProxyConfig> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -65,12 +63,12 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * Dump all LLDP globals into the stream provided
+         * Dump all LLDP configs into the stream provided
          */
         static void dump(std::ostream &os);
 
         /**
-         * A command class that binds the LLDP global to the interface
+         * A command class that adds the ARP Proxy config
          */
         class ConfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
@@ -79,9 +77,8 @@ namespace VPP
              * Constructor
              */
             ConfigCmd(HW::Item<bool> &item,
-                      const std::string &system_name,
-                      uint32_t tx_hold,
-                      uint32_t tx_interval);
+                      const boost::asio::ip::address_v4 &lo,
+                      const boost::asio::ip::address_v4 &high);
 
             /**
              * Issue the command to VPP/HW
@@ -98,15 +95,44 @@ namespace VPP
             bool operator==(const ConfigCmd&i) const;
         private:
             /**
-             * The system name
+             * Address range
              */
-            const std::string m_system_name;
+            const boost::asio::ip::address_v4 m_low;
+            const boost::asio::ip::address_v4 m_high;
+        };
+
+        /**
+         * A cmd class that Unconfigs ArpProxy Config from an interface
+         */
+        class UnconfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        {
+        public:
+            /**
+             * Constructor
+             */
+            UnconfigCmd(HW::Item<bool> &item,
+                      const boost::asio::ip::address_v4 &lo,
+                      const boost::asio::ip::address_v4 &hig);
 
             /**
-             * TX timer configs
+             * Issue the command to VPP/HW
              */
-            uint32_t m_tx_hold;
-            uint32_t m_tx_interval;
+            rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
+            std::string to_string() const;
+
+            /**
+             * Comparison operator - only used for UT
+             */
+            bool operator==(const UnconfigCmd&i) const;
+        private:
+            /**
+             * Address range
+             */
+            const boost::asio::ip::address_v4 m_low;
+            const boost::asio::ip::address_v4 m_high;
         };
 
     private:
@@ -148,12 +174,12 @@ namespace VPP
         /**
          * Enquue commonds to the VPP command Q for the update
          */
-        void update(const LldpGlobal &obj);
+        void update(const ArpProxyConfig &obj);
 
         /**
-         * Find or add LLDP global to the OM
+         * Find or add LLDP config to the OM
          */
-        static std::shared_ptr<LldpGlobal> find_or_add(const LldpGlobal &temp);
+        static std::shared_ptr<ArpProxyConfig> find_or_add(const ArpProxyConfig &temp);
 
         /*
          * It's the VPP::OM class that calls singular()
@@ -163,7 +189,7 @@ namespace VPP
         /**
          * It's the VPP::SingularDB class that calls replay()
          */
-        friend class VPP::SingularDB<Interface::key_type, LldpGlobal>;
+        friend class VPP::SingularDB<ArpProxyConfig::key_t, ArpProxyConfig>;
 
         /**
          * Sweep/reap the object if still stale
@@ -176,28 +202,24 @@ namespace VPP
         void replay(void);
 
         /**
-         * The system name
+         * Address range
          */
-        const std::string m_system_name;
+        const boost::asio::ip::address_v4 m_low;
+        const boost::asio::ip::address_v4 m_high;
 
         /**
-         * TX timer configs
+         * A map of all ArpProxy configs keyed against the interface.
          */
-        uint32_t m_tx_hold;
-        uint32_t m_tx_interval;
+        static SingularDB<ArpProxyConfig::key_t, ArpProxyConfig> m_db;
 
         /**
-         * HW globaluration for the binding. The bool representing the
-         * do/don't bind.
+         * HW configuration for the config. The bool representing the
+         * do/don't configured/unconfigured.
          */
-        HW::Item<bool> m_binding;
-
-        /**
-         * A map of all Lldp globals keyed against the system name.
-         *  there needs to be some sort of key, that will do.
-         */
-        static SingularDB<std::string, LldpGlobal> m_db;
+        HW::Item<bool> m_config;
     };
+
+    std::ostream & operator<<(std::ostream &os, const ArpProxyConfig::key_t &key);
 };
 
 #endif

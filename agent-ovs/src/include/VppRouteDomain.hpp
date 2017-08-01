@@ -27,11 +27,6 @@ namespace VPP
     {
     public:
         /**
-         * Dependency level domain
-         */
-        const static dependency_t dependency_value = dependency_t::FORWARDING_DOMAIN;
-
-        /**
          * Construct a new object matching the desried state
          */
         RouteDomain(Route::table_id_t id);

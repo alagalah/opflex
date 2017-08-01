@@ -12,7 +12,7 @@
 #include "VppSubInterface.hpp"
 #include "VppL3Binding.hpp"
 #include "VppLldpGlobal.hpp"
-#include "VppLldpConfig.hpp"
+#include "VppLldpBinding.hpp"
 
 using namespace VPP;
 
@@ -103,8 +103,8 @@ void Uplink::configure(const std::string &hostName)
      */
     LldpGlobal lg(hostName, 5, 2);
     OM::write(UPLINK_KEY, lg);
-    LldpConfig lc(*m_uplink, "uplink-interface");
-    OM::write(UPLINK_KEY, lc);
+    LldpBinding lb(*m_uplink, "uplink-interface");
+    OM::write(UPLINK_KEY, lb);
 
     /*
      * now create the sub-interface on which control and data traffic from

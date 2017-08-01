@@ -6,8 +6,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_LLDP_CONFIG_H__
-#define __VPP_LLDP_CONFIG_H__
+#ifndef __VPP_LLDP_BINDING_H__
+#define __VPP_LLDP_BINDING_H__
 
 #include <string>
 #include <map>
@@ -34,34 +34,29 @@ namespace VPP
     /**
      * A representation of LLDP client configuration on an interface
      */
-    class LldpConfig: public Object
+    class LldpBinding: public Object
     {
     public:
         /**
-         * Dependency level 'Binding'
-         */
-        const static dependency_t dependency_value = dependency_t::BINDING;
-
-        /**
          * Construct a new object matching the desried state
          */
-        LldpConfig(const Interface &itf,
+        LldpBinding(const Interface &itf,
                    const std::string &hostname);
 
         /**
          * Copy Constructor
          */
-        LldpConfig(const LldpConfig& o);
+        LldpBinding(const LldpBinding& o);
         /**
          * Destructor
          */
-        ~LldpConfig();
+        ~LldpBinding();
 
 
         /**
-         * Return the 'singular' of the LLDP config that matches this object
+         * Return the 'singular' of the LLDP binding that matches this object
          */
-        std::shared_ptr<LldpConfig> singular() const;
+        std::shared_ptr<LldpBinding> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -69,7 +64,7 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * Dump all LLDP configs into the stream provided
+         * Dump all LLDP bindings into the stream provided
          */
         static void dump(std::ostream &os);
 
@@ -182,12 +177,12 @@ namespace VPP
         /**
          * Enquue commonds to the VPP command Q for the update
          */
-        void update(const LldpConfig &obj);
+        void update(const LldpBinding &obj);
 
         /**
-         * Find or add LLDP config to the OM
+         * Find or add LLDP binding to the OM
          */
-        static std::shared_ptr<LldpConfig> find_or_add(const LldpConfig &temp);
+        static std::shared_ptr<LldpBinding> find_or_add(const LldpBinding &temp);
 
         /*
          * It's the VPP::OM class that calls singular()
@@ -197,7 +192,7 @@ namespace VPP
         /**
          * It's the VPP::SingularDB class that calls replay()
          */
-        friend class VPP::SingularDB<Interface::key_type, LldpConfig>;
+        friend class VPP::SingularDB<Interface::key_type, LldpBinding>;
 
         /**
          * Sweep/reap the object if still stale
@@ -228,9 +223,9 @@ namespace VPP
         HW::Item<bool> m_binding;
 
         /**
-         * A map of all Lldp configs keyed against the interface.
+         * A map of all Lldp bindings keyed against the interface.
          */
-        static SingularDB<Interface::key_type, LldpConfig> m_db;
+        static SingularDB<Interface::key_type, LldpBinding> m_db;
     };
 };
 

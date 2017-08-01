@@ -6,13 +6,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_DHCP_INTERFACE_H__
-#define __VPP_DHCP_INTERFACE_H__
-
-#include <string>
-#include <map>
-#include <vector>
-#include <stdint.h>
+#ifndef __VPP_ARP_PROXY_BINDING_H__
+#define __VPP_ARP_PROXY_BINDING_H__
 
 #include "VppObject.hpp"
 #include "VppOM.hpp"
@@ -21,49 +16,43 @@
 #include "VppDumpCmd.hpp"
 #include "VppSingularDB.hpp"
 #include "VppInterface.hpp"
-#include "VppSubInterface.hpp"
+#include "VppArpProxyConfig.hpp"
 #include "VppInspect.hpp"
 
 extern "C"
 {
-    #include "dhcp.api.vapi.h"
+    #include "lldp.api.vapi.h"
 }
 
 namespace VPP
 {
     /**
-     * A representation of DHCP client configuration on an interface
+     * A representation of LLDP client configuration on an interface
      */
-    class DhcpConfig: public Object
+    class ArpProxyBinding: public Object
     {
     public:
         /**
          * Construct a new object matching the desried state
          */
-        DhcpConfig(const Interface &itf,
-                   const std::string &hostname);
-
-        /**
-         * Construct a new object matching the desried state
-         */
-        DhcpConfig(const Interface &itf,
-                   const std::string &hostname,
-                   const l2_address_t &client_id);
+        ArpProxyBinding(const Interface &itf,
+                        const ArpProxyConfig &proxy_cfg);
 
         /**
          * Copy Constructor
          */
-        DhcpConfig(const DhcpConfig& o);
+        ArpProxyBinding(const ArpProxyBinding& o);
+
         /**
          * Destructor
          */
-        ~DhcpConfig();
+        ~ArpProxyBinding();
 
 
         /**
-         * Return the 'singular' of the DHCP config that matches this object
+         * Return the 'singular' of the LLDP binding that matches this object
          */
-        std::shared_ptr<DhcpConfig> singular() const;
+        std::shared_ptr<ArpProxyBinding> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -71,12 +60,12 @@ namespace VPP
         std::string to_string() const;
 
         /**
-         * Dump all DHCP configs into the stream provided
+         * Dump all LLDP bindings into the stream provided
          */
         static void dump(std::ostream &os);
 
         /**
-         * A command class that binds the DHCP config to the interface
+         * A command class that binds the LLDP config to the interface
          */
         class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
@@ -85,9 +74,7 @@ namespace VPP
              * Constructor
              */
             BindCmd(HW::Item<bool> &item,
-                    const handle_t &itf,
-                    const std::string &hostname,
-                    const l2_address_t &client_id);
+                    const handle_t &itf);
 
             /**
              * Issue the command to VPP/HW
@@ -107,20 +94,10 @@ namespace VPP
              * Reference to the HW::Item of the interface to bind
              */
             const handle_t &m_itf;
-
-            /**
-             * The DHCP client's hostname
-             */
-            const std::string m_hostname;
-
-            /**
-             * The DHCP client's ID
-             */
-            const l2_address_t m_client_id;
         };
 
         /**
-         * A cmd class that Unbinds Dhcp Config from an interface
+         * A cmd class that Unbinds ArpProxy Config from an interface
          */
         class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
@@ -129,8 +106,7 @@ namespace VPP
              * Constructor
              */
             UnbindCmd(HW::Item<bool> &item,
-                      const handle_t &itf,
-                      const std::string &hostname);
+                      const handle_t &itf);
 
             /**
              * Issue the command to VPP/HW
@@ -150,88 +126,7 @@ namespace VPP
              * Reference to the HW::Item of the interface to unbind
              */
             const handle_t &m_itf;
-
-            /**
-             * The DHCP client's hostname
-             */
-            const std::string m_hostname;
         };
-
-        /**
-         * Forward declartion of the Event Command
-         */
-        class EventsCmd;
-
-        /**
-         * A class that listens to DHCP Events
-         */
-        class EventListener
-        {
-        public:
-            /**
-             * Constructor
-             */
-            EventListener();
-
-            /**
-             * Listener's virtual function invoked when a DHCP event is
-             * available to read
-             */
-            virtual void handle_dhcp_event(EventsCmd *cmd) = 0;
-
-            /**
-             * Return the HW::Item associated with this command
-             */            
-            HW::Item<bool> & status();
-        protected:
-            /**
-             * The HW::Item associated with this command
-             */
-            HW::Item<bool> m_status;
-        };
-
-        /**
-         * A functor class represents our desire to recieve interface events
-         */
-        class EventsCmd: public RpcCmd<HW::Item<bool>, rc_t>,
-                         public EventCmd<vapi_payload_dhcp_compl_event>
-        {
-        public:
-            /**
-             * Constructor
-             */
-            EventsCmd(EventListener &el);
-
-            /**
-             * Issue the command to VPP/HW - subscribe to DHCP events
-             */
-            rc_t issue(Connection &con);
-
-            /**
-             * Retire the command - unsubscribe
-             */
-            void retire();
-            /**
-             * convert to string format for debug purposes
-             */
-            std::string to_string() const;
-
-            /**
-             * Comparison operator - only used for UT
-             */
-            bool operator==(const EventsCmd&i) const;
-
-            /**
-             * called in the VAPI RX thread when data is available.
-             */
-            void notify(vapi_payload_dhcp_compl_event *data);
-        private:
-            /**
-             * The listner of this command
-             */
-            EventListener & m_listener;
-        };
-
 
     private:
         /**
@@ -272,12 +167,12 @@ namespace VPP
         /**
          * Enquue commonds to the VPP command Q for the update
          */
-        void update(const DhcpConfig &obj);
+        void update(const ArpProxyBinding &obj);
 
         /**
-         * Find or add DHCP config to the OM
+         * Find or add LLDP binding to the OM
          */
-        static std::shared_ptr<DhcpConfig> find_or_add(const DhcpConfig &temp);
+        static std::shared_ptr<ArpProxyBinding> find_or_add(const ArpProxyBinding &temp);
 
         /*
          * It's the VPP::OM class that calls singular()
@@ -287,7 +182,7 @@ namespace VPP
         /**
          * It's the VPP::SingularDB class that calls replay()
          */
-        friend class VPP::SingularDB<Interface::key_type, DhcpConfig>;
+        friend class VPP::SingularDB<Interface::key_type, ArpProxyBinding>;
 
         /**
          * Sweep/reap the object if still stale
@@ -300,21 +195,16 @@ namespace VPP
         void replay(void);
 
         /**
-         * A reference counting pointer to the interface on which DHCP config
+         * A reference counting pointer to the interface on which LLDP config
          * resides. By holding the reference here, we can guarantee that
          * this object will outlive the interface
          */
         const std::shared_ptr<Interface> m_itf;
-    
-        /**
-         * The hostname in the DHCP configuration
-         */
-        const std::string m_hostname;
 
         /**
-         * The option-61 client_id in the DHCP configuration
+         * A reference counting pointer to the prxy config.
          */
-        const l2_address_t m_client_id;
+        const std::shared_ptr<ArpProxyConfig> m_arp_proxy_cfg;
 
         /**
          * HW configuration for the binding. The bool representing the
@@ -323,9 +213,9 @@ namespace VPP
         HW::Item<bool> m_binding;
 
         /**
-         * A map of all Dhcp configs keyed against the interface.
+         * A map of all ArpProxy bindings keyed against the interface.
          */
-        static SingularDB<Interface::key_type, DhcpConfig> m_db;
+        static SingularDB<Interface::key_type, ArpProxyBinding> m_db;
     };
 };
 

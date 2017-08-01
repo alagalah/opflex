@@ -43,11 +43,6 @@ namespace VPP
     {
     public:
         /**
-         * Dependency level interface
-         */
-        const static dependency_t dependency_value = dependency_t::INTERFACE;
-
-        /**
          * The key for interface's key
          */
         typedef std::string key_type;

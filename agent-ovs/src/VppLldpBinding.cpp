@@ -9,7 +9,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "VppLldpConfig.hpp"
+#include "VppLldpBinding.hpp"
 #include "VppCmd.hpp"
 
 using namespace VPP;
@@ -17,11 +17,11 @@ using namespace VPP;
 /**
  * A DB of all LLDP configs
  */
-SingularDB<Interface::key_type, LldpConfig> LldpConfig::m_db;
+SingularDB<Interface::key_type, LldpBinding> LldpBinding::m_db;
 
-LldpConfig::EventHandler LldpConfig::m_evh;
+LldpBinding::EventHandler LldpBinding::m_evh;
 
-LldpConfig::LldpConfig(const Interface &itf,
+LldpBinding::LldpBinding(const Interface &itf,
                        const std::string &port_desc):
     m_itf(itf.singular()),
     m_port_desc(port_desc),
@@ -29,14 +29,14 @@ LldpConfig::LldpConfig(const Interface &itf,
 {
 }
 
-LldpConfig::LldpConfig(const LldpConfig& o):
+LldpBinding::LldpBinding(const LldpBinding& o):
     m_itf(o.m_itf),
     m_port_desc(o.m_port_desc),
     m_binding(0)
 {
 }
 
-LldpConfig::~LldpConfig()
+LldpBinding::~LldpBinding()
 {
     sweep();
 
@@ -44,7 +44,7 @@ LldpConfig::~LldpConfig()
     m_db.release(m_itf->key(), this);
 }
 
-void LldpConfig::sweep()
+void LldpBinding::sweep()
 {
     if (m_binding)
     {
@@ -53,12 +53,12 @@ void LldpConfig::sweep()
     HW::write();
 }
 
-void LldpConfig::dump(std::ostream &os)
+void LldpBinding::dump(std::ostream &os)
 {
     m_db.dump(os);
 }
 
-void LldpConfig::replay()
+void LldpBinding::replay()
 {
     if (m_binding)
     {
@@ -66,17 +66,17 @@ void LldpConfig::replay()
     }
 }
 
-std::string LldpConfig::to_string() const
+std::string LldpBinding::to_string() const
 {
     std::ostringstream s;
-    s << "Lldp-config: " << m_itf->to_string()
+    s << "Lldp-binding: " << m_itf->to_string()
       << " port_desc:" << m_port_desc
       << " " << m_binding.to_string();
 
     return (s.str());
 }
 
-void LldpConfig::update(const LldpConfig &desired)
+void LldpBinding::update(const LldpBinding &desired)
 {
     /*
      * the desired state is always that the interface should be created
@@ -87,38 +87,38 @@ void LldpConfig::update(const LldpConfig &desired)
     }
 }
 
-std::shared_ptr<LldpConfig> LldpConfig::find_or_add(const LldpConfig &temp)
+std::shared_ptr<LldpBinding> LldpBinding::find_or_add(const LldpBinding &temp)
 {
     return (m_db.find_or_add(temp.m_itf->key(), temp));
 }
 
-std::shared_ptr<LldpConfig> LldpConfig::singular() const
+std::shared_ptr<LldpBinding> LldpBinding::singular() const
 {
     return find_or_add(*this);
 }
 
-LldpConfig::EventHandler::EventHandler()
+LldpBinding::EventHandler::EventHandler()
 {
     OM::register_listener(this);
-    Inspect::register_handler({"lldp"}, "LLDP configurations", this);
+    Inspect::register_handler({"lldp"}, "LLDP bindings", this);
 }
 
-void LldpConfig::EventHandler::handle_replay()
+void LldpBinding::EventHandler::handle_replay()
 {
     m_db.replay();
 }
 
-void LldpConfig::EventHandler::handle_populate(const KeyDB::key_t &key)
+void LldpBinding::EventHandler::handle_populate(const KeyDB::key_t &key)
 {
     // FIXME
 }
 
-dependency_t LldpConfig::EventHandler::order() const
+dependency_t LldpBinding::EventHandler::order() const
 {
     return (dependency_t::BINDING);
 }
 
-void LldpConfig::EventHandler::show(std::ostream &os)
+void LldpBinding::EventHandler::show(std::ostream &os)
 {
     m_db.dump(os);
 }

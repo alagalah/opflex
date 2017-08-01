@@ -138,7 +138,6 @@ rc_t TapInterface::CreateCmd::issue(Connection &con)
        req->payload.use_random_mac = 1;
     }
 
-
     VAPI_CALL(vapi_tap_connect(con.ctx(), req,
                                Interface::create_callback<
                                    vapi_payload_tap_connect_reply,
