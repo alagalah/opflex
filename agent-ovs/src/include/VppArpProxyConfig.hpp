@@ -6,8 +6,8 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#ifndef __VPP_LLDP_CONFIG_H__
-#define __VPP_LLDP_CONFIG_H__
+#ifndef __VPP_ARP_PROXY_CONFIG_H__
+#define __VPP_ARP_PROXY_CONFIG_H__
 
 #include <string>
 #include <map>
@@ -20,48 +20,47 @@
 #include "VppRpcCmd.hpp"
 #include "VppDumpCmd.hpp"
 #include "VppSingularDB.hpp"
-#include "VppInterface.hpp"
-#include "VppSubInterface.hpp"
 #include "VppInspect.hpp"
-
-extern "C"
-{
-    #include "lldp.api.vapi.h"
-}
 
 namespace VPP
 {
     /**
      * A representation of LLDP client configuration on an interface
      */
-    class LldpConfig: public Object
+    class ArpProxyConfig: public Object
     {
     public:
         /**
          * Dependency level 'Binding'
          */
-        const static dependency_t dependency_value = dependency_t::BINDING;
+        const static dependency_t dependency_value = dependency_t::GLOBAL;
+
+        /**
+         * Key type
+         */
+        typedef std::pair<boost::asio::ip::address_v4,
+                          boost::asio::ip::address_v4> key_t;
 
         /**
          * Construct a new object matching the desried state
          */
-        LldpConfig(const Interface &itf,
-                   const std::string &hostname);
+        ArpProxyConfig(const boost::asio::ip::address_v4 &low,
+                       const boost::asio::ip::address_v4 &high);
 
         /**
          * Copy Constructor
          */
-        LldpConfig(const LldpConfig& o);
+        ArpProxyConfig(const ArpProxyConfig& o);
+
         /**
          * Destructor
          */
-        ~LldpConfig();
-
+        ~ArpProxyConfig();
 
         /**
          * Return the 'singular' of the LLDP config that matches this object
          */
-        std::shared_ptr<LldpConfig> singular() const;
+        std::shared_ptr<ArpProxyConfig> singular() const;
 
         /**
          * convert to string format for debug purposes
@@ -74,17 +73,17 @@ namespace VPP
         static void dump(std::ostream &os);
 
         /**
-         * A command class that binds the LLDP config to the interface
+         * A command class that adds the ARP Proxy config
          */
-        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class ConfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             /**
              * Constructor
              */
-            BindCmd(HW::Item<bool> &item,
-                    const handle_t &itf,
-                    const std::string &port_desc);
+            ConfigCmd(HW::Item<bool> &item,
+                      const boost::asio::ip::address_v4 &lo,
+                      const boost::asio::ip::address_v4 &high);
 
             /**
              * Issue the command to VPP/HW
@@ -98,30 +97,27 @@ namespace VPP
             /**
              * Comparison operator - only used for UT
              */
-            bool operator==(const BindCmd&i) const;
+            bool operator==(const ConfigCmd&i) const;
         private:
             /**
-             * Reference to the HW::Item of the interface to bind
+             * Address range
              */
-            const handle_t &m_itf;
-
-            /**
-             * The LLDP client's hostname
-             */
-            const std::string m_port_desc;
+            const boost::asio::ip::address_v4 m_low;
+            const boost::asio::ip::address_v4 m_high;
         };
 
         /**
-         * A cmd class that Unbinds Lldp Config from an interface
+         * A cmd class that Unconfigs ArpProxy Config from an interface
          */
-        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnconfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
         {
         public:
             /**
              * Constructor
              */
-            UnbindCmd(HW::Item<bool> &item,
-                      const handle_t &itf);
+            UnconfigCmd(HW::Item<bool> &item,
+                      const boost::asio::ip::address_v4 &lo,
+                      const boost::asio::ip::address_v4 &hig);
 
             /**
              * Issue the command to VPP/HW
@@ -135,12 +131,13 @@ namespace VPP
             /**
              * Comparison operator - only used for UT
              */
-            bool operator==(const UnbindCmd&i) const;
+            bool operator==(const UnconfigCmd&i) const;
         private:
             /**
-             * Reference to the HW::Item of the interface to unbind
+             * Address range
              */
-            const handle_t &m_itf;
+            const boost::asio::ip::address_v4 m_low;
+            const boost::asio::ip::address_v4 m_high;
         };
 
     private:
@@ -182,12 +179,12 @@ namespace VPP
         /**
          * Enquue commonds to the VPP command Q for the update
          */
-        void update(const LldpConfig &obj);
+        void update(const ArpProxyConfig &obj);
 
         /**
          * Find or add LLDP config to the OM
          */
-        static std::shared_ptr<LldpConfig> find_or_add(const LldpConfig &temp);
+        static std::shared_ptr<ArpProxyConfig> find_or_add(const ArpProxyConfig &temp);
 
         /*
          * It's the VPP::OM class that calls singular()
@@ -197,7 +194,7 @@ namespace VPP
         /**
          * It's the VPP::SingularDB class that calls replay()
          */
-        friend class VPP::SingularDB<Interface::key_type, LldpConfig>;
+        friend class VPP::SingularDB<ArpProxyConfig::key_t, ArpProxyConfig>;
 
         /**
          * Sweep/reap the object if still stale
@@ -210,28 +207,24 @@ namespace VPP
         void replay(void);
 
         /**
-         * A reference counting pointer to the interface on which LLDP config
-         * resides. By holding the reference here, we can guarantee that
-         * this object will outlive the interface
+         * Address range
          */
-        const std::shared_ptr<Interface> m_itf;
-    
-        /**
-         * The port-description in the LLDP configuration
-         */
-        const std::string m_port_desc;
+        const boost::asio::ip::address_v4 m_low;
+        const boost::asio::ip::address_v4 m_high;
 
         /**
-         * HW configuration for the binding. The bool representing the
-         * do/don't bind.
+         * A map of all ArpProxy configs keyed against the interface.
          */
-        HW::Item<bool> m_binding;
+        static SingularDB<ArpProxyConfig::key_t, ArpProxyConfig> m_db;
 
         /**
-         * A map of all Lldp configs keyed against the interface.
+         * HW configuration for the config. The bool representing the
+         * do/don't configured/unconfigured.
          */
-        static SingularDB<Interface::key_type, LldpConfig> m_db;
+        HW::Item<bool> m_config;
     };
+
+    std::ostream & operator<<(std::ostream &os, const ArpProxyConfig::key_t &key);
 };
 
 #endif

@@ -27,6 +27,8 @@
 #include "VppAclBinding.hpp"
 #include "VppAclL3Rule.hpp"
 #include "VppAclL2Rule.hpp"
+#include "VppArpProxyConfig.hpp"
+#include "VppArpProxyBinding.hpp"
 
 using namespace boost;
 using namespace VPP;
@@ -205,6 +207,22 @@ public:
                     else if (typeid(*f_exp) == typeid(ACL::L2Binding::UnbindCmd))
                     {
                         rc = handle_derived<ACL::L2Binding::UnbindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ArpProxyBinding::BindCmd))
+                    {
+                        rc = handle_derived<ArpProxyBinding::BindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ArpProxyBinding::UnbindCmd))
+                    {
+                        rc = handle_derived<ArpProxyBinding::UnbindCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ArpProxyConfig::ConfigCmd))
+                    {
+                        rc = handle_derived<ArpProxyConfig::ConfigCmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ArpProxyConfig::UnconfigCmd))
+                    {
+                        rc = handle_derived<ArpProxyConfig::UnconfigCmd>(f_exp, f_act);
                     }
                     else
                     {
@@ -775,6 +793,46 @@ BOOST_AUTO_TEST_CASE(acl) {
     ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
 
     TRY_CHECK(OM::remove(fyodor));
+}
+
+BOOST_AUTO_TEST_CASE(arp_proxy) {
+    VppInit vi;
+    const std::string kurt = "KurtVonnegut";
+    rc_t rc = rc_t::OK;
+
+    asio::ip::address_v4 low  = asio::ip::address_v4::from_string("10.0.0.0");
+    asio::ip::address_v4 high = asio::ip::address_v4::from_string("10.0.0.255");
+
+    ArpProxyConfig ap(low, high);
+    HW::Item<bool> hw_ap_cfg(true, rc_t::OK);
+    ADD_EXPECT(ArpProxyConfig::ConfigCmd(hw_ap_cfg, low, high));
+    TRY_CHECK_RC(OM::write(kurt, ap));
+
+    std::string itf1_name = "host1";
+    Interface itf1(itf1_name,
+                   Interface::type_t::AFPACKET,
+                   Interface::admin_state_t::UP);
+    HW::Item<handle_t> hw_ifh(2, rc_t::OK);
+    HW::Item<Interface::admin_state_t> hw_as_up(Interface::admin_state_t::UP, rc_t::OK);
+    ADD_EXPECT(Interface::AFPacketCreateCmd(hw_ifh, itf1_name));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_up, hw_ifh));
+    TRY_CHECK_RC(OM::write(kurt, itf1));
+
+    ArpProxyBinding *apb = new ArpProxyBinding(itf1, ap);
+    HW::Item<bool> hw_binding(true, rc_t::OK);
+    ADD_EXPECT(ArpProxyBinding::BindCmd(hw_binding, hw_ifh.data()));
+    TRY_CHECK_RC(OM::write(kurt, *apb));
+
+    delete apb;
+
+    HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN,
+                                                  rc_t::OK);
+    ADD_EXPECT(ArpProxyBinding::UnbindCmd(hw_binding, hw_ifh.data()));
+    ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
+    ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));
+    ADD_EXPECT(ArpProxyConfig::UnconfigCmd(hw_ap_cfg, low, high));
+
+    TRY_CHECK(OM::remove(kurt));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

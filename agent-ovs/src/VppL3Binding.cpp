@@ -14,7 +14,7 @@
 
 using namespace VPP;
 
-SingularDB<std::pair<Interface::key_type, Route::prefix_t>, L3Binding> L3Binding::m_db;
+SingularDB<L3Binding::key_type_t, L3Binding> L3Binding::m_db;
 
 L3Binding::EventHandler L3Binding::m_evh;
 

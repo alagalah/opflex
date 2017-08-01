@@ -228,8 +228,12 @@ if RENDERER_VPP
 	src/VppL3BindingCmds.cpp \
 	src/VppDhcpConfig.cpp \
 	src/VppDhcpConfigCmds.cpp \
-	src/VppLldpConfig.cpp \
-	src/VppLldpConfigCmds.cpp \
+	src/VppArpProxyConfig.cpp \
+	src/VppArpProxyConfigCmds.cpp \
+	src/VppArpProxyBinding.cpp \
+	src/VppArpProxyBindingCmds.cpp \
+	src/VppLldpBinding.cpp \
+	src/VppLldpBindingCmds.cpp \
 	src/VppLldpGlobal.cpp \
 	src/VppLldpGlobalCmds.cpp \
         src/VppTapInterface.cpp \
