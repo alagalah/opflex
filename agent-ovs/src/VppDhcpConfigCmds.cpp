@@ -18,7 +18,7 @@ using namespace VPP;
 DhcpConfig::BindCmd::BindCmd(HW::Item<bool> &item,
                              const handle_t &itf,
                              const std::string &hostname,
-                             const std::string &client_id):
+                             const l2_address_t &client_id):
     RpcCmd(item),
     m_itf(itf),
     m_hostname(hostname),
@@ -47,10 +47,9 @@ rc_t DhcpConfig::BindCmd::issue(Connection &con)
            std::min(sizeof(req->payload.hostname),
                            m_hostname.length()));
 
-    std::copy_n(m_client_id.begin(),
-                std::min(sizeof(req->payload.client_id),
-                         m_client_id.size()),
-                req->payload.client_id);
+    memset(req->payload.client_id, 0, sizeof(req->payload.client_id));
+    req->payload.client_id[0] = 1;
+    m_client_id.to_bytes(req->payload.client_id+1, 6);
 
     VAPI_CALL(vapi_dhcp_client_config(
                   con.ctx(),
