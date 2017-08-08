@@ -13,6 +13,9 @@
 #include "VppL3Binding.hpp"
 #include "VppLldpGlobal.hpp"
 #include "VppLldpBinding.hpp"
+#include "VppArpProxyConfig.hpp"
+#include "VppArpProxyBinding.hpp"
+#include "VppIpUnnumbered.hpp"
 
 using namespace VPP;
 
@@ -76,6 +79,15 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
                         m_vlan);
     L3Binding l3(subitf, pfx);
     OM::commit(UPLINK_KEY, l3);
+
+    IpUnnumbered ipUnnumber(itf, subitf);
+    VPP::OM::write(UPLINK_KEY, ipUnnumber);
+
+    ArpProxyConfig arpProxyConfig(low(pfx), high(pfx));
+    VPP::OM::write(UPLINK_KEY, arpProxyConfig);
+
+    ArpProxyBinding arpProxyBinding(itf, arpProxyConfig);
+    VPP::OM::write(UPLINK_KEY, arpProxyBinding);
 
     /*
      * VXLAN tunnels use the DHCP address as the source

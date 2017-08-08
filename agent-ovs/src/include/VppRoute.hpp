@@ -68,6 +68,11 @@ namespace VPP
             const boost::asio::ip::address &address() const;
 
             /**
+             * Get the network mask width
+             */
+            uint8_t mask_width() const;
+
+            /**
              * Assignement
              */
             prefix_t &operator=(const prefix_t&);
@@ -114,6 +119,21 @@ namespace VPP
             uint8_t m_len;
         };
     };
+
+    const boost::asio::ip::address_v4 operator|(
+                          const boost::asio::ip::address_v4 &addr1,
+                          const boost::asio::ip::address_v4 &addr2);
+
+    const boost::asio::ip::address_v4 operator&(
+                          const boost::asio::ip::address_v4 &addr1,
+                          const boost::asio::ip::address_v4 &addr2);
+
+    const boost::asio::ip::address_v4 operator~(
+                          const boost::asio::ip::address_v4 &addr1);
+
+    const boost::asio::ip::address_v4 mask(const Route::prefix_t &pfx);
+    const boost::asio::ip::address_v4 low(const Route::prefix_t &pfx);
+    const boost::asio::ip::address_v4 high(const Route::prefix_t &pfx);
 
     /**
      * Ostream printer for prefix_t
