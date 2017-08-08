@@ -62,6 +62,11 @@ const boost::asio::ip::address &Route::prefix_t::address() const
     return (m_addr);
 }
 
+uint8_t Route::prefix_t::mask_width() const
+{
+    return (m_len);
+}
+
 bool Route::prefix_t::operator<(const Route::prefix_t &o) const
 {
     if (m_len == o.m_len)
@@ -123,6 +128,58 @@ Route::prefix_t::prefix_t(uint8_t is_ip6,
     m_len(len),
     m_addr(from_bytes(is_ip6, addr))
 {
+}
+
+const boost::asio::ip::address_v4  VPP::operator|(
+                        const boost::asio::ip::address_v4 &addr1,
+                        const boost::asio::ip::address_v4 &addr2)
+{
+    uint32_t a;
+    a = addr1.to_ulong() | addr2.to_ulong();
+    boost::asio::ip::address_v4 addr(a);
+    return (addr);
+}
+
+const boost::asio::ip::address_v4 VPP::operator&(
+                        const boost::asio::ip::address_v4 &addr1,
+                        const boost::asio::ip::address_v4 &addr2)
+{
+    uint32_t a;
+    a = addr1.to_ulong() & addr2.to_ulong();
+    boost::asio::ip::address_v4 addr(a);
+    return (addr);
+}
+
+const boost::asio::ip::address_v4 VPP::operator~(
+                        const boost::asio::ip::address_v4 &addr1)
+{
+    uint32_t a;
+    a = ~addr1.to_ulong();
+    boost::asio::ip::address_v4 addr(a);
+    return (addr);
+}
+
+const boost::asio::ip::address_v4 VPP::mask(const Route::prefix_t &pfx)
+{
+    uint32_t a;
+
+    a = ~ ((1 << pfx.mask_width()) - 1);
+    boost::asio::ip::address_v4 addr(a);
+    return (addr);
+}
+
+const boost::asio::ip::address_v4 VPP::low(const Route::prefix_t &pfx)
+{
+    boost::asio::ip::address_v4 low;
+    low = pfx.address().to_v4() & mask(pfx);
+    return (low);
+}
+
+const boost::asio::ip::address_v4 VPP::high(const Route::prefix_t &pfx)
+{
+    boost::asio::ip::address_v4 high;
+    high = pfx.address().to_v4() | ~mask(pfx);
+    return (high);
 }
 
 void VPP::to_bytes(const boost::asio::ip::address &addr,

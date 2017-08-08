@@ -37,6 +37,7 @@ void Connection::connect()
                           m_app_name.c_str(),
                           NULL, //m_api_prefix.c_str(),
                           128,
+                          64,
                           VAPI_MODE_NONBLOCKING);
     } while (VAPI_OK != rv);
 }
