@@ -21,10 +21,7 @@
 #include "VppEnum.hpp"
 #include "VppInspect.hpp"
 
-extern "C"
-{
-    #include "l2.api.vapi.h"
-}
+#include <vapi/l2.api.vapi.hpp>
 
 namespace VPP
 {
@@ -76,7 +73,9 @@ namespace VPP
         /**
          * A command class that creates an Bridge-Domain
          */
-        class CreateCmd: public RpcCmd<HW::Item<uint32_t>, rc_t>
+        class CreateCmd: public RpcCmd<HW::Item<uint32_t>,
+                                       rc_t,
+                                       vapi::Bridge_domain_add_del>
         {
         public:
             /**
@@ -102,7 +101,9 @@ namespace VPP
         /**
          * A cmd class that Delete an Bridge-Domain
          */
-        class DeleteCmd: public RpcCmd<HW::Item<uint32_t>, rc_t>
+        class DeleteCmd: public RpcCmd<HW::Item<uint32_t>,
+                                       rc_t,
+                                       vapi::Bridge_domain_add_del>
         {
         public:
             /**
@@ -128,7 +129,7 @@ namespace VPP
         /**
          * A cmd class that Dumps all the IPv4 L3 configs
          */
-        class DumpCmd: public VPP::DumpCmd<vapi_payload_bridge_domain_details>
+        class DumpCmd: public VPP::DumpCmd<vapi::Bridge_domain_dump>
         {
         public:
             /**

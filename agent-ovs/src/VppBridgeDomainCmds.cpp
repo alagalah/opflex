@@ -13,7 +13,6 @@
 #include "VppBridgeDomain.hpp"
 #include "VppCmd.hpp"
 
-
 DEFINE_VAPI_MSG_IDS_L2_API_JSON;
 
 using namespace VPP;
@@ -30,24 +29,19 @@ bool BridgeDomain::CreateCmd::operator==(const CreateCmd& other) const
 
 rc_t BridgeDomain::CreateCmd::issue(Connection &con)
 {
-    vapi_msg_bridge_domain_add_del* req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_bridge_domain_add_del(con.ctx());
-    req->payload.bd_id = m_hw_item.data();
-    req->payload.flood = 1;
-    req->payload.uu_flood = 1;
-    req->payload.forward = 1;
-    req->payload.learn = 1;
-    req->payload.arp_term= 1;
-    req->payload.mac_age = 1;
-    req->payload.is_add = 1;
+    auto &payload = req.get_request().get_payload();
+    payload.bd_id = m_hw_item.data();
+    payload.flood = 1;
+    payload.uu_flood = 1;
+    payload.forward = 1;
+    payload.learn = 1;
+    payload.arp_term= 1;
+    payload.mac_age = 1;
+    payload.is_add = 1;
 
-    VAPI_CALL(vapi_bridge_domain_add_del(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_bridge_domain_add_del_reply,
-                                   CreateCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
                                             
@@ -74,18 +68,13 @@ bool BridgeDomain::DeleteCmd::operator==(const DeleteCmd& other) const
 
 rc_t BridgeDomain::DeleteCmd::issue(Connection &con)
 {
-    vapi_msg_bridge_domain_add_del* req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_bridge_domain_add_del(con.ctx());
-    req->payload.bd_id = m_hw_item.data();
-    req->payload.is_add = 0;
+    auto &payload = req.get_request().get_payload();
+    payload.bd_id = m_hw_item.data();
+    payload.is_add = 0;
 
-    VAPI_CALL(vapi_bridge_domain_add_del(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_bridge_domain_add_del_reply,
-                  CreateCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);
@@ -110,22 +99,14 @@ bool BridgeDomain::DumpCmd::operator==(const DumpCmd& other) const
     return (true);
 }
 
-static uword vapi_calc_bridge_domain_details_payload_size(vapi_payload_bridge_domain_details *payload)
-{
-  return sizeof(*payload)+ payload->n_sw_ifs * sizeof(payload->sw_if_details[0]);
-}
-
 rc_t BridgeDomain::DumpCmd::issue(Connection &con)
 {
-    vapi_msg_bridge_domain_dump *req;
+    m_dump.reset(new msg_t(con.ctx(), std::ref(*this)));
 
-    req = vapi_alloc_bridge_domain_dump(con.ctx());
-    req->payload.bd_id = ~0;
+    auto &payload = m_dump->get_request().get_payload();
+    payload.bd_id = ~0;
 
-    VAPI_CALL(vapi_bridge_domain_dump(
-                  con.ctx(), req,
-                  DumpCmd::callback_vl<DumpCmd>,
-                  DumpCmd::mk_cb_ctx(this, vapi_calc_bridge_domain_details_payload_size)));
+    VAPI_CALL(m_dump->execute());
 
     wait();
 

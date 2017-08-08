@@ -22,6 +22,8 @@
 #include "VppSingularDB.hpp"
 #include "VppInspect.hpp"
 
+#include <vapi/vpe.api.vapi.hpp>
+
 namespace VPP
 {
     /**
@@ -70,7 +72,8 @@ namespace VPP
         /**
          * A command class that adds the ARP Proxy config
          */
-        class ConfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class ConfigCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                       vapi::Proxy_arp_add_del>
         {
         public:
             /**
@@ -104,7 +107,8 @@ namespace VPP
         /**
          * A cmd class that Unconfigs ArpProxy Config from an interface
          */
-        class UnconfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnconfigCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                         vapi::Proxy_arp_add_del>
         {
         public:
             /**

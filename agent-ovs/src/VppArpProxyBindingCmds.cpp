@@ -27,17 +27,13 @@ bool ArpProxyBinding::BindCmd::operator==(const BindCmd& other) const
 
 rc_t ArpProxyBinding::BindCmd::issue(Connection &con)
 {
-    vapi_msg_proxy_arp_intfc_enable_disable *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_proxy_arp_intfc_enable_disable(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.enable_disable = 1;
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.enable_disable = 1;
 
-    VAPI_CALL(vapi_proxy_arp_intfc_enable_disable(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_proxy_arp_intfc_enable_disable_reply, BindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 
@@ -67,17 +63,13 @@ bool ArpProxyBinding::UnbindCmd::operator==(const UnbindCmd& other) const
 
 rc_t ArpProxyBinding::UnbindCmd::issue(Connection &con)
 {
-    vapi_msg_proxy_arp_intfc_enable_disable *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_proxy_arp_intfc_enable_disable(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.enable_disable = 0;
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.enable_disable = 0;
 
-    VAPI_CALL(vapi_proxy_arp_intfc_enable_disable(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_proxy_arp_intfc_enable_disable_reply, BindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);

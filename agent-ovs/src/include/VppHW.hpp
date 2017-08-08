@@ -16,6 +16,9 @@
 #include <string>
 #include <sstream>
 
+#include <vapi/vapi.hpp>
+#include <vapi/vpe.api.vapi.hpp>
+
 #include "VppRpcCmd.hpp"
 #include "VppConnection.hpp"
 
@@ -338,7 +341,7 @@ namespace VPP
         /**
          * A command pool the HW for liveness
          */
-        class Poll: public RpcCmd<HW::Item<bool>, rc_t>
+        class Poll: public RpcCmd<HW::Item<bool>, rc_t, vapi::Control_ping>
         {
         public:
             /**
@@ -361,7 +364,6 @@ namespace VPP
              */
             bool operator==(const Poll&i) const;
         };
-
     };
     
     /**

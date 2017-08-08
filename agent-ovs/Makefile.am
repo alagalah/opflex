@@ -222,14 +222,14 @@ if RENDERER_VPP
 	src/VppInterface.cpp \
 	src/VppInterfaceFactory.cpp \
 	src/VppInterfaceCmds.cpp \
+	src/VppDhcpConfig.cpp \
+	src/VppDhcpConfigCmds.cpp \
 	src/VppL2Binding.cpp \
 	src/VppL2BindingCmds.cpp \
 	src/VppL3Binding.cpp \
 	src/VppL3BindingCmds.cpp \
 	src/VppIpUnnumbered.cpp \
 	src/VppIpUnnumberedCmds.cpp \
-	src/VppDhcpConfig.cpp \
-	src/VppDhcpConfigCmds.cpp \
 	src/VppArpProxyConfig.cpp \
 	src/VppArpProxyConfigCmds.cpp \
 	src/VppArpProxyBinding.cpp \

@@ -31,23 +31,18 @@ bool LldpGlobal::ConfigCmd::operator==(const ConfigCmd& other) const
 
 rc_t LldpGlobal::ConfigCmd::issue(Connection &con)
 {
-    vapi_msg_lldp_config *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_lldp_config(con.ctx());
-    req->payload.tx_hold = m_tx_hold;
-    req->payload.tx_interval = m_tx_interval;
+    auto &payload = req.get_request().get_payload();
+    payload.tx_hold = m_tx_hold;
+    payload.tx_interval = m_tx_interval;
     
-    memcpy(req->payload.system_name,
+    memcpy(payload.system_name,
            m_system_name.c_str(),
-           std::min(sizeof(req->payload.system_name),
+           std::min(sizeof(payload.system_name),
                            m_system_name.length()));
 
-    VAPI_CALL(vapi_lldp_config(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_lldp_config_reply,
-                                   ConfigCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 

@@ -82,26 +82,31 @@ void Uplink::configure_tap(const Route::prefix_t &pfx)
     VPP::OM::write(UPLINK_KEY, arpProxyBinding);
 }
 
-void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
+void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *ec)
 {
     /*
      * Create the TAP interface with the DHCP learn address.
      *  This allows all traffic punt to VPP to arrive at the TAP/agent.
      */
-    vapi_payload_dhcp_compl_event dhcp_data;
+    std::lock_guard<DhcpConfig::EventsCmd> lg(*ec);
 
-    cmd->pop(dhcp_data);
+    for (auto &msg : *ec)
+    {
+        auto &payload = msg.get_payload();
 
-    Route::prefix_t pfx(dhcp_data.is_ipv6,
-                        dhcp_data.host_address,
-                        dhcp_data.mask_width);
+        Route::prefix_t pfx(payload.is_ipv6,
+                            payload.host_address,
+                            payload.mask_width);
 
-    configure_tap(pfx);
+        configure_tap(pfx);
+    }
 
     /*
      * VXLAN tunnels use the DHCP address as the source
      */
     m_vxlan.src = pfx.address();
+
+    ec->flush();
 }
 
 void Uplink::configure(const std::string &fqdn)

@@ -11,10 +11,7 @@
 
 #include "VppIpUnnumbered.hpp"
 
-extern "C"
-{
-    #include "vpe.api.vapi.h"
-}
+#include <vapi/vpe.api.vapi.hpp>
 
 using namespace VPP;
 
@@ -35,19 +32,14 @@ bool IpUnnumbered::ConfigCmd::operator==(const ConfigCmd& o) const
 
 rc_t IpUnnumbered::ConfigCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_set_unnumbered *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_set_unnumbered(con.ctx());
-    req->payload.is_add = 1;
-    req->payload.sw_if_index = m_l3_itf.value();
-    req->payload.unnumbered_sw_if_index = m_itf.value();
+    auto &payload = req.get_request().get_payload();
+    payload.is_add = 1;
+    payload.sw_if_index = m_l3_itf.value();
+    payload.unnumbered_sw_if_index = m_itf.value();
 
-    VAPI_CALL(vapi_sw_interface_set_unnumbered(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_sw_interface_set_unnumbered_reply,
-                                   ConfigCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 
@@ -81,21 +73,17 @@ bool IpUnnumbered::UnconfigCmd::operator==(const UnconfigCmd& o) const
 
 rc_t IpUnnumbered::UnconfigCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_set_unnumbered *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_set_unnumbered(con.ctx());
-    req->payload.is_add = 0;
-    req->payload.sw_if_index = m_l3_itf.value();
-    req->payload.unnumbered_sw_if_index = m_itf.value();
+    auto &payload = req.get_request().get_payload();
+    payload.is_add = 0;
+    payload.sw_if_index = m_l3_itf.value();
+    payload.unnumbered_sw_if_index = m_itf.value();
 
-    VAPI_CALL(vapi_sw_interface_set_unnumbered(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_sw_interface_set_unnumbered_reply,
-                                   ConfigCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
-    m_hw_item.set(wait());
+    wait();
+    m_hw_item.set(rc_t::NOOP);
 
     return rc_t::OK;
 }

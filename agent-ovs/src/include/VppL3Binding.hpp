@@ -23,10 +23,7 @@
 #include "VppSubInterface.hpp"
 #include "VppInspect.hpp"
 
-extern "C"
-{
-    #include "ip.api.vapi.h"
-}
+#include <vapi/ip.api.vapi.hpp>
 
 namespace VPP
 {
@@ -85,7 +82,8 @@ namespace VPP
         /**
          * A functor class that binds the L3 config to the interface
          */
-        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                     vapi::Sw_interface_add_del_address>
         {
         public:
             /**
@@ -123,7 +121,8 @@ namespace VPP
         /**
          * A cmd class that Unbinds L3 Config from an interface
          */
-        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                     vapi::Sw_interface_add_del_address>
         {
         public:
             /**
@@ -161,7 +160,7 @@ namespace VPP
         /**
          * A cmd class that Dumps all the IPv4 L3 configs
          */
-        class DumpV4Cmd: public DumpCmd<vapi_payload_ip_address_details>
+        class DumpV4Cmd: public DumpCmd<vapi::Ip_address_dump>
         {
         public:
             /**

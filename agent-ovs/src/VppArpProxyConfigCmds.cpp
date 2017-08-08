@@ -11,10 +11,7 @@
 
 #include "VppArpProxyConfig.hpp"
 
-extern "C"
-{
-    #include "vpe.api.vapi.h"
-}
+#include <vapi/vpe.api.vapi.hpp>
 
 using namespace VPP;
 
@@ -35,24 +32,19 @@ bool ArpProxyConfig::ConfigCmd::operator==(const ConfigCmd& o) const
 
 rc_t ArpProxyConfig::ConfigCmd::issue(Connection &con)
 {
-    vapi_msg_proxy_arp_add_del *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_proxy_arp_add_del(con.ctx());
-    req->payload.is_add = 1;
+    auto &payload = req.get_request().get_payload();
+    payload.is_add = 1;
 
     std::copy_n(std::begin(m_low.to_bytes()),
                 m_low.to_bytes().size(),
-                req->payload.low_address);
+                payload.low_address);
     std::copy_n(std::begin(m_high.to_bytes()),
                 m_high.to_bytes().size(),
-                req->payload.hi_address);
+                payload.hi_address);
 
-    VAPI_CALL(vapi_proxy_arp_add_del(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_proxy_arp_add_del_reply,
-                                   ConfigCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 
@@ -86,24 +78,19 @@ bool ArpProxyConfig::UnconfigCmd::operator==(const UnconfigCmd& o) const
 
 rc_t ArpProxyConfig::UnconfigCmd::issue(Connection &con)
 {
-    vapi_msg_proxy_arp_add_del *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_proxy_arp_add_del(con.ctx());
-    req->payload.is_add = 0;
+    auto &payload = req.get_request().get_payload();
+    payload.is_add = 0;
 
     std::copy_n(std::begin(m_low.to_bytes()),
                 m_low.to_bytes().size(),
-                req->payload.low_address);
+                payload.low_address);
     std::copy_n(std::begin(m_high.to_bytes()),
                 m_high.to_bytes().size(),
-                req->payload.hi_address);
+                payload.hi_address);
 
-    VAPI_CALL(vapi_proxy_arp_add_del(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_proxy_arp_add_del_reply,
-                                   UnconfigCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 

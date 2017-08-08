@@ -17,10 +17,7 @@
 
 #include "Vpp.hpp"
 
-extern "C"
-{
-    #include "vapi.h"
-}
+#include <vapi/vapi.hpp>
 
 namespace VPP
 {

@@ -19,10 +19,7 @@
 #include "VppInterface.hpp"
 #include "VppInspect.hpp"
 
-extern "C"
-{
-    #include "vxlan.api.vapi.h"
-}
+#include <vapi/vxlan.api.vapi.hpp>
 
 namespace VPP
 {
@@ -129,7 +126,7 @@ namespace VPP
         /**
          * A Command class that creates an VXLAN tunnel
          */
-        class CreateCmd: public Interface::CreateCmd
+        class CreateCmd: public Interface::CreateCmd<vapi::Vxlan_add_del_tunnel>
         {
         public:
             /**
@@ -163,7 +160,7 @@ namespace VPP
         /**
          * A functor class that creates an VXLAN tunnel
          */
-        class DeleteCmd: public Interface::DeleteCmd
+        class DeleteCmd: public Interface::DeleteCmd<vapi::Vxlan_add_del_tunnel>
         {
         public:
             /**
@@ -197,7 +194,7 @@ namespace VPP
         /**
          * A cmd class that Dumps all the Vpp Interfaces
          */
-        class DumpCmd: public VPP::DumpCmd<vapi_payload_vxlan_tunnel_details>
+        class DumpCmd: public VPP::DumpCmd<vapi::Vxlan_tunnel_dump>
         {
         public:
             /**

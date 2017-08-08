@@ -8,39 +8,33 @@
 
 #include "VppAclList.hpp"
 
-DEFINE_VAPI_MSG_IDS_ACL_API_JSON;
-
 namespace VPP
 {
     namespace ACL
     {
         template<> rc_t L3List::UpdateCmd::issue(Connection &con)
         {
-            vapi_msg_acl_add_replace *req;
+            msg_t req(con.ctx(), m_rules.size(), std::ref(*this));
             uint32_t ii = 0;
 
-            req = vapi_alloc_acl_add_replace(con.ctx(), m_rules.size());
-            req->payload.acl_index = m_hw_item.data().value();
-            req->payload.count = m_rules.size();
-            memset(req->payload.tag, 0, sizeof(req->payload.tag));
-            memcpy(req->payload.tag, m_key.c_str(),
+            auto &payload = req.get_request().get_payload();
+            payload.acl_index = m_hw_item.data().value();
+            payload.count = m_rules.size();
+            memset(payload.tag, 0, sizeof(payload.tag));
+            memcpy(payload.tag, m_key.c_str(),
                    std::min(m_key.length(),
-                            sizeof(req->payload.tag)));
+                            sizeof(payload.tag)));
 
             auto it = m_rules.cbegin();
 
             while (it != m_rules.cend())
             {
-                it->to_vpp(req->payload.r[ii]);
+                it->to_vpp(payload.r[ii]);
                 ++it;
                 ++ii;
             }
 
-            VAPI_CALL(vapi_acl_add_replace(
-                          con.ctx(), req,
-                          L3List::create_callback<vapi_payload_acl_add_replace_reply,
-                                                  UpdateCmd>,
-                          this));
+            VAPI_CALL(req.execute());
 
             m_hw_item = wait();
             complete();
@@ -50,16 +44,12 @@ namespace VPP
 
         template <> rc_t L3List::DeleteCmd::issue(Connection &con)
         {
-            vapi_msg_acl_del *req;
+            msg_t req(con.ctx(), std::ref(*this));
 
-            req = vapi_alloc_acl_del(con.ctx());
-            req->payload.acl_index = m_hw_item.data().value();
+            auto &payload = req.get_request().get_payload();
+            payload.acl_index = m_hw_item.data().value();
 
-            VAPI_CALL(vapi_acl_del(con.ctx(),
-                                   req,
-                                   RpcCmd::callback<vapi_payload_acl_del_reply,
-                                   DeleteCmd>,
-                                   this));
+            VAPI_CALL(req.execute());
 
             wait();
             m_hw_item.set(rc_t::NOOP);
@@ -69,14 +59,12 @@ namespace VPP
 
         template <> rc_t L3List::DumpCmd::issue(Connection &con)
         {
-            vapi_msg_acl_dump *req;
+            m_dump.reset(new msg_t(con.ctx(), std::ref(*this)));
 
-            req = vapi_alloc_acl_dump(con.ctx());
-            req->payload.acl_index = ~0;
+            auto &payload = m_dump->get_request().get_payload();
+            payload.acl_index = ~0;
 
-            VAPI_CALL(vapi_acl_dump(con.ctx(), req,
-                                    DumpCmd::callback<DumpCmd>,
-                                    this));
+            VAPI_CALL(m_dump->execute());
 
             wait();
 
@@ -85,31 +73,27 @@ namespace VPP
 
         template<> rc_t L2List::UpdateCmd::issue(Connection &con)
         {
-            vapi_msg_macip_acl_add *req;
+            msg_t req(con.ctx(), m_rules.size(), std::ref(*this));
             uint32_t ii = 0;
 
-            req = vapi_alloc_macip_acl_add(con.ctx(), m_rules.size());
-            // req->payload.acl_index = m_hw_item.data().value();
-            req->payload.count = m_rules.size();
-            memset(req->payload.tag, 0, sizeof(req->payload.tag));
-            memcpy(req->payload.tag, m_key.c_str(),
+            auto &payload = req.get_request().get_payload();
+            // payload.acl_index = m_hw_item.data().value();
+            payload.count = m_rules.size();
+            memset(payload.tag, 0, sizeof(payload.tag));
+            memcpy(payload.tag, m_key.c_str(),
                    std::min(m_key.length(),
-                            sizeof(req->payload.tag)));
+                            sizeof(payload.tag)));
 
             auto it = m_rules.cbegin();
 
             while (it != m_rules.cend())
             {
-                it->to_vpp(req->payload.r[ii]);
+                it->to_vpp(payload.r[ii]);
                 ++it;
                 ++ii;
             }
 
-            VAPI_CALL(vapi_macip_acl_add(
-                          con.ctx(), req,
-                          L2List::create_callback<vapi_payload_macip_acl_add_reply,
-                                                  UpdateCmd>,
-                          this));
+            VAPI_CALL(req.execute());
 
             m_hw_item = wait();
 
@@ -118,16 +102,12 @@ namespace VPP
 
         template <> rc_t L2List::DeleteCmd::issue(Connection &con)
         {
-            vapi_msg_macip_acl_del *req;
+            msg_t req(con.ctx(), std::ref(*this));
 
-            req = vapi_alloc_macip_acl_del(con.ctx());
-            req->payload.acl_index = m_hw_item.data().value();
+            auto &payload = req.get_request().get_payload();
+            payload.acl_index = m_hw_item.data().value();
 
-            VAPI_CALL(vapi_macip_acl_del(con.ctx(),
-                                   req,
-                                   RpcCmd::callback<vapi_payload_macip_acl_del_reply,
-                                                    DeleteCmd>,
-                                   this));
+            VAPI_CALL(req.execute());
 
             wait();
             m_hw_item.set(rc_t::NOOP);
@@ -135,22 +115,14 @@ namespace VPP
             return rc_t::OK;
         }
 
-        static uword vapi_calc_macip_acl_details_payload_size(vapi_payload_macip_acl_details *payload)
-        {
-            return sizeof(*payload) + payload->count * sizeof(payload->r[0]);
-        }
-
         template <> rc_t L2List::DumpCmd::issue(Connection &con)
         {
-            vapi_msg_macip_acl_dump *req;
+            m_dump.reset(new msg_t(con.ctx(), std::ref(*this)));
 
-            req = vapi_alloc_macip_acl_dump(con.ctx());
-            req->payload.acl_index = ~0;
+            auto &payload = m_dump->get_request().get_payload();
+            payload.acl_index = ~0;
 
-            VAPI_CALL(vapi_macip_acl_dump(con.ctx(), req,
-                                          DumpCmd::callback_vl<DumpCmd>,
-                                          mk_cb_ctx(this,
-                                                    vapi_calc_macip_acl_details_payload_size)));
+            VAPI_CALL(m_dump->execute());
 
             wait();
 

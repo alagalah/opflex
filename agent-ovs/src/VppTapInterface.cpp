@@ -13,10 +13,7 @@
 #include "VppCmd.hpp"
 #include "VppTapInterface.hpp"
 
-extern "C"
-{
-    #include "vpe.api.vapi.h"
-}
+#include <vapi/vpe.api.vapi.hpp>
 
 using namespace VPP;
 

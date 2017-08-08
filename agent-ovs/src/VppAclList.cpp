@@ -14,31 +14,34 @@ namespace VPP
     {
         template <> void L2List::EventHandler::handle_populate(const KeyDB::key_t &key)
         {
+            /* hack to get this function instantiated */
             m_evh.order();
+
             /*
              * dump VPP Bridge domains
              */
-            L2List::DumpCmd::details_type *record;
             std::shared_ptr<L2List::DumpCmd> cmd(new L2List::DumpCmd());
 
             HW::enqueue(cmd);
             HW::write();
 
-            while (record = cmd->pop())
+            for (auto &record : *cmd)
             {
-                const handle_t hdl(record->acl_index);
-                L2List acl(hdl, std::string(reinterpret_cast<const char*>(record->tag)));
+                auto &payload = record.get_payload();
 
-                for (int ii = 0; ii < record->count; ii++)
+                const handle_t hdl(payload.acl_index);
+                L2List acl(hdl, std::string(reinterpret_cast<const char*>(payload.tag)));
+
+                for (int ii = 0; ii < payload.count; ii++)
                 {
-                    const Route::prefix_t pfx(record->r[0].is_ipv6,
-                                              record->r[0].src_ip_addr,
-                                              record->r[0].src_ip_prefix_len);
+                    const Route::prefix_t pfx(payload.r[0].is_ipv6,
+                                              payload.r[0].src_ip_addr,
+                                              payload.r[0].src_ip_prefix_len);
                     L2Rule rule(ii,
-                                action_t::from_int(record->r[0].is_permit),
+                                action_t::from_int(payload.r[0].is_permit),
                                 pfx,
-                                {record->r[0].src_mac},
-                                {record->r[0].src_mac_mask});
+                                {payload.r[0].src_mac},
+                                {payload.r[0].src_mac_mask});
 
                     acl.insert(rule);
                 }
@@ -50,8 +53,6 @@ namespace VPP
                  * commands are sent to VPP
                  */
                 VPP::OM::commit(key, acl);
-
-                free(record);
             }
         }
 

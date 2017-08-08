@@ -19,10 +19,7 @@
 #include "VppArpProxyConfig.hpp"
 #include "VppInspect.hpp"
 
-extern "C"
-{
-    #include "lldp.api.vapi.h"
-}
+#include <vapi/vpe.api.vapi.hpp>
 
 namespace VPP
 {
@@ -67,7 +64,8 @@ namespace VPP
         /**
          * A command class that binds the LLDP config to the interface
          */
-        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                     vapi::Proxy_arp_intfc_enable_disable>
         {
         public:
             /**
@@ -99,7 +97,8 @@ namespace VPP
         /**
          * A cmd class that Unbinds ArpProxy Config from an interface
          */
-        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                     vapi::Proxy_arp_intfc_enable_disable>
         {
         public:
             /**

@@ -214,21 +214,21 @@ void VxlanTunnel::EventHandler::handle_populate(const KeyDB::key_t &key)
     /*
      * dump VPP current states
      */
-    VxlanTunnel::DumpCmd::details_type *data;
     std::shared_ptr<VxlanTunnel::DumpCmd> cmd(new VxlanTunnel::DumpCmd());
 
     HW::enqueue(cmd);
     HW::write();
 
-    while (data = cmd->pop())
+    for (auto &record : *cmd)
     {
-        handle_t hdl(data->sw_if_index);
-        boost::asio::ip::address src = from_bytes(data->is_ipv6,
-                                                  data->src_address);
-        boost::asio::ip::address dst = from_bytes(data->is_ipv6,
-                                                  data->dst_address);
+        auto &payload = record.get_payload();
+        handle_t hdl(payload.sw_if_index);
+        boost::asio::ip::address src = from_bytes(payload.is_ipv6,
+                                                  payload.src_address);
+        boost::asio::ip::address dst = from_bytes(payload.is_ipv6,
+                                                  payload.dst_address);
 
-        VxlanTunnel vt(hdl, src, dst, data->vni);
+        VxlanTunnel vt(hdl, src, dst, payload.vni);
 
         LOG(ovsagent::DEBUG) << "dump: " << vt.to_string();
 

@@ -66,7 +66,8 @@ namespace VPP
         /**
          * A functor class that binds L2 configuration to an interface
          */
-        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                     vapi::Sw_interface_set_l2_bridge>
         {
         public:
             /**
@@ -110,7 +111,8 @@ namespace VPP
         /**
          * A cmd class that Unbinds L2 configuration from an interface
          */
-        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                       vapi::Sw_interface_set_l2_bridge>
         {
         public:
             /**

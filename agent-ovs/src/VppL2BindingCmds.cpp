@@ -32,21 +32,16 @@ bool L2Binding::BindCmd::operator==(const BindCmd& other) const
 
 rc_t L2Binding::BindCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_set_l2_bridge* req;
-    
-    req = vapi_alloc_sw_interface_set_l2_bridge(con.ctx());
-    req->payload.rx_sw_if_index = m_itf.value();
-    req->payload.bd_id = m_bd;
-    req->payload.shg = 0;
-    req->payload.bvi = m_is_bvi;
-    req->payload.enable = 1;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    VAPI_CALL(vapi_sw_interface_set_l2_bridge(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_sw_interface_set_l2_bridge_reply,
-                  BindCmd>,
-                  this));
+    auto &payload = req.get_request().get_payload();
+    payload.rx_sw_if_index = m_itf.value();
+    payload.bd_id = m_bd;
+    payload.shg = 0;
+    payload.bvi = m_is_bvi;
+    payload.enable = 1;
+
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
                                             
@@ -83,21 +78,16 @@ bool L2Binding::UnbindCmd::operator==(const UnbindCmd& other) const
 
 rc_t L2Binding::UnbindCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_set_l2_bridge* req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_set_l2_bridge(con.ctx());
-    req->payload.rx_sw_if_index = m_itf.value();
-    req->payload.bd_id = m_bd;
-    req->payload.shg = 0;
-    req->payload.bvi = m_is_bvi;
-    req->payload.enable = 0;
+    auto &payload = req.get_request().get_payload();
+    payload.rx_sw_if_index = m_itf.value();
+    payload.bd_id = m_bd;
+    payload.shg = 0;
+    payload.bvi = m_is_bvi;
+    payload.enable = 0;
 
-    VAPI_CALL(vapi_sw_interface_set_l2_bridge(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_sw_interface_set_l2_bridge_reply,
-                  BindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);

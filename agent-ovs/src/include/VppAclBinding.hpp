@@ -31,7 +31,7 @@ namespace VPP
          * A Binding between an ACL and an interface.
          * A representation of the application of the ACL to the interface.
          */
-        template <typename LIST, typename DETAILS>
+        template <typename LIST, typename BIND, typename DUMP>
         class Binding: public Object
         {
         public:
@@ -108,7 +108,7 @@ namespace VPP
             /**
              * A command class that binds the ACL to the interface
              */
-            class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+            class BindCmd: public RpcCmd<HW::Item<bool>, rc_t, BIND>
             {
             public:
                 /**
@@ -118,7 +118,7 @@ namespace VPP
                         const direction_t &direction,
                         const handle_t &itf,
                         const handle_t &acl):
-                    RpcCmd(item),
+                    RpcCmd<HW::Item<bool>, rc_t, BIND>(item),
                     m_direction(direction),
                     m_itf(itf),
                     m_acl(acl)
@@ -174,7 +174,7 @@ namespace VPP
             /**
              * A command class that binds the ACL to the interface
              */
-            class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+            class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t, BIND>
             {
             public:
                 /**
@@ -184,7 +184,7 @@ namespace VPP
                           const direction_t &direction,
                           const handle_t &itf,
                           const handle_t &acl):
-                    RpcCmd(item),
+                    RpcCmd<HW::Item<bool>, rc_t, BIND>(item),
                     m_direction(direction),
                     m_itf(itf),
                     m_acl(acl)
@@ -240,7 +240,7 @@ namespace VPP
             /**
              * A cmd class that Dumps all the ACLs
              */
-            class DumpCmd: public VPP::DumpCmd<DETAILS>
+            class DumpCmd: public VPP::DumpCmd<DUMP>
             {
             public:
                 /**
@@ -259,7 +259,7 @@ namespace VPP
                  */
                 std::string to_string() const
                 {
-                    return ("acl-list-dump");
+                    return ("acl-bind-dump");
                 }
 
             private:
@@ -417,22 +417,26 @@ namespace VPP
         /**
          * Typedef the L3 Binding type
          */
-        typedef Binding<L3List, vapi_payload_acl_interface_list_details> L3Binding;
+        typedef Binding<L3List,
+                        vapi::Acl_interface_add_del,
+                        vapi::Acl_interface_list_dump> L3Binding;
 
         /**
          * Typedef the L2 Binding type
          */
-        typedef Binding<L2List, vapi_payload_macip_acl_interface_get_reply> L2Binding;
+        typedef Binding<L2List,
+                        vapi::Macip_acl_interface_add_del,
+                        vapi::Macip_acl_interface_list_dump> L2Binding;
 
         /**
          * Definition of the static Singular DB for ACL Bindings
          */
-        template <typename LIST, typename DETAILS>
-        SingularDB<typename ACL::Binding<LIST, DETAILS>::key_t,
-                   ACL::Binding<LIST, DETAILS>> Binding<LIST, DETAILS>::m_db;
+        template <typename LIST, typename BIND, typename DUMP>
+        SingularDB<typename ACL::Binding<LIST, BIND, DUMP>::key_t,
+                   ACL::Binding<LIST, BIND, DUMP>> Binding<LIST, BIND, DUMP>::m_db;
         
-        template <typename LIST, typename DETAILS>
-        typename ACL::Binding<LIST, DETAILS>::EventHandler Binding<LIST, DETAILS>::m_evh;
+        template <typename LIST, typename BIND, typename DUMP>
+        typename ACL::Binding<LIST, BIND, DUMP>::EventHandler Binding<LIST, BIND, DUMP>::m_evh;
     };
 
     std::ostream &operator<<(std::ostream &os,

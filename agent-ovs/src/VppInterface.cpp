@@ -296,15 +296,20 @@ std::shared_ptr<Interface> Interface::find(const handle_t &handle)
     return (m_hdl_db[handle].lock());
 }
 
-void Interface::add(const handle_t &handle,
-                    std::shared_ptr<Interface> sp)
+void Interface::add(const std::string &name,
+                    const HW::Item<handle_t> &item)
 {
-    m_hdl_db[handle] = sp;
+    std::shared_ptr<Interface> sp = find(name);
+
+    if (sp && item)
+    {
+        m_hdl_db[item.data()] = sp;
+    }
 }
 
-void Interface::remove(const handle_t &handle)
+void Interface::remove(const HW::Item<handle_t> &item)
 {
-    m_hdl_db.erase(handle);
+    m_hdl_db.erase(item.data());
 }
 
 void Interface::dump(std::ostream &os)
@@ -317,15 +322,14 @@ void Interface::EventHandler::handle_populate(const KeyDB::key_t &key)
     /*
      * dump VPP current states
      */
-    Interface::DumpCmd::details_type *data;
     std::shared_ptr<Interface::DumpCmd> cmd(new Interface::DumpCmd());
 
     HW::enqueue(cmd);
     HW::write();
 
-    while (data = cmd->pop())
+    for (auto & itf_record : *cmd) //while (data = cmd->pop())
     {
-        std::unique_ptr<Interface> itf = Interface::new_interface(*data);
+        std::unique_ptr<Interface> itf = Interface::new_interface(itf_record.get_payload());
 
         /*
          * 'local' interface is internal to VPP and has no meaning to external clients.
@@ -343,29 +347,25 @@ void Interface::EventHandler::handle_populate(const KeyDB::key_t &key)
             /**
              * Get the address configured on the interface
              */
-            L3Binding::DumpV4Cmd::details_type *record;
             std::shared_ptr<L3Binding::DumpV4Cmd> dcmd =
                 std::make_shared<L3Binding::DumpV4Cmd>(L3Binding::DumpV4Cmd(itf->handle()));
 
             HW::enqueue(dcmd);
             HW::write();
 
-            while (record = dcmd->pop())
+            for (auto &l3_record : *dcmd)
             {
-                const Route::prefix_t pfx(record->is_ipv6,
-                                          record->ip,
-                                          record->prefix_length);
+                auto &payload = l3_record.get_payload();
+                const Route::prefix_t pfx(payload.is_ipv6,
+                                          payload.ip,
+                                          payload.prefix_length);
 
                 LOG(ovsagent::DEBUG) << "dump: " << pfx.to_string();
 
                 L3Binding l3(*itf, pfx);
                 OM::commit(key, l3);
-
-                free(record);
             }
         }
-
-        free(data);
     }
 }
 

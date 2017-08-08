@@ -17,27 +17,25 @@ namespace VPP
             /*
              * dump VPP Bridge domains
              */
-            L2Binding::DumpCmd::details_type *record;
             std::shared_ptr<L2Binding::DumpCmd> cmd(new L2Binding::DumpCmd());
 
             HW::enqueue(cmd);
             HW::write();
 
-            while (record = cmd->pop())
+            for (auto &record : *cmd)
             {
-                for (int ii = 0; ii < record->count; ii++)
-                {
-                    if (~0 == record->acls[ii]) continue;
+                auto &payload = record.get_payload();
 
-                    std::shared_ptr<Interface> itf = Interface::find(ii);
-                    std::shared_ptr<L2List> acl = L2List::find(record->acls[ii]);
+                std::shared_ptr<Interface> itf = Interface::find(payload.sw_if_index);
+
+                for (int ii = 0; ii < payload.count; ii++)
+                {
+                    std::shared_ptr<L2List> acl = L2List::find(payload.acls[ii]);
 
                     L2Binding binding(direction_t::INPUT, *itf, *acl);
 
                     OM::commit(key, binding);
                 }
-
-                free(record);
             }
         }
 
