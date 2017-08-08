@@ -47,7 +47,7 @@ namespace VPP
         /**
          * A functor class that creates an interface
          */
-        class CreateCmd: public Interface::CreateCmd
+        class CreateCmd: public Interface::CreateCmd<vapi::Create_vlan_subif>
         {
         public:
             /**
@@ -89,7 +89,7 @@ namespace VPP
         /**
          * A cmd class that Delete an interface
          */
-        class DeleteCmd: public Interface::DeleteCmd
+        class DeleteCmd: public Interface::DeleteCmd<vapi::Delete_subif>
         {
         public:
             /**

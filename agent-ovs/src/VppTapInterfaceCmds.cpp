@@ -13,10 +13,7 @@
 #include "VppCmd.hpp"
 #include "VppTapInterface.hpp"
 
-extern "C"
-{
-    #include "tap.api.vapi.h"
-}
+#include <vapi/tap.api.vapi.hpp>
 
 using namespace VPP;
 
@@ -33,38 +30,35 @@ TapInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
 
 rc_t TapInterface::CreateCmd::issue(Connection &con)
 {
-    vapi_msg_tap_connect *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_tap_connect(con.ctx());
-    memset(req->payload.tap_name, 0,
-                    sizeof(req->payload.tap_name));
-    memcpy(req->payload.tap_name, m_name.c_str(),
+    auto &payload = req.get_request().get_payload();
+    memset(payload.tap_name, 0,
+                    sizeof(payload.tap_name));
+    memcpy(payload.tap_name, m_name.c_str(),
            std::min(m_name.length(),
-                    sizeof(req->payload.tap_name)));
+                    sizeof(payload.tap_name)));
     if (m_prefix != Route::prefix_t::ZERO) {
         if (m_prefix.address().is_v6()) {
-            m_prefix.to_vpp(&req->payload.ip6_address_set,
-                 req->payload.ip6_address,
-                 &req->payload.ip6_mask_width);
+            m_prefix.to_vpp(&payload.ip6_address_set,
+                 payload.ip6_address,
+                 &payload.ip6_mask_width);
         } else {
-            m_prefix.to_vpp(&req->payload.ip4_address_set,
-                 req->payload.ip4_address,
-                 &req->payload.ip4_mask_width);
-           req->payload.ip4_address_set = 1;
+            m_prefix.to_vpp(&payload.ip4_address_set,
+                 payload.ip4_address,
+                 &payload.ip4_mask_width);
+           payload.ip4_address_set = 1;
        }
     }
 
     if (m_l2_address != l2_address_t::ZERO) {
-       m_l2_address.to_bytes(req->payload.mac_address, 6);
+       m_l2_address.to_bytes(payload.mac_address, 6);
     } else {
-       req->payload.use_random_mac = 1;
+       payload.use_random_mac = 1;
     }
 
-    VAPI_CALL(vapi_tap_connect(con.ctx(), req,
-                               Interface::create_callback<
-                                   vapi_payload_tap_connect_reply,
-                                   CreateCmd>,
-                               this));
+    VAPI_CALL(req.execute());
+
     m_hw_item =  wait();
 
     return rc_t::OK;
@@ -119,13 +113,9 @@ bool TapInterface::DumpCmd::operator==(const DumpCmd& other) const
 
 rc_t TapInterface::DumpCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_tap_dump *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_tap_dump(con.ctx());
-
-    VAPI_CALL(vapi_sw_interface_tap_dump(con.ctx(), req,
-                                         DumpCmd::callback<DumpCmd>,
-                                         this));
+    VAPI_CALL(req.execute());
 
     wait();
 

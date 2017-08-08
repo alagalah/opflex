@@ -20,38 +20,6 @@ DEFINE_VAPI_MSG_IDS_TAP_API_JSON;
 
 using namespace VPP;
 
-Interface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
-                                const std::string &name):
-    RpcCmd(item),
-    m_name(name)
-{
-}
-
-Interface::CreateCmd::~CreateCmd()
-{
-}
-
-bool Interface::CreateCmd::operator==(const CreateCmd& other) const
-{
-    return (m_name == other.m_name);
-}
-
-void Interface::CreateCmd::complete()
-{
-    std::shared_ptr<Interface> sp = find(m_name);
-
-    if (sp && m_hw_item)
-    {
-        add(m_hw_item.data(), sp);
-    }
-}
-
-void Interface::CreateCmd::succeeded()
-{
-    RpcCmd::succeeded();
-    complete();
-}
-
 Interface::LoopbackCreateCmd::LoopbackCreateCmd(HW::Item<handle_t> &item,
                                                 const std::string &name):
     CreateCmd(item, name)
@@ -60,21 +28,15 @@ Interface::LoopbackCreateCmd::LoopbackCreateCmd(HW::Item<handle_t> &item,
 
 rc_t Interface::LoopbackCreateCmd::issue(Connection &con)
 {
-    vapi_msg_create_loopback *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_create_loopback(con.ctx());
-
-    VAPI_CALL(vapi_create_loopback(con.ctx(), req,
-                                   Interface::create_callback<
-                                       vapi_payload_create_loopback_reply,
-                                       LoopbackCreateCmd>,
-                                   this));
+    VAPI_CALL(req.execute());
 
     m_hw_item = wait();
 
     if (m_hw_item.rc() == rc_t::OK)
     {
-        complete();
+        Interface::add(m_name, m_hw_item);
     }
 
     return rc_t::OK;
@@ -88,11 +50,6 @@ std::string Interface::LoopbackCreateCmd::to_string() const
     return (s.str());
 }
 
-bool Interface::LoopbackCreateCmd::operator==(const LoopbackCreateCmd& other) const
-{
-    return (CreateCmd::operator==(other));
-}
-
 Interface::AFPacketCreateCmd::AFPacketCreateCmd(HW::Item<handle_t> &item,
                                                 const std::string &name):
     CreateCmd(item, name)
@@ -101,28 +58,24 @@ Interface::AFPacketCreateCmd::AFPacketCreateCmd(HW::Item<handle_t> &item,
 
 rc_t Interface::AFPacketCreateCmd::issue(Connection &con)
 {
-    vapi_msg_af_packet_create *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_af_packet_create(con.ctx());
+    auto &payload = req.get_request().get_payload();
 
-    req->payload.use_random_hw_addr = 1;
-    memset(req->payload.host_if_name, 0,
-           sizeof(req->payload.host_if_name));
-    memcpy(req->payload.host_if_name, m_name.c_str(),
+    payload.use_random_hw_addr = 1;
+    memset(payload.host_if_name, 0,
+           sizeof(payload.host_if_name));
+    memcpy(payload.host_if_name, m_name.c_str(),
            std::min(m_name.length(),
-                    sizeof(req->payload.host_if_name)));
+                    sizeof(payload.host_if_name)));
 
-    VAPI_CALL(vapi_af_packet_create(con.ctx(), req,
-                                    Interface::create_callback<
-                                        vapi_payload_af_packet_create_reply,
-                                        AFPacketCreateCmd>,
-                                    this));
+    VAPI_CALL(req.execute());
 
     m_hw_item = wait();
 
     if (m_hw_item.rc() == rc_t::OK)
     {
-        complete();
+        Interface::add(m_name, m_hw_item);
     }
 
     return rc_t::OK;
@@ -136,11 +89,6 @@ std::string Interface::AFPacketCreateCmd::to_string() const
     return (s.str());
 }
 
-bool Interface::AFPacketCreateCmd::operator==(const AFPacketCreateCmd& other) const
-{
-    return (CreateCmd::operator==(other));
-}
-
 Interface::TapCreateCmd::TapCreateCmd(HW::Item<handle_t> &item,
                                       const std::string &name):
     CreateCmd(item, name)
@@ -149,28 +97,25 @@ Interface::TapCreateCmd::TapCreateCmd(HW::Item<handle_t> &item,
 
 rc_t Interface::TapCreateCmd::issue(Connection &con)
 {
-    vapi_msg_tap_connect *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_tap_connect(con.ctx());
-    memset(req->payload.tap_name, 0,
-                    sizeof(req->payload.tap_name));
-    memcpy(req->payload.tap_name, m_name.c_str(),
+    auto &payload = req.get_request().get_payload();
+
+    memset(payload.tap_name, 0,
+           sizeof(payload.tap_name));
+    memcpy(payload.tap_name, m_name.c_str(),
            std::min(m_name.length(),
-                    sizeof(req->payload.tap_name)));
+                    sizeof(payload.tap_name)));
 
-    req->payload.use_random_mac = 1;
+    payload.use_random_mac = 1;
 
-    VAPI_CALL(vapi_tap_connect(con.ctx(), req,
-                               Interface::create_callback<
-                                   vapi_payload_tap_connect_reply,
-                                   TapCreateCmd>,
-                               this));
+    VAPI_CALL(req.execute());
 
     m_hw_item = wait();
 
     if (m_hw_item.rc() == rc_t::OK)
     {
-        complete();
+        Interface::add(m_name, m_hw_item);
     }
 
     return rc_t::OK;
@@ -185,37 +130,6 @@ std::string Interface::TapCreateCmd::to_string() const
     return (s.str());
 }
 
-bool Interface::TapCreateCmd::operator==(const TapCreateCmd& other) const
-{
-    return (CreateCmd::operator==(other));
-}
-
-Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
-    RpcCmd(item)
-{
-}
-
-Interface::DeleteCmd::~DeleteCmd()
-{
-}
-
-void Interface::DeleteCmd::complete()
-{
-    remove(m_hw_item.data());
-}
-
-Interface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item,
-                                const std::string &name):
-    RpcCmd(item),
-    m_name(name)
-{
-}
-
-bool Interface::DeleteCmd::operator==(const DeleteCmd& other) const
-{
-    return (m_hw_item == other.m_hw_item);
-}
-
 Interface::LoopbackDeleteCmd::LoopbackDeleteCmd(HW::Item<handle_t> &item):
     DeleteCmd(item)
 {
@@ -223,34 +137,26 @@ Interface::LoopbackDeleteCmd::LoopbackDeleteCmd(HW::Item<handle_t> &item):
 
 rc_t Interface::LoopbackDeleteCmd::issue(Connection &con)
 {
-    vapi_msg_delete_loopback *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_delete_loopback(con.ctx());
-    req->payload.sw_if_index = m_hw_item.data().value();
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_hw_item.data().value();
 
-    VAPI_CALL(vapi_delete_loopback(
-                  con.ctx(), req,
-                  RpcCmd::callback<vapi_payload_delete_loopback_reply,
-                                   LoopbackDeleteCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);
 
-    complete();
+    Interface::remove(m_hw_item);
     return rc_t::OK;
 }
+
 std::string Interface::LoopbackDeleteCmd::to_string() const
 {
     std::ostringstream s;
     s << "loopback-itf-delete: " << m_hw_item.to_string();
 
     return (s.str());
-}
-
-bool Interface::LoopbackDeleteCmd::operator==(const LoopbackDeleteCmd& other) const
-{
-    return (DeleteCmd::operator==(other));
 }
 
 Interface::AFPacketDeleteCmd::AFPacketDeleteCmd(HW::Item<handle_t> &item,
@@ -261,26 +167,21 @@ Interface::AFPacketDeleteCmd::AFPacketDeleteCmd(HW::Item<handle_t> &item,
 
 rc_t Interface::AFPacketDeleteCmd::issue(Connection &con)
 {
-    vapi_msg_af_packet_delete *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_af_packet_delete(con.ctx());
-    memset(req->payload.host_if_name, 0,
-           sizeof(req->payload.host_if_name));
-    memcpy(req->payload.host_if_name, m_name.c_str(),
+    auto &payload = req.get_request().get_payload();
+    memset(payload.host_if_name, 0,
+           sizeof(payload.host_if_name));
+    memcpy(payload.host_if_name, m_name.c_str(),
            std::min(m_name.length(),
-                    sizeof(req->payload.host_if_name)));
+                    sizeof(payload.host_if_name)));
 
-    VAPI_CALL(vapi_af_packet_delete(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_af_packet_delete_reply,
-                                   AFPacketDeleteCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);
 
-    complete();
+    Interface::remove(m_hw_item);
     return rc_t::OK;
 }
 std::string Interface::AFPacketDeleteCmd::to_string() const
@@ -289,11 +190,6 @@ std::string Interface::AFPacketDeleteCmd::to_string() const
     s << "af_packet-itf-delete: " << m_hw_item.to_string();
 
     return (s.str());
-}
-
-bool Interface::AFPacketDeleteCmd::operator==(const AFPacketDeleteCmd& other) const
-{
-    return (DeleteCmd::operator==(other));
 }
 
 Interface::TapDeleteCmd::TapDeleteCmd(HW::Item<handle_t> &item):
@@ -305,7 +201,7 @@ rc_t Interface::TapDeleteCmd::issue(Connection &con)
 {
     // finally... call VPP
 
-    complete();
+    Interface::remove(m_hw_item);
     return rc_t::OK;
 }
 std::string Interface::TapDeleteCmd::to_string() const
@@ -313,11 +209,6 @@ std::string Interface::TapDeleteCmd::to_string() const
     std::ostringstream s;
     s << "tap-itf-delete: " << m_hw_item.to_string();
     return (s.str());
-}
-
-bool Interface::TapDeleteCmd::operator==(const TapDeleteCmd& other) const
-{
-    return (DeleteCmd::operator==(other));
 }
 
 Interface::StateChangeCmd::StateChangeCmd(HW::Item<Interface::admin_state_t> &state,
@@ -335,17 +226,13 @@ bool Interface::StateChangeCmd::operator==(const StateChangeCmd& other) const
 
 rc_t Interface::StateChangeCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_set_flags *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_set_flags(con.ctx());
-    req->payload.sw_if_index = m_hdl.data().value();
-    req->payload.admin_up_down = m_hw_item.data().value();
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_hdl.data().value();
+    payload.admin_up_down = m_hw_item.data().value();
 
-    VAPI_CALL(vapi_sw_interface_set_flags(
-                  con.ctx(), req,
-                  RpcCmd::callback<vapi_payload_sw_interface_set_flags_reply,
-                                   StateChangeCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 
@@ -375,19 +262,14 @@ bool Interface::SetTableCmd::operator==(const SetTableCmd& other) const
 
 rc_t Interface::SetTableCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_set_table *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_set_table(con.ctx());
-    req->payload.sw_if_index = m_hdl.data().value();
-    req->payload.is_ipv6 = 0;
-    req->payload.vrf_id = m_hw_item.data();
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_hdl.data().value();
+    payload.is_ipv6 = 0;
+    payload.vrf_id = m_hw_item.data();
 
-    VAPI_CALL(vapi_sw_interface_set_table(con.ctx(),
-                                          req,
-                                          RpcCmd::callback<
-                                              vapi_payload_sw_interface_set_table_reply,
-                                          SetTableCmd>,
-                                          this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 
@@ -417,30 +299,22 @@ bool Interface::EventsCmd::operator==(const EventsCmd& other) const
 
 rc_t Interface::EventsCmd::issue(Connection &con)
 {
-    vapi_msg_want_interface_events *req;
-
     /*
      * First set the clal back to handle the interface events
      */
-    vapi_set_event_cb(con.ctx(),
-                      vapi_msg_id_sw_interface_set_flags,
-                      EventCmd::callback<EventsCmd>,
-                      this);
+    m_reg.reset(new reg_t(con.ctx(), std::ref(*(static_cast<EventCmd*>(this)))));
+    // m_reg->execute();
 
     /*
      * then send the request to enable them
      */
-    req = vapi_alloc_want_interface_events(con.ctx());
+    msg_t req(con.ctx(), std::ref(*(static_cast<RpcCmd*>(this))));
 
-    req->payload.enable_disable = 1;
-    req->payload.pid = getpid();
+    auto &payload = req.get_request().get_payload();
+    payload.enable_disable = 1;
+    payload.pid = getpid();
 
-    VAPI_CALL(vapi_want_interface_events(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_want_interface_events_reply,
-                                   EventsCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
 
@@ -451,7 +325,7 @@ void Interface::EventsCmd::retire()
 {
 }
 
-void Interface::EventsCmd::notify(vapi_msg_sw_interface_set_flags *data)
+void Interface::EventsCmd::notify()
 {
     m_listener.handle_interface_event(this);
 }
@@ -472,14 +346,12 @@ bool Interface::DumpCmd::operator==(const DumpCmd& other) const
 
 rc_t Interface::DumpCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_dump *req;
+    m_dump.reset(new msg_t(con.ctx(), std::ref(*this)));
 
-    req = vapi_alloc_sw_interface_dump(con.ctx());
-    req->payload.name_filter_valid = 0;
+    auto &payload = m_dump->get_request().get_payload();
+    payload.name_filter_valid = 0;
 
-    VAPI_CALL(vapi_sw_interface_dump(con.ctx(), req,
-                                     DumpCmd::callback<DumpCmd>,
-                                     this));
+    VAPI_CALL(m_dump->execute());
 
     wait();
 
@@ -500,18 +372,14 @@ Interface::SetTag::SetTag(HW::Item<handle_t> &item,
 
 rc_t Interface::SetTag::issue(Connection &con)
 {
-    vapi_msg_sw_interface_tag_add_del *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_tag_add_del(con.ctx());
-    req->payload.is_add = 1;
-    req->payload.sw_if_index = m_hw_item.data().value();
-    memcpy(req->payload.tag, m_name.c_str(), m_name.length());
+    auto &payload = req.get_request().get_payload();
+    payload.is_add = 1;
+    payload.sw_if_index = m_hw_item.data().value();
+    memcpy(payload.tag, m_name.c_str(), m_name.length());
 
-    VAPI_CALL(vapi_sw_interface_tag_add_del(
-                  con.ctx(), req,
-                  RpcCmd::callback<vapi_payload_sw_interface_tag_add_del_reply,
-                  SetTag>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
 

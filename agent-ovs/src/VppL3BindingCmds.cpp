@@ -31,22 +31,18 @@ bool L3Binding::BindCmd::operator==(const BindCmd& other) const
 
 rc_t L3Binding::BindCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_add_del_address *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_add_del_address(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.is_add = 1;
-    req->payload.del_all = 0;
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.is_add = 1;
+    payload.del_all = 0;
 
-    m_pfx.to_vpp(&req->payload.is_ipv6,
-                 req->payload.address,
-                 &req->payload.address_length);
+    m_pfx.to_vpp(&payload.is_ipv6,
+                 payload.address,
+                 &payload.address_length);
 
-    VAPI_CALL(vapi_sw_interface_add_del_address(
-                  con.ctx(), req,
-                  RpcCmd::callback<vapi_payload_sw_interface_add_del_address_reply,
-                                   BindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 
@@ -56,7 +52,7 @@ rc_t L3Binding::BindCmd::issue(Connection &con)
 std::string L3Binding::BindCmd::to_string() const
 {
     std::ostringstream s;
-    s << "L3-config-bind: " << m_hw_item.to_string()
+    s << "L3-bind: " << m_hw_item.to_string()
       << " itf:" << m_itf.to_string()
       << " pfx:" << m_pfx.to_string();
 
@@ -80,23 +76,18 @@ bool L3Binding::UnbindCmd::operator==(const UnbindCmd& other) const
 
 rc_t L3Binding::UnbindCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_add_del_address *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_add_del_address(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.is_add = 0;
-    req->payload.del_all = 0;
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.is_add = 0;
+    payload.del_all = 0;
 
-    m_pfx.to_vpp(&req->payload.is_ipv6,
-                 req->payload.address,
-                 &req->payload.address_length);
+    m_pfx.to_vpp(&payload.is_ipv6,
+                 payload.address,
+                 &payload.address_length);
 
-    VAPI_CALL(vapi_sw_interface_add_del_address(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_sw_interface_add_del_address_reply,
-                                   UnbindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);
@@ -107,7 +98,7 @@ rc_t L3Binding::UnbindCmd::issue(Connection &con)
 std::string L3Binding::UnbindCmd::to_string() const
 {
     std::ostringstream s;
-    s << "L3-config-unbind: " << m_hw_item.to_string()
+    s << "L3-unbind: " << m_hw_item.to_string()
       << " itf:" << m_itf.to_string()
       << " pfx:" << m_pfx.to_string();
 
@@ -131,15 +122,13 @@ bool L3Binding::DumpV4Cmd::operator==(const DumpV4Cmd& other) const
 
 rc_t L3Binding::DumpV4Cmd::issue(Connection &con)
 {
-    vapi_msg_ip_address_dump *req;
+    m_dump.reset(new msg_t(con.ctx(), std::ref(*this)));
 
-    req = vapi_alloc_ip_address_dump(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.is_ipv6 = 0;
+    auto &payload = m_dump->get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.is_ipv6 = 0;
 
-    VAPI_CALL(vapi_ip_address_dump(con.ctx(), req,
-                                   DumpCmd::callback<DumpV4Cmd>,
-                                   this));
+    VAPI_CALL(m_dump->execute());
 
     wait();
 
@@ -148,5 +137,5 @@ rc_t L3Binding::DumpV4Cmd::issue(Connection &con)
 
 std::string L3Binding::DumpV4Cmd::to_string() const
 {
-    return ("L3-config-dump");
+    return ("L3-binding-dump");
 }

@@ -23,10 +23,7 @@
 #include "VppOM.hpp"
 #include "VppInspect.hpp"
 
-extern "C"
-{
-    #include "acl.api.vapi.h"
-}
+#include <vapi/acl.api.vapi.hpp>
 
 namespace VPP
 {
@@ -36,7 +33,8 @@ namespace VPP
          * An ACL list comprises a set of match actions rules to be applied to packets.
          * A list is bound to a given interface.
          */
-        template <typename RULE, typename DETAILS>
+        template <typename RULE, typename UPDATE,
+                  typename DELETE, typename DUMP>
         class List: public Object
         {
         public:
@@ -158,7 +156,8 @@ namespace VPP
              * A command class that Create the List
              */
             class UpdateCmd: public RpcCmd<HW::Item<handle_t>,
-                                           HW::Item<handle_t>>
+                                           HW::Item<handle_t>,
+                                           UPDATE>
             {
             public:
                 /**
@@ -167,7 +166,9 @@ namespace VPP
                 UpdateCmd(HW::Item<handle_t> &item,
                           const key_t &key,
                           const rules_t &rules):
-                    RpcCmd(item),
+                    RpcCmd<HW::Item<handle_t>,
+                           HW::Item<handle_t>,
+                           UPDATE>(item),
                     m_key(key),
                     m_rules(rules)
                 {
@@ -184,7 +185,7 @@ namespace VPP
                 std::string to_string() const
                 {
                     std::ostringstream s;
-                    s << "ACL-list-update: " << m_hw_item.to_string();
+                    s << "ACL-list-update: " << this->item().to_string();
 
                     return (s.str());
                 }
@@ -201,16 +202,35 @@ namespace VPP
                 void complete()
                 {
                     std::shared_ptr<List> sp = find(m_key);
-                    if (sp && m_hw_item)
+                    if (sp && this->item())
                     {
-                        List::add(m_hw_item.data(), sp);
+                        List::add(this->item().data(), sp);
                     }
                 }
 
                 void succeeded()
                 {
-                    RpcCmd::succeeded();
+                    RpcCmd<HW::Item<handle_t>,
+                           HW::Item<handle_t>,
+                           UPDATE>::succeeded();
                     complete();
+                }
+
+                /**
+                 * A callback function for handling ACL creates
+                 */
+                virtual vapi_error_e operator() (UPDATE &reply)
+                {
+                    int acl_index = reply.get_response().get_payload().acl_index;
+                    int retval = reply.get_response().get_payload().retval;
+
+                    LOG(ovsagent::DEBUG) << this->to_string() << " " << retval;
+
+                    HW::Item<handle_t> res(acl_index, rc_t::from_vpp_retval(retval));
+
+                    this->fulfill(res);
+
+                    return (VAPI_OK);
                 }
 
             private:
@@ -228,14 +248,14 @@ namespace VPP
             /**
              * A cmd class that Deletes an ACL
              */
-            class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
+            class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t, DELETE>
             {
             public:
                 /**
                  * Constructor
                  */
                 DeleteCmd(HW::Item<handle_t> &item):
-                    RpcCmd(item)
+                    RpcCmd<HW::Item<handle_t>, rc_t, DELETE>(item)
                 {
                 }
 
@@ -253,7 +273,7 @@ namespace VPP
                 std::string to_string() const
                 {
                     std::ostringstream s;
-                    s << "ACL-list-delete: " << m_hw_item.to_string();
+                    s << "ACL-list-delete: " << this->item().to_string();
 
                     return (s.str());
                 }
@@ -263,14 +283,14 @@ namespace VPP
                  */
                 bool operator==(const DeleteCmd &other) const
                 {
-                    return (m_hw_item.data() == other.m_hw_item.data());
+                    return (this->item().data() == other.item().data());
                 }
             };
 
             /**
              * A cmd class that Dumps all the ACLs
              */
-            class DumpCmd: public VPP::DumpCmd<DETAILS>
+            class DumpCmd: public VPP::DumpCmd<DUMP>
             {
             public:
                 /**
@@ -301,29 +321,6 @@ namespace VPP
                  */
                 HW::Item<bool> item;
             };
-
-            /**
-             * A generic callback function for handling Interface crete complete
-             * callbacks from VPP
-             */
-            template <typename REPLY, typename CMD_TYPE>
-            static vapi_error_e create_callback(vapi_ctx_t ctx,
-                                                void *callback_ctx,
-                                                vapi_error_e rv,
-                                                bool is_last,
-                                                REPLY *reply)
-            {
-                CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
-
-                LOG(ovsagent::DEBUG) << cmd->to_string() << " " << reply->retval;
-
-                HW::Item<handle_t> res(reply->acl_index,
-                                       rc_t::from_vpp_retval(reply->retval));
-
-                cmd->fulfill(res);
-
-                return (VAPI_OK);
-            }
 
             static std::shared_ptr<List> find(const handle_t &handle)
             {
@@ -485,29 +482,35 @@ namespace VPP
         /**
          * Typedef the L3 ACL type
          */
-        typedef List<L3Rule, vapi_payload_acl_details> L3List;
+        typedef List<L3Rule,
+                     vapi::Acl_add_replace,
+                     vapi::Acl_del,
+                     vapi::Acl_dump> L3List;
 
         /**
          * Typedef the L2 ACL type
          */
-        typedef List<L2Rule, vapi_payload_macip_acl_details> L2List;
+        typedef List<L2Rule,
+                     vapi::Macip_acl_add,
+                     vapi::Macip_acl_del,
+                     vapi::Macip_acl_dump> L2List;
 
         /**
          * Definition of the static SingularDB for ACL Lists
          */
-        template <typename RULE, typename DETAILS>
-        SingularDB<typename ACL::List<RULE, DETAILS>::key_t,
-                   ACL::List<RULE, DETAILS> > List<RULE, DETAILS>::m_db;
+        template <typename RULE, typename UPDATE, typename DELETE, typename DUMP>
+        SingularDB<typename ACL::List<RULE, UPDATE, DELETE, DUMP>::key_t,
+                   ACL::List<RULE, UPDATE, DELETE, DUMP> > List<RULE, UPDATE, DELETE, DUMP>::m_db;
 
         /**
          * Definition of the static per-handle DB for ACL Lists
          */
-        template <typename RULE, typename DETAILS>
+        template <typename RULE, typename UPDATE, typename DELETE, typename DUMP>
         std::map<const handle_t,
-                 std::weak_ptr<ACL::List<RULE, DETAILS> > > List<RULE, DETAILS>::m_hdl_db;
+                 std::weak_ptr<ACL::List<RULE, UPDATE, DELETE, DUMP> > > List<RULE, UPDATE, DELETE, DUMP>::m_hdl_db;
 
-        template <typename RULE, typename DETAILS>
-        typename ACL::List<RULE, DETAILS>::EventHandler List<RULE, DETAILS>::m_evh;
+        template <typename RULE, typename UPDATE, typename DELETE, typename DUMP>
+        typename ACL::List<RULE, UPDATE, DELETE, DUMP>::EventHandler List<RULE, UPDATE, DELETE, DUMP>::m_evh;
 
     };
 };

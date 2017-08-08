@@ -7,9 +7,6 @@
  */
 
 #include <string>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
 #include <sstream>
 #include <boost/system/error_code.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -19,7 +16,7 @@
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/ip/host_name.hpp>
 
-#include <netinet/icmp6.h>
+//#include <netinet/icmp6.h>
 
 #include <modelgbp/gbp/DirectionEnumT.hpp>
 #include <modelgbp/gbp/IntraGroupPolicyEnumT.hpp>
@@ -27,14 +24,12 @@
 #include <modelgbp/gbp/BcastFloodModeEnumT.hpp>
 #include <modelgbp/gbp/AddressResModeEnumT.hpp>
 #include <modelgbp/gbp/RoutingModeEnumT.hpp>
-#include <modelgbp/gbp/ConnTrackEnumT.hpp>
+//#include <modelgbp/gbp/ConnTrackEnumT.hpp>
 
 #include "logging.h"
 #include "Endpoint.h"
 #include "EndpointManager.h"
-#include "EndpointListener.h"
 #include "VppManager.h"
-#include "Packets.h"
 #include "VppOM.hpp"
 #include "VppInterface.hpp"
 #include "VppL2Binding.hpp"
@@ -44,8 +39,8 @@
 #include "VppDhcpConfig.hpp"
 #include "VppAclBinding.hpp"
 
-#include "arp.h"
-#include "eth.h"
+//#include "arp.h"
+//#include "eth.h"
 
 
 using std::string;

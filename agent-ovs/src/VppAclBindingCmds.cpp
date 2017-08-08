@@ -8,25 +8,23 @@
 
 #include "VppAclBinding.hpp"
 
+DEFINE_VAPI_MSG_IDS_ACL_API_JSON;
+
 namespace VPP
 {
     namespace ACL
     {
         template<> rc_t L3Binding::BindCmd::issue(Connection &con)
         {
-            vapi_msg_acl_interface_add_del *req;
+            msg_t req(con.ctx(), std::ref(*this));
 
-            req = vapi_alloc_acl_interface_add_del(con.ctx());
-            req->payload.sw_if_index = m_itf.value();
-            req->payload.is_add = 1;
-            req->payload.is_input = (m_direction == direction_t::INPUT ? 1 : 0);
-            req->payload.acl_index = m_acl.value();
+            auto &payload = req.get_request().get_payload();
+            payload.sw_if_index = m_itf.value();
+            payload.is_add = 1;
+            payload.is_input = (m_direction == direction_t::INPUT ? 1 : 0);
+            payload.acl_index = m_acl.value();
 
-            VAPI_CALL(vapi_acl_interface_add_del(
-                          con.ctx(), req,
-                          RpcCmd::callback<vapi_payload_acl_interface_add_del_reply,
-                                           BindCmd>,
-                          this));
+            VAPI_CALL(req.execute());
 
             m_hw_item.set(wait());
 
@@ -35,19 +33,15 @@ namespace VPP
 
         template<> rc_t L3Binding::UnbindCmd::issue(Connection &con)
         {
-            vapi_msg_acl_interface_add_del *req;
+            msg_t req(con.ctx(), std::ref(*this));
 
-            req = vapi_alloc_acl_interface_add_del(con.ctx());
-            req->payload.sw_if_index = m_itf.value();
-            req->payload.is_add = 0;
-            req->payload.is_input = (m_direction == direction_t::INPUT ? 1 : 0);
-            req->payload.acl_index = m_acl.value();
+            auto &payload = req.get_request().get_payload();
+            payload.sw_if_index = m_itf.value();
+            payload.is_add = 0;
+            payload.is_input = (m_direction == direction_t::INPUT ? 1 : 0);
+            payload.acl_index = m_acl.value();
 
-            VAPI_CALL(vapi_acl_interface_add_del(
-                          con.ctx(), req,
-                          RpcCmd::callback<vapi_payload_acl_interface_add_del_reply,
-                                           UnbindCmd>,
-                          this));
+            VAPI_CALL(req.execute());
 
             m_hw_item.set(wait());
 
@@ -56,14 +50,12 @@ namespace VPP
 
         template <> rc_t L3Binding::DumpCmd::issue(Connection &con)
         {
-            vapi_msg_acl_interface_list_dump *req;
+            m_dump.reset(new msg_t(con.ctx(), std::ref(*this)));
 
-            req = vapi_alloc_acl_interface_list_dump(con.ctx());
-            req->payload.sw_if_index = ~0;
+            auto &payload = m_dump->get_request().get_payload();
+            payload.sw_if_index = ~0;
 
-            VAPI_CALL(vapi_acl_interface_list_dump(con.ctx(), req,
-                                                   DumpCmd::callback<DumpCmd>,
-                                                   this));
+            VAPI_CALL(m_dump->execute());
 
             wait();
 
@@ -72,19 +64,15 @@ namespace VPP
 
         template<> rc_t L2Binding::BindCmd::issue(Connection &con)
         {
-            vapi_msg_macip_acl_interface_add_del *req;
+            msg_t req(con.ctx(), std::ref(*this));
 
-            req = vapi_alloc_macip_acl_interface_add_del(con.ctx());
-            req->payload.sw_if_index = m_itf.value();
-            req->payload.is_add = 1;
-            // req->payload.is_input = (m_direction == direction_t::INPUT ? 1 : 0);
-            req->payload.acl_index = m_acl.value();
+            auto &payload = req.get_request().get_payload();
+            payload.sw_if_index = m_itf.value();
+            payload.is_add = 1;
+            // payload.is_input = (m_direction == direction_t::INPUT ? 1 : 0);
+            payload.acl_index = m_acl.value();
 
-            VAPI_CALL(vapi_macip_acl_interface_add_del(
-                          con.ctx(), req,
-                          RpcCmd::callback<vapi_payload_macip_acl_interface_add_del_reply,
-                                           BindCmd>,
-                          this));
+            VAPI_CALL(req.execute());
 
             m_hw_item.set(wait());
 
@@ -93,41 +81,29 @@ namespace VPP
 
         template<> rc_t L2Binding::UnbindCmd::issue(Connection &con)
         {
-            vapi_msg_macip_acl_interface_add_del *req;
+            msg_t req(con.ctx(), std::ref(*this));
 
-            req = vapi_alloc_macip_acl_interface_add_del(con.ctx());
-            req->payload.sw_if_index = m_itf.value();
-            req->payload.is_add = 0;
-            // req->payload.is_input = (m_direction == direction_t::INPUT ? 1 : 0);
-            req->payload.acl_index = m_acl.value();
+            auto &payload = req.get_request().get_payload();
+            payload.sw_if_index = m_itf.value();
+            payload.is_add = 0;
+            // payload.is_input = (m_direction == direction_t::INPUT ? 1 : 0);
+            payload.acl_index = m_acl.value();
 
-            VAPI_CALL(vapi_macip_acl_interface_add_del(
-                          con.ctx(), req,
-                          RpcCmd::callback<vapi_payload_macip_acl_interface_add_del_reply,
-                                           UnbindCmd>,
-                          this));
+            VAPI_CALL(req.execute());
 
             m_hw_item.set(wait());
 
             return rc_t::OK;
         }
 
-        uword vapi_calc_macip_acl_interface_get_reply_payload_size(vapi_payload_macip_acl_interface_get_reply *payload)
-        {
-            return sizeof(*payload)+ payload->count * sizeof(payload->acls[0]);
-        }
-
         template <> rc_t L2Binding::DumpCmd::issue(Connection &con)
         {
-            vapi_msg_macip_acl_interface_get *req;
+            m_dump.reset(new msg_t(con.ctx(), std::ref(*this)));
 
-            req = vapi_alloc_macip_acl_interface_get(con.ctx());
+            auto &payload = m_dump->get_request().get_payload();
+            payload.sw_if_index = ~0;
 
-            VAPI_CALL(vapi_macip_acl_interface_get(
-                          con.ctx(), req,
-                          DumpCmd::reply_vl<DumpCmd>,
-                          mk_cb_ctx(this,
-                                    vapi_calc_macip_acl_interface_get_reply_payload_size)));
+            VAPI_CALL(m_dump->execute());
 
             wait();
 

@@ -19,47 +19,43 @@ using namespace VPP;
 VxlanTunnel::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
                                   const std::string &name,
                                   const endpoint_t &ep):
-    Interface::CreateCmd(item, name),
+    Interface::CreateCmd<vapi::Vxlan_add_del_tunnel>(item, name),
     m_ep(ep)
 {
 }
 
 bool VxlanTunnel::CreateCmd::operator==(const CreateCmd& other) const
 {
-    return (m_ep == other.m_ep);
+    return (m_ep == other.m_ep &&
+            Interface::CreateCmd<vapi::Vxlan_add_del_tunnel>::operator==(other));
 }
 
 rc_t VxlanTunnel::CreateCmd::issue(Connection &con)
 {
-    vapi_msg_vxlan_add_del_tunnel *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_vxlan_add_del_tunnel(con.ctx());
-    req->payload.is_add = 1;
-    req->payload.is_ipv6 = 0;
-    to_bytes(m_ep.src, &req->payload.is_ipv6, req->payload.src_address);
-    to_bytes(m_ep.dst, &req->payload.is_ipv6, req->payload.dst_address);
-    req->payload.mcast_sw_if_index = ~0;
-    req->payload.encap_vrf_id = 0;
-    req->payload.decap_next_index = ~0;
-    req->payload.vni = m_ep.vni;
+    auto &payload = req.get_request().get_payload();
+    payload.is_add = 1;
+    payload.is_ipv6 = 0;
+    to_bytes(m_ep.src, &payload.is_ipv6, payload.src_address);
+    to_bytes(m_ep.dst, &payload.is_ipv6, payload.dst_address);
+    payload.mcast_sw_if_index = ~0;
+    payload.encap_vrf_id = 0;
+    payload.decap_next_index = ~0;
+    payload.vni = m_ep.vni;
 
-    VAPI_CALL(vapi_vxlan_add_del_tunnel(
-                  con.ctx(),
-                  req,
-                  Interface::create_callback<
-                      vapi_payload_vxlan_add_del_tunnel_reply,
-                      CreateCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item = wait();
 
     if (m_hw_item)
     {
-        complete();
+        Interface::add(m_name, m_hw_item);
     }
 
     return rc_t::OK;
 }
+
 
 std::string VxlanTunnel::CreateCmd::to_string() const
 {
@@ -72,7 +68,7 @@ std::string VxlanTunnel::CreateCmd::to_string() const
 
 VxlanTunnel::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item,
                                   const endpoint_t &ep):
-    Interface::DeleteCmd(item),
+    Interface::DeleteCmd<vapi::Vxlan_add_del_tunnel>(item),
     m_ep(ep)
 {
 }
@@ -84,30 +80,24 @@ bool VxlanTunnel::DeleteCmd::operator==(const DeleteCmd& other) const
 
 rc_t VxlanTunnel::DeleteCmd::issue(Connection &con)
 {
-    vapi_msg_vxlan_add_del_tunnel *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_vxlan_add_del_tunnel(con.ctx());
-    req->payload.is_add = 0;
-    req->payload.is_ipv6 = 0;
-    to_bytes(m_ep.src, &req->payload.is_ipv6, req->payload.src_address);
-    to_bytes(m_ep.dst, &req->payload.is_ipv6, req->payload.dst_address);
-    req->payload.mcast_sw_if_index = ~0;
-    req->payload.encap_vrf_id = 0;
-    req->payload.decap_next_index = ~0;
-    req->payload.vni = m_ep.vni;
+    auto payload = req.get_request().get_payload();
+    payload.is_add = 0;
+    payload.is_ipv6 = 0;
+    to_bytes(m_ep.src, &payload.is_ipv6, payload.src_address);
+    to_bytes(m_ep.dst, &payload.is_ipv6, payload.dst_address);
+    payload.mcast_sw_if_index = ~0;
+    payload.encap_vrf_id = 0;
+    payload.decap_next_index = ~0;
+    payload.vni = m_ep.vni;
 
-    VAPI_CALL(vapi_vxlan_add_del_tunnel(
-                  con.ctx(),
-                  req,
-                  Interface::create_callback<
-                      vapi_payload_vxlan_add_del_tunnel_reply,
-                      CreateCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);
-    complete();
 
+    Interface::remove(m_hw_item);
     return (rc_t::OK);
 }
 
@@ -131,14 +121,12 @@ bool VxlanTunnel::DumpCmd::operator==(const DumpCmd& other) const
 
 rc_t VxlanTunnel::DumpCmd::issue(Connection &con)
 {
-    vapi_msg_vxlan_tunnel_dump *req;
+    m_dump.reset(new msg_t(con.ctx(), std::ref(*this)));
 
-    req = vapi_alloc_vxlan_tunnel_dump(con.ctx());
-    req->payload.sw_if_index = ~0;
+    auto &payload = m_dump->get_request().get_payload();
+    payload.sw_if_index = ~0;
 
-    VAPI_CALL(vapi_vxlan_tunnel_dump(con.ctx(), req,
-                                     DumpCmd::callback<DumpCmd>,
-                                     this));
+    VAPI_CALL(m_dump->execute());
 
     wait();
 

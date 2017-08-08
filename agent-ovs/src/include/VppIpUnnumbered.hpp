@@ -74,7 +74,8 @@ namespace VPP
         /**
          * A command class that configures the IP unnumbered
          */
-        class ConfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class ConfigCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                       vapi::Sw_interface_set_unnumbered>
         {
         public:
             /**
@@ -111,7 +112,8 @@ namespace VPP
         /**
          * A cmd class that Unconfigs L3 Config from an interface
          */
-        class UnconfigCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnconfigCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                         vapi::Sw_interface_set_unnumbered>
         {
         public:
             /**

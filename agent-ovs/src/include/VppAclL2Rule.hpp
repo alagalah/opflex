@@ -14,10 +14,7 @@
 #include "VppAclTypes.hpp"
 #include "VppRoute.hpp"
 
-extern "C"
-{
-    #include "acl.api.vapi.h"
-}
+#include <vapi/acl.api.vapi.hpp>
 
 namespace VPP
 {

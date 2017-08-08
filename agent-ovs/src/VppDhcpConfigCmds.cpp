@@ -34,29 +34,24 @@ bool DhcpConfig::BindCmd::operator==(const BindCmd& other) const
 
 rc_t DhcpConfig::BindCmd::issue(Connection &con)
 {
-    vapi_msg_dhcp_client_config*req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_dhcp_client_config(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.is_add = 1;
-    req->payload.pid = getpid();
-    req->payload.want_dhcp_event = 1;
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.is_add = 1;
+    payload.pid = getpid();
+    payload.want_dhcp_event = 1;
     
-    memcpy(req->payload.hostname,
+    memcpy(payload.hostname,
            m_hostname.c_str(),
-           std::min(sizeof(req->payload.hostname),
+           std::min(sizeof(payload.hostname),
                            m_hostname.length()));
 
-    memset(req->payload.client_id, 0, sizeof(req->payload.client_id));
-    req->payload.client_id[0] = 1;
-    m_client_id.to_bytes(req->payload.client_id+1, 6);
+    memset(payload.client_id, 0, sizeof(payload.client_id));
+    payload.client_id[0] = 1;
+    m_client_id.to_bytes(payload.client_id+1, 6);
 
-    VAPI_CALL(vapi_dhcp_client_config(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_dhcp_client_config_reply,
-                                   BindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 
@@ -90,25 +85,20 @@ bool DhcpConfig::UnbindCmd::operator==(const UnbindCmd& other) const
 
 rc_t DhcpConfig::UnbindCmd::issue(Connection &con)
 {
-    vapi_msg_dhcp_client_config*req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_dhcp_client_config(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.is_add = 0;
-    req->payload.pid = getpid();
-    req->payload.want_dhcp_event = 0;
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.is_add = 0;
+    payload.pid = getpid();
+    payload.want_dhcp_event = 0;
     
-    memcpy(req->payload.hostname,
+    memcpy(payload.hostname,
            m_hostname.c_str(),
-           std::min(sizeof(req->payload.hostname),
+           std::min(sizeof(payload.hostname),
                            m_hostname.length()));
     
-    VAPI_CALL(vapi_dhcp_client_config(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_dhcp_client_config_reply,
-                                   BindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);
@@ -127,7 +117,6 @@ std::string DhcpConfig::UnbindCmd::to_string() const
 }
 
 DhcpConfig::EventsCmd::EventsCmd(EventListener &el):
-    RpcCmd(el.status()),
     EventCmd(),
     m_listener(el)
 {
@@ -140,14 +129,10 @@ bool DhcpConfig::EventsCmd::operator==(const EventsCmd& other) const
 
 rc_t DhcpConfig::EventsCmd::issue(Connection &con)
 {
-    vapi_msg_want_interface_events *req;
-
     /*
      * Set the call back to handle DHCP complete envets.
      */
-    vapi_set_vapi_msg_dhcp_compl_event_event_cb(con.ctx(),
-                                                EventCmd::callback<EventsCmd>,
-                                                this);
+    m_reg.reset(new reg_t(con.ctx(), std::ref(*this)));
 
     /*
      * return in-progress so the command stays in the pending list.
@@ -159,7 +144,7 @@ void DhcpConfig::EventsCmd::retire()
 {
 }
 
-void DhcpConfig::EventsCmd::notify(vapi_payload_dhcp_compl_event *data)
+void DhcpConfig::EventsCmd::notify()
 {
     m_listener.handle_dhcp_event(this);
 }

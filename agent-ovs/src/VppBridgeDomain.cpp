@@ -107,15 +107,16 @@ void BridgeDomain::EventHandler::handle_populate(const KeyDB::key_t &key)
     /*
      * dump VPP Bridge domains
      */
-    BridgeDomain::DumpCmd::details_type *record;
     std::shared_ptr<BridgeDomain::DumpCmd> cmd(new BridgeDomain::DumpCmd());
 
     HW::enqueue(cmd);
     HW::write();
 
-    while (record = cmd->pop())
+    for (auto &record: *cmd)
     {
-        BridgeDomain bd(record->bd_id);
+        auto &payload = record.get_payload();
+
+        BridgeDomain bd(payload.bd_id);
 
         LOG(ovsagent::DEBUG) << "dump: " << bd.to_string();
 
@@ -129,15 +130,13 @@ void BridgeDomain::EventHandler::handle_populate(const KeyDB::key_t &key)
         /**
          * For each interface in the BD construct an L2Binding
          */
-        for (int ii = 0; ii < record->n_sw_ifs; ii++)
+        for (int ii = 0; ii < payload.n_sw_ifs; ii++)
         {
             std::shared_ptr<Interface> itf =
-                Interface::find(record->sw_if_details[ii].sw_if_index);
+                Interface::find(payload.sw_if_details[ii].sw_if_index);
             L2Binding l2(*itf, bd);
             OM::commit(key, l2);
         }
-
-        free(record);
     }
 }
 

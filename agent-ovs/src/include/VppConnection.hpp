@@ -15,10 +15,7 @@
 #include <string>
 #include <mutex>
 
-extern "C"
-{
-#include "vapi.h"
-}
+#include <vapi/vapi.hpp>
 
 namespace VPP {
     /**
@@ -50,12 +47,12 @@ namespace VPP {
         /**
          * Retrun the VAPI context the commands will use
          */
-        vapi_ctx_t & ctx();
+        vapi::Connection & ctx();
     private:
         /**
          * The VAPI connection context
          */
-        vapi_ctx_t m_ctx;
+        vapi::Connection m_vapi_conn;
 
         /**
          * The name of this application

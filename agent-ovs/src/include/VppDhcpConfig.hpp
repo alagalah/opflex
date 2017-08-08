@@ -24,10 +24,7 @@
 #include "VppSubInterface.hpp"
 #include "VppInspect.hpp"
 
-extern "C"
-{
-    #include "dhcp.api.vapi.h"
-}
+#include <vapi/dhcp.api.vapi.hpp>
 
 namespace VPP
 {
@@ -78,7 +75,8 @@ namespace VPP
         /**
          * A command class that binds the DHCP config to the interface
          */
-        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                     vapi::Dhcp_client_config>
         {
         public:
             /**
@@ -122,7 +120,8 @@ namespace VPP
         /**
          * A cmd class that Unbinds Dhcp Config from an interface
          */
-        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                       vapi::Dhcp_client_config>
         {
         public:
             /**
@@ -193,8 +192,7 @@ namespace VPP
         /**
          * A functor class represents our desire to recieve interface events
          */
-        class EventsCmd: public RpcCmd<HW::Item<bool>, rc_t>,
-                         public EventCmd<vapi_payload_dhcp_compl_event>
+        class EventsCmd: public Cmd, public EventCmd<vapi::Dhcp_compl_event>
         {
         public:
             /**
@@ -224,8 +222,9 @@ namespace VPP
             /**
              * called in the VAPI RX thread when data is available.
              */
-            void notify(vapi_payload_dhcp_compl_event *data);
+            void notify();
         private:
+            void succeeded(){}
             /**
              * The listner of this command
              */

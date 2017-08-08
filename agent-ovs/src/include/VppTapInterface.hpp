@@ -12,6 +12,8 @@
 #include "VppInterface.hpp"
 #include "VppRoute.hpp"
 
+#include <vapi/tap.api.vapi.hpp>
+
 namespace VPP
 {
 
@@ -47,8 +49,7 @@ namespace VPP
         /**
          * A functor class that creates an interface
          */
-        class CreateCmd: public RpcCmd<HW::Item<handle_t>,
-                                       HW::Item<handle_t>>
+        class CreateCmd: public Interface::CreateCmd<vapi::Tap_connect>
         {
         public:
             CreateCmd(HW::Item<handle_t> &item,
@@ -65,12 +66,7 @@ namespace VPP
              */
             std::string to_string() const;
 
-            /**
-             * Comparison operator - only used for UT
-             */
-            bool operator==(const CreateCmd&i) const;
         private:
-            const std::string &m_name;
             Route::prefix_t &m_prefix;
             const l2_address_t &m_l2_address;
         };
@@ -78,7 +74,7 @@ namespace VPP
         /**
          *
          */
-        class DeleteCmd: public RpcCmd<HW::Item<handle_t>, rc_t>
+        class DeleteCmd: public Interface::DeleteCmd<vapi::Tap_delete>
         {
         public:
             DeleteCmd(HW::Item<handle_t> &item);
@@ -91,17 +87,12 @@ namespace VPP
              * convert to string format for debug purposes
              */
             std::string to_string() const;
-
-            /**
-             * Comparison operator - only used for UT
-             */
-            bool operator==(const DeleteCmd&i) const;
         };
 
         /**
          * A cmd class that Dumps all the Vpp Interfaces
          */
-        class DumpCmd: public VPP::DumpCmd<vapi_payload_sw_interface_tap_details>
+        class DumpCmd: public VPP::DumpCmd<vapi::Sw_interface_tap_dump>
         {
         public:
             /**

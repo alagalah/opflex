@@ -12,10 +12,7 @@
 
 #include "VppHW.hpp"
 
-extern "C"
-{
-    #include "vpe.api.vapi.h"
-}
+#include <vapi/vpe.api.vapi.hpp>
 
 using namespace VPP;
 
@@ -47,7 +44,7 @@ void HW::CmdQ::rx_run()
 {
     while (m_connected)
     {
-        vapi_dispatch_one(m_conn.ctx());
+        m_conn.ctx().dispatch();
     }
 }
 
@@ -274,15 +271,9 @@ HW::Poll::Poll(HW::Item<bool> &item):
 
 rc_t HW::Poll::issue(Connection &con)
 {
-    vapi_msg_control_ping *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_control_ping(con.ctx());
-
-    VAPI_CALL(vapi_control_ping(con.ctx(), req,
-                                RpcCmd::callback<
-                                    vapi_payload_control_ping_reply,
-                                    Poll>,
-                                this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 

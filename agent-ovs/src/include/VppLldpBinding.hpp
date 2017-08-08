@@ -24,10 +24,7 @@
 #include "VppSubInterface.hpp"
 #include "VppInspect.hpp"
 
-extern "C"
-{
-    #include "lldp.api.vapi.h"
-}
+#include <vapi/lldp.api.vapi.hpp>
 
 namespace VPP
 {
@@ -71,7 +68,8 @@ namespace VPP
         /**
          * A command class that binds the LLDP config to the interface
          */
-        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class BindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                     vapi::Sw_interface_set_lldp>
         {
         public:
             /**
@@ -109,7 +107,8 @@ namespace VPP
         /**
          * A cmd class that Unbinds Lldp Config from an interface
          */
-        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t>
+        class UnbindCmd: public RpcCmd<HW::Item<bool>, rc_t,
+                                     vapi::Sw_interface_set_lldp>
         {
         public:
             /**

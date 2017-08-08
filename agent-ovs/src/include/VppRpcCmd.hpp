@@ -28,10 +28,15 @@ namespace VPP
      * The command is templatised on the type of the HW::Item to be set by
      * the command, and the data returned in the promise,
      */
-    template <typename HWITEM, typename DATA>
+    template <typename HWITEM, typename DATA, typename MSG>
     class RpcCmd: public Cmd
     {
     public:
+        /**
+         * convenient typedef
+         */
+        typedef MSG msg_t;
+
         /**
          * Constructor taking the HW item that will be updated by the command
          */
@@ -101,6 +106,18 @@ namespace VPP
             m_hw_item.set(rc_t::OK);
         }
 
+        /**
+         * call operator used as a callback by VAPI when the reply is available
+         */
+        virtual vapi_error_e operator() (MSG &reply)
+        {
+            int retval = reply.get_response().get_payload().retval;
+            LOG(ovsagent::DEBUG) << to_string() << " " << retval;
+            fulfill(rc_t::from_vpp_retval(retval));
+
+            return (VAPI_OK);
+        }
+
     protected:
         /**
          * A reference to an object's HW::item that the command will update
@@ -111,30 +128,6 @@ namespace VPP
          * The promise that implements the synchronous issue
          */
         std::promise<DATA> m_promise;
-
-        /**
-         * A templatised call back function that is register with the VPP API
-         * and invoked when the commands reply arrives, in the RX thread.
-         * The call back context is always the command object that issues the
-         * request.
-         */
-        template <typename REPLY, typename CMD_TYPE>
-        static vapi_error_e callback(vapi_ctx_t ctx,
-                                     void *callback_ctx,
-                                     vapi_error_e rv,
-                                     bool is_last,
-                                     REPLY *reply)
-        {
-            /*
-             * fulfill the promise to unblock the sender
-             */
-            CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
-
-            LOG(ovsagent::DEBUG) << cmd->to_string() << " " << reply->retval;
-            cmd->fulfill(rc_t::from_vpp_retval(reply->retval));
-
-            return (VAPI_OK);     
-        }
     };
 };
 

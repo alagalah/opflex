@@ -16,6 +16,8 @@
 
 #include "VppCmd.hpp"
 
+#include <vapi/vapi.hpp>
+
 namespace VPP
 {
     /**
@@ -30,7 +32,7 @@ namespace VPP
      * subscription duration the client will be notified as events are recieved.
      * The client can then 'pop' these events from this command object.
      */
-    template <typename T>
+    template <typename MSG>
     class EventCmd
     {
     public:
@@ -49,20 +51,28 @@ namespace VPP
         }
 
         /**
+         * Typedef for the event type
+         */
+        typedef typename vapi::Event_registration<MSG>::resp_type event_t;
+        typedef typename vapi::Event_registration<MSG> reg_t;
+
+        /**
          * pop (consume) an event from VPP that was a result of this commands
          * subscription
          */
-        bool pop(T &data)
+        bool pop(event_t &data)
         {
             std::lock_guard<std::mutex> lg(m_mutex);
 
-            if (!m_events.size())
-            {
-                return false;
-            }
+            auto &results = m_reg->get_result_set();
 
-            data = m_events.front();
-            m_events.pop();
+            /* if (!m_events.size()) */
+            /* { */
+            /*     return false; */
+            /* } */
+
+            /* data = m_events.front(); */
+            /* m_events.pop(); */
 
             return true;
         }
@@ -71,8 +81,13 @@ namespace VPP
          * Retire the command. This is only appropriate for Event Commands
          * As they persist until retired.
          */
-        virtual void retire()
+        virtual void retire() = 0;
+
+        vapi_error_e operator() (reg_t &dl)
         {
+            notify();
+
+            return (VAPI_OK);     
         }
 
     protected:
@@ -80,63 +95,12 @@ namespace VPP
          * Notify the command that data from VPP has arrived and been stored.
          * The command should now inform its clients/listeners.
          */
-        virtual void notify(T *data) = 0;
+        virtual void notify() = 0;
 
         /**
-         * A Callback registered with VPP API that is invoked when an event
-         * arrives. This is the type-specific version that can be used with VAPI
-         * when the type can be specified.
+         * The VAPI event registration
          */
-        template <typename CMD_TYPE>
-        static vapi_error_e callback(vapi_ctx_t ctx,
-                                     void *callback_ctx,
-                                     T *reply)
-        {
-            CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
-
-            LOG(ovsagent::DEBUG) << cmd->to_string();
-
-            {
-                std::lock_guard<std::mutex> s(cmd->m_mutex);
-                cmd->m_events.push(*reply);
-            }
-
-            cmd->notify(reply);
-
-            return (VAPI_OK);     
-        }
-
-        /**
-         * A Callback registered with VPP API that is invoked when an event
-         * arrives. This is the type-specific version that can be used with VAPI
-         * when the type cannot be specified.
-         */
-        template <typename CMD_TYPE>
-        static vapi_error_e callback(vapi_ctx_t ctx,
-                                     void *callback_ctx,
-                                     void *reply)
-        {
-            CMD_TYPE *cmd = static_cast<CMD_TYPE*>(callback_ctx);
-
-            LOG(ovsagent::DEBUG) << cmd->to_string();
-
-            {
-                std::lock_guard<std::mutex> s(cmd->m_mutex);
-                T *data = static_cast<T*>(reply);
-
-                cmd->m_events.push(*data);
-            }
-            cmd->notify(static_cast<T*>(reply));
-
-            return (VAPI_OK);     
-        }
-
-        /**
-         * The event command can be called many times before
-         * the listener gets a chance to read. so we need to
-         * queue up the data recevied.
-         */
-        std::queue<T> m_events;
+        std::unique_ptr<vapi::Event_registration<MSG>> m_reg;
 
         /**
          * Mutex protection for the events

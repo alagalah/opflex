@@ -16,6 +16,8 @@
 #include "VppCmd.hpp"
 #include "VppHW.hpp"
 
+#include <vapi/vapi.hpp>
+
 namespace VPP
 {
     /**
@@ -30,10 +32,15 @@ namespace VPP
      * This command is executed synchronously. Once complete the client can 'pop'
      * the records from the command object
      */
-    template <typename T>
+    template <typename MSG>
     class DumpCmd: public Cmd
     {
     public:
+        typedef MSG msg_t;
+        typedef typename MSG::resp_type record_t;
+
+        typedef typename vapi::Result_set<typename MSG::resp_type>::const_iterator const_iterator;
+
         /**
          * Default Constructor
          */
@@ -49,22 +56,14 @@ namespace VPP
         {
         }
 
-        /**
-         * Pop one of the recieved records
-         */
-        T* pop()
+        const_iterator begin()
         {
-            T *data;
+            return (m_dump->get_result_set().begin());
+        }
 
-            if (!m_events.size())
-            {
-                return (nullptr);
-            }
-
-            data = m_events.front();
-            m_events.pop();
-
-            return (data);
+        const_iterator end()
+        {
+            return (m_dump->get_result_set().end());
         }
 
         /**
@@ -87,44 +86,14 @@ namespace VPP
         }
 
         /**
-         * convenient typedef of the reacord type
+         * Call operator called when the dump is complete
          */
-        typedef T details_type;
-
-        /**
-         * A call back context required for variable length records
-         */
-        struct cb_ctx_t
+        vapi_error_e operator() (MSG &d)
         {
-            /**
-             * Constructor
-             */
-            cb_ctx_t(void *obj,
-                     get_msg_size_t gsm):
-                obj(obj),
-                msg_size(gsm)
-            {
-            }
+            m_promise.set_value(rc_t::OK);
 
-            /**
-             * The command object
-             */
-            void *obj;
-
-            /**
-             * The callback function to get the record message size
-             */
-            get_msg_size_t msg_size;
-        };
-
-        /**
-         * Make a call back context
-         */
-        template <typename U>
-        static void *mk_cb_ctx(void *obj, U gsm)
-        {
-            return (new cb_ctx_t(obj, reinterpret_cast<get_msg_size_t>(gsm)));
-        }
+            return (VAPI_OK);
+       }
 
     protected:
         /**
@@ -132,139 +101,6 @@ namespace VPP
          * of the command issue
          */
         std::promise<rc_t> m_promise;
-
-        /**
-         * Callback function registered with the VPP API that will be invoked for
-         * each record recieved.
-         * the callback context passed is always the command object that issued
-         * the command.
-         */
-        template <typename DERIVED>
-        static vapi_error_e callback(vapi_ctx_t ctx,
-                                     void *callback_ctx,
-                                     vapi_error_e rv,
-                                     bool is_last,
-                                     T *reply)
-        {
-            DERIVED *cmd = static_cast<DERIVED*>(callback_ctx);
-
-            LOG(ovsagent::DEBUG) << "last:" << is_last << " " << cmd->to_string();
-
-            if (is_last)
-            {
-                cmd->m_promise.set_value(rc_t::OK);
-            }
-            else
-            {
-                T *t = (T*) malloc(sizeof(T));
-
-                memcpy(t, reply, sizeof(T));
-                cmd->m_events.push(t);
-            }
-
-            return (VAPI_OK);
-        }
-
-        /**
-         * Callback function registered with the VPP API that will be invoked for
-         * each record recieved.
-         * the callback context passed is a cb_ctx_t used to handle variable length
-         * records
-         */
-        template <typename DERIVED>
-        static vapi_error_e callback_vl(vapi_ctx_t ctx,
-                                        void *callback_ctx,
-                                        vapi_error_e rv,
-                                        bool is_last,
-                                        T *reply)
-        {
-            cb_ctx_t *cb_ctx = static_cast<cb_ctx_t*>(callback_ctx);
-            DERIVED *cmd = static_cast<DERIVED*>(cb_ctx->obj);
-
-            LOG(ovsagent::DEBUG) << "last:" << is_last << " " << cmd->to_string();
-
-            if (is_last)
-            {
-                cmd->m_promise.set_value(rc_t::OK);
-                delete cb_ctx;
-            }
-            else
-            {
-                size_t s = cb_ctx->msg_size(reply);
-                T * t = (T*) malloc(s);
-
-                memcpy(t, reply, s);
-
-                cmd->m_events.push(t);
-            }
-
-            return (VAPI_OK);
-        }
-
-        /**
-         * Callback function registered with the VPP API that will be invoked for
-         * each record recieved.
-         * the callback context passed is always the command object that issued
-         * the command.
-         * In this variant it is the reply message itself that has the record embedded
-         * and there are no individual 'records'/details sent.
-         */
-        template <typename DERIVED>
-        static vapi_error_e reply(vapi_ctx_t ctx,
-                                  void *callback_ctx,
-                                  vapi_error_e rv,
-                                  bool is_last,
-                                  T *reply)
-        {
-            DERIVED *cmd = static_cast<DERIVED*>(callback_ctx);
-
-            LOG(ovsagent::DEBUG) << "last:" << is_last << " " << cmd->to_string();
-
-            T *t = (T*) malloc(sizeof(T));
-
-            memcpy(t, reply, sizeof(T));
-            cmd->m_events.push(t);
-            cmd->m_promise.set_value(rc_t::OK);
-
-            return (VAPI_OK);
-        }
-
-        /**
-         * Callback function registered with the VPP API that will be invoked for
-         * each record recieved.
-         * the callback context passed is the obj and message size calculator
-         * In this variant it is the reply message itself that has the record embedded
-         * and there are no individual 'records'/details sent.
-         */
-        template <typename DERIVED>
-        static vapi_error_e reply_vl(vapi_ctx_t ctx,
-                                     void *callback_ctx,
-                                     vapi_error_e rv,
-                                     bool is_last,
-                                     T *reply)
-        {
-            cb_ctx_t *cb_ctx = static_cast<cb_ctx_t*>(callback_ctx);
-            DERIVED *cmd = static_cast<DERIVED*>(cb_ctx->obj);
-
-            LOG(ovsagent::DEBUG) << "last:" << is_last << " " << cmd->to_string();
-
-            size_t s = cb_ctx->msg_size(reply);
-            T * t = (T*) malloc(s);
-
-            memcpy(t, reply, s);
-
-            cmd->m_events.push(t);
-            cmd->m_promise.set_value(rc_t::OK);
-            delete cb_ctx;
-
-            return (VAPI_OK);
-        }
-
-        /**
-         * The dump command receives many 'details' before the command
-         * completes. save them in the order they arrived.
-         */
-        std::queue<T*> m_events;
 
         /**
          * Dump commands should not be issued whilst the HW is disabled
@@ -277,6 +113,11 @@ namespace VPP
          * The HW::CmdQ is a friend so it can call suceedded.
          */
         friend class HW::CmdQ;
+
+        /**
+         * The VAPI event registration
+         */
+        std::unique_ptr<MSG> m_dump;
    };
 };
 

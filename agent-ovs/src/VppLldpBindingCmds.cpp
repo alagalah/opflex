@@ -32,23 +32,18 @@ bool LldpBinding::BindCmd::operator==(const BindCmd& other) const
 
 rc_t LldpBinding::BindCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_set_lldp *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_set_lldp(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.enable = 1;
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.enable = 1;
     
-    memcpy(req->payload.port_desc,
+    memcpy(payload.port_desc,
            m_port_desc.c_str(),
-           std::min(sizeof(req->payload.port_desc),
+           std::min(sizeof(payload.port_desc),
                            m_port_desc.length()));
 
-    VAPI_CALL(vapi_sw_interface_set_lldp(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_sw_interface_set_lldp_reply,
-                                   BindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     m_hw_item.set(wait());
 
@@ -79,18 +74,13 @@ bool LldpBinding::UnbindCmd::operator==(const UnbindCmd& other) const
 
 rc_t LldpBinding::UnbindCmd::issue(Connection &con)
 {
-    vapi_msg_sw_interface_set_lldp *req;
+    msg_t req(con.ctx(), std::ref(*this));
 
-    req = vapi_alloc_sw_interface_set_lldp(con.ctx());
-    req->payload.sw_if_index = m_itf.value();
-    req->payload.enable = 0;
+    auto &payload = req.get_request().get_payload();
+    payload.sw_if_index = m_itf.value();
+    payload.enable = 0;
     
-    VAPI_CALL(vapi_sw_interface_set_lldp(
-                  con.ctx(),
-                  req,
-                  RpcCmd::callback<vapi_payload_sw_interface_set_lldp_reply,
-                                   BindCmd>,
-                  this));
+    VAPI_CALL(req.execute());
 
     wait();
     m_hw_item.set(rc_t::NOOP);

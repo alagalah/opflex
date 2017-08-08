@@ -13,18 +13,16 @@ using namespace VPP;
 Connection::Connection():
     m_app_name("vpp-OM")
 {
-    vapi_ctx_alloc (&m_ctx);
 }
 
 Connection::~Connection()
 {
     disconnect();
-    vapi_ctx_free(m_ctx);
 }
 
 void Connection::disconnect()
 {
-    vapi_disconnect(m_ctx);
+    m_vapi_conn.disconnect();
 }
 
 void Connection::connect()
@@ -33,16 +31,14 @@ void Connection::connect()
 
     do
     {
-        rv = vapi_connect(m_ctx,
-                          m_app_name.c_str(),
-                          NULL, //m_api_prefix.c_str(),
-                          128,
-                          64,
-                          VAPI_MODE_NONBLOCKING);
+        rv = m_vapi_conn.connect(m_app_name.c_str(),
+                                 NULL, //m_api_prefix.c_str(),
+                                 128,
+                                 128);
     } while (VAPI_OK != rv);
 }
 
-vapi_ctx_t & Connection::ctx()
+vapi::Connection & Connection::ctx()
 {
-    return (m_ctx);
+    return (m_vapi_conn);
 }
