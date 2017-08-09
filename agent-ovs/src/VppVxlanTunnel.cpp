@@ -12,6 +12,7 @@
 #include "VppVxlanTunnel.hpp"
 #include "VppRoute.hpp"
 #include "VppCmd.hpp"
+#include "VppLogger.hpp"
 
 using namespace VPP;
 
@@ -230,7 +231,7 @@ void VxlanTunnel::EventHandler::handle_populate(const KeyDB::key_t &key)
 
         VxlanTunnel vt(hdl, src, dst, payload.vni);
 
-        LOG(ovsagent::DEBUG) << "dump: " << vt.to_string();
+        BOOST_LOG_SEV(logger(), levels::debug) << "dump: " << vt.to_string();
 
         OM::commit(key, vt);
     }

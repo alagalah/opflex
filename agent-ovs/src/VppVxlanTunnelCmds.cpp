@@ -26,8 +26,7 @@ VxlanTunnel::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
 
 bool VxlanTunnel::CreateCmd::operator==(const CreateCmd& other) const
 {
-    return (m_ep == other.m_ep &&
-            Interface::CreateCmd<vapi::Vxlan_add_del_tunnel>::operator==(other));
+    return (m_ep == other.m_ep);
 }
 
 rc_t VxlanTunnel::CreateCmd::issue(Connection &con)
@@ -61,7 +60,7 @@ std::string VxlanTunnel::CreateCmd::to_string() const
 {
     std::ostringstream s;
     s << "vxlan-tunnel-create: " << m_hw_item.to_string()
-      << " ep:" << m_ep.to_string();
+      << m_ep.to_string();
 
     return (s.str());
 }
@@ -105,7 +104,7 @@ std::string VxlanTunnel::DeleteCmd::to_string() const
 {
     std::ostringstream s;
     s << "vxlan-tunnel-delete: " << m_hw_item.to_string()
-      << " ep:" << m_ep.to_string();
+      << m_ep.to_string();
 
     return (s.str());
 }

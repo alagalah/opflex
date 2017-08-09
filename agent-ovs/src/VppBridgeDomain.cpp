@@ -13,6 +13,7 @@
 #include "VppL2Binding.hpp"
 #include "VppBridgeDomain.hpp"
 #include "VppCmd.hpp"
+#include "VppLogger.hpp"
 
 using namespace VPP;
 
@@ -118,7 +119,7 @@ void BridgeDomain::EventHandler::handle_populate(const KeyDB::key_t &key)
 
         BridgeDomain bd(payload.bd_id);
 
-        LOG(ovsagent::DEBUG) << "dump: " << bd.to_string();
+        BOOST_LOG_SEV(logger(), levels::debug) << "dump: " << bd.to_string();
 
         /*
          * Write each of the discovered interfaces into the OM,

@@ -27,6 +27,7 @@ endif
 VPP_ADDL_CFLAGS =
 if RENDERER_VPP
   VPP_ADDL_CFLAGS += \
+	-DBOOST_LOG_DYN_LINK \
 	-D__STDC_LIMIT_MACROS \
 	-D__STDC_CONSTANT_MACROS \
 	-I/usr/include/vpp_plugins \
@@ -91,10 +92,13 @@ if RENDERER_VPP
 	$(libopflex_LIBS) \
 	$(libmodelgbp_LIBS) \
 	$(libnl_nf_LIBS) \
-	$(VPPCLIENT_LIBS) \
+	-lboost_log \
+	-lboost_thread \
+	$(BOOST_LOG_LIB) \
 	$(BOOST_SYSTEM_LIB) \
 	$(BOOST_FILESYSTEM_LIB) \
-	$(BOOST_ASIO_LIB)
+	$(BOOST_ASIO_LIB) \
+	$(VPPCLIENT_LIBS)
 endif
 
 noinst_HEADERS = \
@@ -217,6 +221,7 @@ if RENDERER_VPP
 	src/VppConnection.cpp \
 	src/VppUplink.cpp \
 	src/VppObject.cpp \
+	src/VppLogger.cpp \
 	src/VppCmd.cpp \
 	src/VppInterfaceTypes.cpp \
 	src/VppInterface.cpp \
@@ -272,9 +277,22 @@ agent_ovs_LDADD = \
 	libagent_ovs.la
 
 gbp_inspect_CXXFLAGS = -DSYSCONFDIR='"$(sysconfdir)"'
+
+if RENDERER_VPP
+gbp_inspect_CXXFLAGS += -DBOOST_LOG_DYN_LINK
+endif
+
 gbp_inspect_SOURCES = \
 	src/gbp_inspect.cpp
-gbp_inspect_LDADD = \
+
+gbp_inspect_LDADD =
+if RENDERER_VPP
+gbp_inspect_LDADD += \
+	-lboost_log \
+	-lboost_thread
+endif
+
+gbp_inspect_LDADD += \
 	$(BOOST_IOSTREAMS_LIB) \
 	$(BOOST_PROGRAM_OPTIONS_LIB) \
 	libagent_ovs.la

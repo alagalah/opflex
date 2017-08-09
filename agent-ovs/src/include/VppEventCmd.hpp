@@ -12,8 +12,6 @@
 #include <queue>
 #include <mutex>
 
-#include "logging.h"
-
 #include "VppCmd.hpp"
 
 #include <vapi/vapi.hpp>

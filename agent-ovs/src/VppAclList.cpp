@@ -7,6 +7,7 @@
  */
 
 #include "VppAclList.hpp"
+#include "VppLogger.hpp"
 
 namespace VPP
 {
@@ -45,7 +46,7 @@ namespace VPP
 
                     acl.insert(rule);
                 }
-                LOG(ovsagent::DEBUG) << "dump: " << acl.to_string();
+                BOOST_LOG_SEV(logger(), levels::debug) << "dump: " << acl.to_string();
 
                 /*
                  * Write each of the discovered ACLs into the OM,

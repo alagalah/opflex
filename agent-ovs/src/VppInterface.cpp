@@ -13,6 +13,7 @@
 #include "VppRoute.hpp"
 #include "VppCmd.hpp"
 #include "VppL3Binding.hpp"
+#include "VppLogger.hpp"
 
 using namespace VPP;
 
@@ -336,7 +337,7 @@ void Interface::EventHandler::handle_populate(const KeyDB::key_t &key)
          */
         if (itf && Interface::type_t::LOCAL != itf->type())
         {
-            LOG(ovsagent::DEBUG) << "dump: " << itf->to_string();
+            BOOST_LOG_SEV(logger(), levels::debug) << "dump: " << itf->to_string();
             /*
              * Write each of the discovered interfaces into the OM,
              * but disable the HW Command q whilst we do, so that no
@@ -360,7 +361,7 @@ void Interface::EventHandler::handle_populate(const KeyDB::key_t &key)
                                           payload.ip,
                                           payload.prefix_length);
 
-                LOG(ovsagent::DEBUG) << "dump: " << pfx.to_string();
+                BOOST_LOG_SEV(logger(), levels::debug) << "dump: " << pfx.to_string();
 
                 L3Binding l3(*itf, pfx);
                 OM::commit(key, l3);

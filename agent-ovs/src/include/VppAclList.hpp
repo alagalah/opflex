@@ -224,7 +224,7 @@ namespace VPP
                     int acl_index = reply.get_response().get_payload().acl_index;
                     int retval = reply.get_response().get_payload().retval;
 
-                    LOG(ovsagent::DEBUG) << this->to_string() << " " << retval;
+                    BOOST_LOG_SEV(logger(), levels::debug) << this->to_string() << " " << retval;
 
                     HW::Item<handle_t> res(acl_index, rc_t::from_vpp_retval(retval));
 

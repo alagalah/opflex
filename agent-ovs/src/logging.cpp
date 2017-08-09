@@ -21,6 +21,22 @@
 #ifdef RENDERER_OVS
 #include <openvswitch/vlog.h>
 #endif
+#ifdef RENDERER_VPP
+#include <fstream>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/smart_ptr/make_shared_object.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/expressions.hpp>
+namespace logging = boost::log;
+namespace src = boost::log::sources;
+namespace sinks = boost::log::sinks;
+using levels = boost::log::trivial::severity_level;
+#endif
 
 #include <algorithm>
 #include <fstream>
@@ -138,25 +154,7 @@ LogSink * getLogSink() {
     return currentLogSink;
 }
 
-void initLogging(const std::string& levelstr,
-                 bool toSyslog,
-                 const std::string& log_file,
-                 const std::string& syslog_name) {
-    if (toSyslog) {
-        currentLogSink = new SyslogLogSink(syslog_name);
-    } else if (!log_file.empty()) {
-        currentLogSink = new OStreamLogSink(log_file);
-    }
-    OFLogHandler::registerHandler(logHandler);
-
-    setLoggingLevel(levelstr);
-#ifdef RENDERER_OVS
-    /* No good way to redirect OVS logs to our logs, suppress them for now */
-    vlog_set_levels(NULL, VLF_ANY_DESTINATION, VLL_OFF);
-#endif
-}
-
-void setLoggingLevel(const std::string& newLevelstr) {
+OFLogHandler::Level lgoStrToLevel(const std::string& newLevelstr) {
     OFLogHandler::Level level = OFLogHandler::INFO;
 
     std::string levelstr = newLevelstr;
@@ -204,7 +202,80 @@ void setLoggingLevel(const std::string& newLevelstr) {
         logLevel = FATAL;
     }
 
+    return level;
+}
+
+#ifdef RENDERER_VPP
+boost::log::trivial::severity_level agentLevelToBoost(OFLogHandler::Level level) {
+    switch (level)
+    {
+    case OFLogHandler::DEBUG0:
+    case OFLogHandler::DEBUG1:
+    case OFLogHandler::DEBUG2:
+    case OFLogHandler::DEBUG3:
+    case OFLogHandler::DEBUG4:
+    case OFLogHandler::DEBUG5:
+    case OFLogHandler::DEBUG6:
+    case OFLogHandler::DEBUG7:
+        return (levels::debug);
+    case OFLogHandler::TRACE:
+        return (levels::trace);
+    case OFLogHandler::INFO:
+        return (levels::info);
+    case OFLogHandler::WARNING:
+        return (levels::warning);
+    case OFLogHandler::ERROR:
+        return (levels::error);
+    case OFLogHandler::FATAL:
+        return (levels::fatal);
+    }
+    return (levels::info);
+}
+#endif
+
+void initLogging(const std::string& levelstr,
+                 bool toSyslog,
+                 const std::string& log_file,
+                 const std::string& syslog_name) {
+    OFLogHandler::Level level = lgoStrToLevel(levelstr);
+
+    if (toSyslog) {
+        currentLogSink = new SyslogLogSink(syslog_name);
+    } else if (!log_file.empty()) {
+        currentLogSink = new OStreamLogSink(log_file);
+    }
+    OFLogHandler::registerHandler(logHandler);
+
     logHandler.setLevel(level);
+#ifdef RENDERER_OVS
+    /* No good way to redirect OVS logs to our logs, suppress them for now */
+    vlog_set_levels(NULL, VLF_ANY_DESTINATION, VLL_OFF);
+#endif
+#ifdef RENDERER_VPP
+    /*
+     * VPP uses boost for logging. Configure the desired properties for
+     * the boost log lib
+     */
+    if (!log_file.empty())
+    {
+        typedef sinks::synchronous_sink< sinks::text_ostream_backend > text_sink;
+        boost::shared_ptr< text_sink > sink = boost::make_shared< text_sink >();
+
+        // Add a stream to write log to
+        sink->locked_backend()->add_stream(
+            boost::make_shared< std::ofstream >(log_file));
+
+        // Register the sink in the logging core
+        logging::core::get()->add_sink(sink);
+    }
+    logging::core::get()->set_filter(
+        logging::trivial::severity >= agentLevelToBoost(level)
+    );
+#endif
+}
+
+void setLoggingLevel(const std::string& newLevelstr) {
+    logHandler.setLevel(lgoStrToLevel(newLevelstr));
 }
 
 } /* namespace ovsagent */

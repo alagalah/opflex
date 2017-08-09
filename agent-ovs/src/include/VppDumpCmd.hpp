@@ -11,8 +11,6 @@
 
 #include <future>
 
-#include "logging.h"
-
 #include "VppCmd.hpp"
 #include "VppHW.hpp"
 
