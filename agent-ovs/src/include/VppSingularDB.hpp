@@ -12,8 +12,6 @@
 #include <memory>
 #include <ostream>
 
-#include "logging.h"
-
 namespace VPP
 {
     /**
@@ -71,7 +69,7 @@ namespace VPP
 
                 m_map[key] = sp;
 
-                LOG(ovsagent::DEBUG) << *sp;
+                BOOST_LOG_SEV(logger(), levels::debug) << *sp;
                 return (sp);
             }
 

@@ -12,8 +12,6 @@
 #include <string>
 #include <stdint.h>
 
-#include "logging.h"
-
 #include "VppObject.hpp"
 #include "VppOM.hpp"
 #include "VppHW.hpp"
@@ -252,7 +250,7 @@ namespace VPP
                 int sw_if_index = reply.get_response().get_payload().sw_if_index;
                 int retval = reply.get_response().get_payload().retval;
 
-                LOG(ovsagent::DEBUG) << this->to_string() << " " << retval;
+                BOOST_LOG_SEV(logger(), levels::debug) << this->to_string() << " " << retval;
 
                 rc_t rc = rc_t::from_vpp_retval(retval);
                 handle_t handle = handle_t::INVALID;

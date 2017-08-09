@@ -12,7 +12,7 @@
 #include <future>
 
 #include "VppCmd.hpp"
-#include "logging.h"
+#include "VppLogger.hpp"
 
 namespace VPP
 {
@@ -112,7 +112,7 @@ namespace VPP
         virtual vapi_error_e operator() (MSG &reply)
         {
             int retval = reply.get_response().get_payload().retval;
-            LOG(ovsagent::DEBUG) << to_string() << " " << retval;
+            BOOST_LOG_SEV(logger(), levels::debug) << to_string() << " " << retval;
             fulfill(rc_t::from_vpp_retval(retval));
 
             return (VAPI_OK);

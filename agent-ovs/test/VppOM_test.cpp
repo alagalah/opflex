@@ -835,6 +835,7 @@ BOOST_AUTO_TEST_CASE(arp_proxy) {
 
     HW::Item<Interface::admin_state_t> hw_as_down(Interface::admin_state_t::DOWN,
                                                   rc_t::OK);
+    STRICT_ORDER_OFF();
     ADD_EXPECT(ArpProxyBinding::UnbindCmd(hw_binding, hw_ifh.data()));
     ADD_EXPECT(Interface::StateChangeCmd(hw_as_down, hw_ifh));
     ADD_EXPECT(Interface::AFPacketDeleteCmd(hw_ifh, itf1_name));

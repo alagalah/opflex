@@ -11,10 +11,9 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 
-#include "logging.h"
-
 #include "VppOM.hpp"
 #include "VppInspect.hpp"
+#include "VppLogger.hpp"
 
 using namespace VPP;
 
@@ -34,7 +33,7 @@ Inspect::Inspect(const std::string &sock_name):
     rc = uv_thread_create(&m_server_thread, run, this);
     if (rc < 0)
     {
-        LOG(ovsagent::ERROR) << "Inspect - thread create error:" << uv_strerror(rc);
+        BOOST_LOG_SEV(logger(), levels::error) << "Inspect - thread create error:" << uv_strerror(rc);
     }
 }
 
@@ -44,7 +43,7 @@ Inspect::~Inspect()
     uv_thread_join(&m_server_thread);
     uv_loop_close(&m_server_loop);
 
-    LOG(ovsagent::INFO) << "Inspect - close";
+    BOOST_LOG_SEV(logger(), levels::info) << "Inspect - close";
 }
 
 void Inspect::on_cleanup(uv_async_t* handle)
@@ -65,16 +64,16 @@ void Inspect::run(void* ctx)
 
     uv_pipe_init(&ins->m_server_loop, &server, 0);
 
-    LOG(ovsagent::INFO) << "Inspect - open:" << ins->m_sock_name;
+    BOOST_LOG_SEV(logger(), levels::info) << "Inspect - open:" << ins->m_sock_name;
 
     if ((rv = uv_pipe_bind(&server, ins->m_sock_name.c_str())))
     {
-        LOG(ovsagent::ERROR) << "Inspect - Bind error:" << uv_err_name(rv);
+        BOOST_LOG_SEV(logger(), levels::error) << "Inspect - Bind error:" << uv_err_name(rv);
         return;
     }
     if ((rv = uv_listen((uv_stream_t*) &server, 1, on_connection)))
     {
-        LOG(ovsagent::ERROR) << "Inspect - Listen error:" << uv_err_name(rv);
+        BOOST_LOG_SEV(logger(), levels::error) << "Inspect - Listen error:" << uv_err_name(rv);
         return;
     }
 
@@ -112,7 +111,7 @@ void Inspect::on_write(uv_write_t *req,
 
     if (status < 0)
     {
-        LOG(ovsagent::ERROR) << "Inspect - Write error:" << uv_err_name(status);
+        BOOST_LOG_SEV(logger(), levels::error) << "Inspect - Write error:" << uv_err_name(status);
     }
 
     delete req;
@@ -208,7 +207,7 @@ void Inspect::on_read(uv_stream_t *client,
     {
         if (nread != UV_EOF)
         {
-            LOG(ovsagent::ERROR) << "Inspect - Read error:" << uv_err_name(nread);
+            BOOST_LOG_SEV(logger(), levels::error) << "Inspect - Read error:" << uv_err_name(nread);
         }
         uv_close((uv_handle_t*) client, NULL);
     }

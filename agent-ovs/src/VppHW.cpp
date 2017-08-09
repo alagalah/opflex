@@ -8,9 +8,8 @@
 
 #include <memory>
 
-#include "logging.h"
-
 #include "VppHW.hpp"
+#include "VppLogger.hpp"
 
 #include <vapi/vpe.api.vapi.hpp>
 
@@ -115,7 +114,7 @@ rc_t HW::CmdQ::write()
     {
         std::shared_ptr<Cmd> cmd = *it;
 
-        LOG(ovsagent::DEBUG) << *cmd;
+        BOOST_LOG_SEV(logger(), levels::debug) << *cmd;
 
         if (m_enabled)
         {
