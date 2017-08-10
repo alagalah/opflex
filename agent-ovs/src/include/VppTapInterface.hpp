@@ -98,7 +98,64 @@ namespace VPP
             bool operator==(const DeleteCmd&i) const;
         };
 
+        /**
+         * A cmd class that Dumps all the Vpp Interfaces
+         */
+        class DumpCmd: public VPP::DumpCmd<vapi_payload_sw_interface_tap_details>
+        {
+        public:
+            /**
+             * Default Constructor
+             */
+            DumpCmd();
+
+            /**
+             * Issue the command to VPP/HW
+             */
+            rc_t issue(Connection &con);
+            /**
+             * convert to string format for debug purposes
+             */
+            std::string to_string() const;
+
+            /**
+             * Comparison operator - only used for UT
+             */
+            bool operator==(const DumpCmd&i) const;
+        };
+
     private:
+        /**
+         * Class definition for listeners to OM events
+         */
+        class EventHandler: public OM::Listener, public Inspect::CommandHandler
+        {
+        public:
+            EventHandler();
+            virtual ~EventHandler() = default;
+
+            /**
+             * Handle a populate event
+             */
+            void handle_populate(const KeyDB::key_t & key);
+
+            /**
+             * Handle a replay event
+             */
+            void handle_replay();
+
+            /**
+             * Show the object in the Singular DB
+             */
+            void show(std::ostream &os);
+
+            /**
+             * Get the sortable Id of the listener
+             */
+            dependency_t order() const;
+        };
+        static EventHandler m_evh;
+
         /**
          * Construct with a handle
          */

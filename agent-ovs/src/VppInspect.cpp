@@ -60,6 +60,7 @@ void Inspect::run(void* ctx)
     uv_pipe_t server;
     int rv;
 
+    unlink(ins->m_sock_name.c_str());
     uv_pipe_init(&ins->m_server_loop, &server, 0);
 
     LOG(ovsagent::INFO) << "Inspect - open:" << ins->m_sock_name;
