@@ -20,6 +20,8 @@ extern "C"
 
 using namespace VPP;
 
+TapInterface::EventHandler TapInterface::m_evh;
+
 /**
  * Construct a new object matching the desried state
  */
@@ -98,90 +100,55 @@ std::shared_ptr<Interface> TapInterface::singular_i() const
     return m_db.find_or_add(name(), *this);
 }
 
-TapInterface::CreateCmd::CreateCmd(HW::Item<handle_t> &item,
-                                       const std::string &name,
-                                       Route::prefix_t &prefix,
-                                       const l2_address_t &l2_address):
-    RpcCmd(item),
-    m_name(name),
-    m_prefix(prefix),
-    m_l2_address(l2_address)
+void TapInterface::EventHandler::handle_populate(const KeyDB::key_t &key)
 {
-}
+    /*
+     * dump VPP current states
+     */
+    TapInterface::DumpCmd::details_type *data;
+    std::shared_ptr<TapInterface::DumpCmd> cmd(new TapInterface::DumpCmd());
 
-rc_t TapInterface::CreateCmd::issue(Connection &con)
-{
-    vapi_msg_tap_connect *req;
+    HW::enqueue(cmd);
+    HW::write();
 
-    req = vapi_alloc_tap_connect(con.ctx());
-    memset(req->payload.tap_name, 0,
-                    sizeof(req->payload.tap_name));
-    memcpy(req->payload.tap_name, m_name.c_str(),
-           std::min(m_name.length(),
-                    sizeof(req->payload.tap_name)));
-    if (m_prefix != Route::prefix_t::ZERO) {
-        if (m_prefix.address().is_v6()) {
-            m_prefix.to_vpp(&req->payload.ip6_address_set,
-                 req->payload.ip6_address,
-                 &req->payload.ip6_mask_width);
-        } else {
-            m_prefix.to_vpp(&req->payload.ip4_address_set,
-                 req->payload.ip4_address,
-                 &req->payload.ip4_mask_width);
-           req->payload.ip4_address_set = 1;
-       }
+    while (data = cmd->pop())
+    {
+        std::string name = reinterpret_cast<const char*>(data->dev_name);
+
+        TapInterface itf(name,
+                         Interface::admin_state_t::UP,
+                         Route::prefix_t::ZERO);
+
+        LOG(ovsagent::DEBUG) << "tap-dump: " << itf.to_string();
+
+        /*
+         * Write each of the discovered interfaces into the OM,
+         * but disable the HW Command q whilst we do, so that no
+         * commands are sent to VPP
+         */
+        VPP::OM::commit(key, itf);
+
+        free(data);
     }
-
-    if (m_l2_address != l2_address_t::ZERO) {
-       m_l2_address.to_bytes(req->payload.mac_address, 6);
-    } else {
-       req->payload.use_random_mac = 1;
-    }
-
-    VAPI_CALL(vapi_tap_connect(con.ctx(), req,
-                               Interface::create_callback<
-                                   vapi_payload_tap_connect_reply,
-                                   CreateCmd>,
-                               this));
-    m_hw_item =  wait();
-
-    return rc_t::OK;
 }
 
-std::string TapInterface::CreateCmd::to_string() const
+TapInterface::EventHandler::EventHandler()
 {
-    std::ostringstream s;
-    s << "tap-intf-create: " << m_hw_item.to_string()
-      << " ip-prefix:" << m_prefix.to_string(); 
-
-    return (s.str());
+    OM::register_listener(this);
+    Inspect::register_handler({"tap"}, "TapInterfaces", this);
 }
 
-bool TapInterface::CreateCmd::operator==(const CreateCmd& other) const
+void TapInterface::EventHandler::handle_replay()
 {
-    return (CreateCmd::operator==(other));
+    m_db.replay();
 }
 
-TapInterface::DeleteCmd::DeleteCmd(HW::Item<handle_t> &item):
-    RpcCmd(item)
+dependency_t TapInterface::EventHandler::order() const
 {
+    return (dependency_t::INTERFACE);
 }
 
-rc_t TapInterface::DeleteCmd::issue(Connection &con)
+void TapInterface::EventHandler::show(std::ostream &os)
 {
-    // finally... call VPP
-
-    return rc_t::OK;
-}
-std::string TapInterface::DeleteCmd::to_string() const
-{
-    std::ostringstream s;
-    s << "tap-itf-delete: " << m_hw_item.to_string();
-
-    return (s.str());
-}
-
-bool TapInterface::DeleteCmd::operator==(const DeleteCmd& other) const
-{
-    return (m_hw_item == other.m_hw_item);
+    m_db.dump(os);
 }

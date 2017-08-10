@@ -327,6 +327,9 @@ void Interface::EventHandler::handle_populate(const KeyDB::key_t &key)
     {
         std::unique_ptr<Interface> itf = Interface::new_interface(*data);
 
+        /*
+         * 'local' interface is internal to VPP and has no meaning to external clients.
+         */
         if (itf && Interface::type_t::LOCAL != itf->type())
         {
             LOG(ovsagent::DEBUG) << "dump: " << itf->to_string();

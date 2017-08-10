@@ -234,8 +234,15 @@ namespace ovsagent {
         agent.getExtraConfigManager().unregisterListener(this);
         agent.getPolicyManager().unregisterListener(this);
 
-        m_sweep_timer->cancel();
-        m_poll_timer->cancel();
+        if (m_sweep_timer)
+        {
+            m_sweep_timer->cancel();
+        }
+
+        if (m_poll_timer)
+        {
+            m_poll_timer->cancel();
+        }
     }
 
     void VppManager::setFloodScope(FloodScope fscope) {

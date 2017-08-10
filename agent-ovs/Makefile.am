@@ -239,6 +239,7 @@ if RENDERER_VPP
 	src/VppLldpGlobal.cpp \
 	src/VppLldpGlobalCmds.cpp \
         src/VppTapInterface.cpp \
+        src/VppTapInterfaceCmds.cpp \
 	src/VppSubInterface.cpp \
 	src/VppSubInterfaceCmds.cpp \
 	src/VppBridgeDomain.cpp \

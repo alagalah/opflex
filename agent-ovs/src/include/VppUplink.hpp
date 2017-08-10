@@ -71,8 +71,10 @@ namespace VPP
 
         /**
          * make the control channel/interfaces
+         *
+         * @param fqdn Fully Qualifed Domain name
          */
-        void configure(const std::string &hostName);
+        void configure(const std::string &fqdn);
 
         /**
          * Handle notifications about DHCP complete
@@ -80,6 +82,11 @@ namespace VPP
         void handle_dhcp_event(DhcpConfig::EventsCmd *cmd);
 
     private:
+        /**
+         * Configure the tap interface
+         */
+        void configure_tap(const Route::prefix_t &pfx);
+
         /**
          * the encap type on the uplinnk
          */
@@ -94,11 +101,6 @@ namespace VPP
          * A reference to the uplink physical insterface in the OM
          */
         std::shared_ptr<Interface> m_uplink;
-
-        /**
-         * A reference to the control Interface at Linux side
-         */
-        std::shared_ptr<TapInterface>  tapInterface;
 
         /**
          * The VLAN used for control traffic

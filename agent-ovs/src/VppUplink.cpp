@@ -49,23 +49,15 @@ VPP::Interface* Uplink::mk_interface(const std::string &uuid,
     }
 }
 
-void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
+void Uplink::configure_tap(const Route::prefix_t &pfx)
 {
     /*
-     * Create the TAP interface with the DHCP learn address.
-     *  This allows all traffic punt to VPP to arrive at the TAP/agent.
+     * VPP will automatically apply the DHCP discovered address to the linux
+     * side of the TAP interface
      */
-    vapi_payload_dhcp_compl_event dhcp_data;
-
-    cmd->pop(dhcp_data);
-
-    Route::prefix_t pfx(dhcp_data.is_ipv6,
-                        dhcp_data.host_address,
-                        dhcp_data.mask_width);
-
-    TapInterface itf("tuntap0",
+    TapInterface itf("tuntap-0",
                      Interface::admin_state_t::UP,
-                     pfx);
+                     Route::prefix_t::ZERO);
     VPP::OM::write(UPLINK_KEY, itf);
 
     /*
@@ -88,6 +80,23 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
 
     ArpProxyBinding arpProxyBinding(itf, arpProxyConfig);
     VPP::OM::write(UPLINK_KEY, arpProxyBinding);
+}
+
+void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
+{
+    /*
+     * Create the TAP interface with the DHCP learn address.
+     *  This allows all traffic punt to VPP to arrive at the TAP/agent.
+     */
+    vapi_payload_dhcp_compl_event dhcp_data;
+
+    cmd->pop(dhcp_data);
+
+    Route::prefix_t pfx(dhcp_data.is_ipv6,
+                        dhcp_data.host_address,
+                        dhcp_data.mask_width);
+
+    configure_tap(pfx);
 
     /*
      * VXLAN tunnels use the DHCP address as the source
@@ -95,7 +104,7 @@ void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *cmd)
     m_vxlan.src = pfx.address();
 }
 
-void Uplink::configure(const std::string &hostName)
+void Uplink::configure(const std::string &fqdn)
 {
     /*
      * Consruct the uplink physical, so we now 'own' it
@@ -113,7 +122,7 @@ void Uplink::configure(const std::string &hostName)
     /**
      * Enable LLDP on this uplionk
      */
-    LldpGlobal lg(hostName, 5, 2);
+    LldpGlobal lg(fqdn, 5, 2);
     OM::write(UPLINK_KEY, lg);
     LldpBinding lb(*m_uplink, "uplink-interface");
     OM::write(UPLINK_KEY, lb);
@@ -127,7 +136,17 @@ void Uplink::configure(const std::string &hostName)
                         m_vlan);
     OM::write(UPLINK_KEY, subitf);
 
-    std::string hostname = hostName.erase(hostName.find("."), hostName.substr(hostName.find(".")).length());
+    /**
+     * Strip the fully qualified domain name of any domain name
+     * to get just the hostname.
+     */
+    std::string hostname = fqdn;
+    std::string::size_type n = hostname.find(".");
+    if (n != std::string::npos)
+    {
+        hostname = hostname.substr(n);
+    }
+
     /**
      * Configure DHCP on the uplink subinterface
      * We must use the MAC address of the uplink interface as the DHCP client-ID
@@ -156,6 +175,7 @@ void Uplink::configure(const std::string &hostName)
          */
         OM::commit(UPLINK_KEY, *l3);
 
+        configure_tap(l3->prefix());
         m_vxlan.src = l3->prefix().address();
     }
 }
