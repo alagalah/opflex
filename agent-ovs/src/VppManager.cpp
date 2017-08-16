@@ -658,17 +658,19 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     {
         LOG(DEBUG) << "Interface Event: " << *e;
 
-        vapi_msg_sw_interface_set_flags event;
+        std::lock_guard<VPP::Interface::EventsCmd> lg(*e);
 
-        while (e->pop(event))
+        for (auto &msg : *e)
         {
-            VPP::handle_t handle(event.payload.sw_if_index);
+            auto &payload = msg.get_payload();
+
+            VPP::handle_t handle(payload.sw_if_index);
             std::shared_ptr<VPP::Interface> sp = VPP::Interface::find(handle);
 
             if (sp)
             {
                 VPP::Interface::oper_state_t oper_state =
-                    VPP::Interface::oper_state_t::from_int(event.payload.link_up_down);
+                    VPP::Interface::oper_state_t::from_int(payload.link_up_down);
 
                 LOG(DEBUG) << "Interface Event: " << sp->to_string()
                            << " state: " << oper_state.to_string();
@@ -676,6 +678,8 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                 sp->set(oper_state);
             }
         }
+
+        e->flush();
     }
     
     void

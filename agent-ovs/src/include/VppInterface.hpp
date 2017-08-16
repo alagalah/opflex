@@ -606,7 +606,7 @@ namespace VPP
         class EventsCmd: public RpcCmd<HW::Item<bool>,
                                        rc_t,
                                        vapi::Want_interface_events>,
-                         public EventCmd<vapi::Msg<vapi_msg_sw_interface_set_flags>>
+                         public EventCmd<vapi::Sw_interface_event>
         {
         public:
             /**
