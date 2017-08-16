@@ -13,6 +13,7 @@
 #include <mutex>
 
 #include "VppCmd.hpp"
+#include "VppLogger.hpp"
 
 #include <vapi/vapi.hpp>
 
@@ -54,26 +55,40 @@ namespace VPP
         typedef typename vapi::Event_registration<MSG>::resp_type event_t;
         typedef typename vapi::Event_registration<MSG> reg_t;
 
-        /**
-         * pop (consume) an event from VPP that was a result of this commands
-         * subscription
-         */
-        bool pop(event_t &data)
+        typedef typename vapi::Result_set<typename reg_t::resp_type>::const_iterator const_iterator;
+
+        const_iterator begin()
         {
-            std::lock_guard<std::mutex> lg(m_mutex);
-
-            auto &results = m_reg->get_result_set();
-
-            /* if (!m_events.size()) */
-            /* { */
-            /*     return false; */
-            /* } */
-
-            /* data = m_events.front(); */
-            /* m_events.pop(); */
-
-            return true;
+            return (m_reg->get_result_set().begin());
         }
+
+        const_iterator end()
+        {
+            return (m_reg->get_result_set().end());
+        }
+
+        void lock()
+        {
+            m_mutex.lock();
+        }
+        void unlock()
+        {
+            m_mutex.unlock();
+        }
+
+        /**
+         * flush/free all the events thus far reeived.
+         * Call with the lock held!
+         */
+        void flush()
+        {
+            m_reg->get_result_set().free_all_responses();
+        }
+
+        /**
+         * convert to string format for debug purposes
+         */
+        virtual std::string to_string() const = 0;
 
         /**
          * Retire the command. This is only appropriate for Event Commands
@@ -84,6 +99,7 @@ namespace VPP
         vapi_error_e operator() (reg_t &dl)
         {
             notify();
+            BOOST_LOG_SEV(logger(), levels::debug) << this->to_string();
 
             return (VAPI_OK);     
         }

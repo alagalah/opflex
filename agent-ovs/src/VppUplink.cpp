@@ -51,13 +51,9 @@ VPP::Interface* Uplink::mk_interface(const std::string &uuid,
 
 void Uplink::configure_tap(const Route::prefix_t &pfx)
 {
-    /*
-     * VPP will automatically apply the DHCP discovered address to the linux
-     * side of the TAP interface
-     */
     TapInterface itf("tuntap-0",
                      Interface::admin_state_t::UP,
-                     Route::prefix_t::ZERO);
+                     pfx);
     VPP::OM::write(UPLINK_KEY, itf);
 
     /*
