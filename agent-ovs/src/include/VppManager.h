@@ -25,16 +25,16 @@
 #include <unordered_map>
 
 #include "VppUplink.hpp"
-#include "VppInterface.hpp"
-#include "VppDhcpConfig.hpp"
+#include <vom/interface.hpp>
+#include <vom/dhcp_config.hpp>
 
 /*
  * Fowrad delcare classes to reduce compile time couling
  */
 namespace VPP {
-    class RouteDomain;
-    class BridgeDomain;
-    class Cmd;
+    class route_domain;
+    class bridge_domain;
+    class cmd;
 };
 
 namespace ovsagent {
@@ -50,8 +50,8 @@ class VppManager :     public EndpointListener,
                        public ExtraConfigListener,
                        public PolicyListener,
                        public opflex::ofcore::PeerStatusListener,
-                       public VPP::Interface::EventListener,
-                       public VPP::DhcpConfig::EventListener,
+                       public VPP::interface::event_listener,
+                       public VPP::dhcp_config::event_listener,
                        private boost::noncopyable {
 public:
     /**
@@ -279,8 +279,8 @@ private:
                         uint32_t epgVnid, uint32_t fgrpId,
                         boost::asio::ip::address epgTunDst);
     void updateBVIs(const opflex::modb::URI& egURI,
-                    VPP::BridgeDomain &bd,
-                    const VPP::RouteDomain &rd);
+                    VPP::bridge_domain &bd,
+                    const VPP::route_domain &rd);
 
     /**
      * Associate an endpoint with a flood-group.
@@ -314,22 +314,22 @@ private:
     /**
      * Event listener override to get Interface events
      */
-    void handle_interface_event(VPP::Interface::EventsCmd *e);
+    void handle_interface_event(VPP::interface::events_cmd *e);
 
     /**
      * Handle interface event in the task-queue context
      */
-    void handleInterfaceEvent(VPP::Interface::EventsCmd *e);
+    void handleInterfaceEvent(VPP::interface::events_cmd *e);
 
     /**
      * handle DHCP event from DHCP listner
      */
-    void handle_dhcp_event(VPP::DhcpConfig::EventsCmd *cmd);
+    void handle_dhcp_event(VPP::dhcp_config::events_cmd *cmd);
 
     /**
      * Handle a DHCP event in the task Q thread conttet
      */
-    void handleDhcpEvent(VPP::DhcpConfig::EventsCmd *e);
+    void handleDhcpEvent(VPP::dhcp_config::events_cmd *e);
 
     /**
      * Handle the connect request to VPP
@@ -383,7 +383,7 @@ private:
     /**
      * A list of interest/want commands
      */
-    std::list<std::shared_ptr<VPP::Cmd>> m_cmds;
+    std::list<std::shared_ptr<VPP::cmd>> m_cmds;
 
     /**
      * The HW poll timer

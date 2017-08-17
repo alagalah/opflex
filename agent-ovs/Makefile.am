@@ -76,10 +76,10 @@ if RENDERER_VPP
         -Wall
 
   VPPCLIENT_LIBS = \
+	-lvom \
 	-lvppinfra \
 	-lvapiclient \
-	-lsvm \
-	-lpthread -lm -lrt
+	-lsvm
 
   libagent_ovs_la_CXXFLAGS += \
 	$(libopflex_CFLAGS) \
@@ -88,17 +88,18 @@ if RENDERER_VPP
 	$(libnl_nf_CFLAGS) \
 	$(rapidjson_CFLAGS)
 
-  libagent_ovs_la_LIBADD += \
-	$(libopflex_LIBS) \
-	$(libmodelgbp_LIBS) \
-	$(libnl_nf_LIBS) \
-	-lboost_log \
-	-lboost_thread \
-	$(BOOST_LOG_LIB) \
-	$(BOOST_SYSTEM_LIB) \
-	$(BOOST_FILESYSTEM_LIB) \
-	$(BOOST_ASIO_LIB) \
-	$(VPPCLIENT_LIBS)
+  libagent_ovs_la_LIBADD += 	\
+	$(libopflex_LIBS) 	\
+	$(libmodelgbp_LIBS)	\
+	$(libnl_nf_LIBS)	\
+	$(VPPCLIENT_LIBS)	\
+	-lboost_log		\
+	-lboost_thread		\
+	$(BOOST_LOG_LIB)	\
+	$(BOOST_SYSTEM_LIB)	\
+	$(BOOST_FILESYSTEM_LIB)	\
+	$(BOOST_ASIO_LIB)	\
+	-lpthread -lm -lrt
 endif
 
 noinst_HEADERS = \
@@ -220,55 +221,9 @@ endif
 
 if RENDERER_VPP
   libagent_ovs_la_SOURCES += \
-	src/Vpp.cpp \
-	src/VppHW.cpp \
-	src/VppOM.cpp \
 	src/VppRenderer.cpp \
-	src/VppConnection.cpp \
 	src/VppUplink.cpp \
-	src/VppObject.cpp \
-	src/VppLogger.cpp \
-	src/VppCmd.cpp \
-	src/VppInterfaceTypes.cpp \
-	src/VppInterface.cpp \
-	src/VppInterfaceFactory.cpp \
-	src/VppInterfaceCmds.cpp \
-	src/VppDhcpConfig.cpp \
-	src/VppDhcpConfigCmds.cpp \
-	src/VppL2Binding.cpp \
-	src/VppL2BindingCmds.cpp \
-	src/VppL3Binding.cpp \
-	src/VppL3BindingCmds.cpp \
-	src/VppIpUnnumbered.cpp \
-	src/VppIpUnnumberedCmds.cpp \
-	src/VppArpProxyConfig.cpp \
-	src/VppArpProxyConfigCmds.cpp \
-	src/VppArpProxyBinding.cpp \
-	src/VppArpProxyBindingCmds.cpp \
-	src/VppLldpBinding.cpp \
-	src/VppLldpBindingCmds.cpp \
-	src/VppLldpGlobal.cpp \
-	src/VppLldpGlobalCmds.cpp \
-        src/VppTapInterface.cpp \
-        src/VppTapInterfaceCmds.cpp \
-	src/VppSubInterface.cpp \
-	src/VppSubInterfaceCmds.cpp \
-	src/VppBridgeDomain.cpp \
-	src/VppBridgeDomainCmds.cpp \
-	src/VppRouteDomain.cpp \
-	src/VppVxlanTunnel.cpp \
-	src/VppVxlanTunnelCmds.cpp \
-	src/VppAclTypes.cpp \
-	src/VppAclL3Rule.cpp \
-	src/VppAclL2Rule.cpp \
-	src/VppAclListCmds.cpp \
-	src/VppAclList.cpp \
-	src/VppAclBinding.cpp \
-	src/VppAclBindingCmds.cpp \
-	src/VppManager.cpp \
-	src/VppInspect.cpp \
-	src/VppKeyDB.cpp \
-	src/VppRoute.cpp
+	src/VppManager.cpp
 endif
 
 bin_PROGRAMS=agent_ovs gbp_inspect mcast_daemon
