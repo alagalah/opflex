@@ -30,14 +30,14 @@
 #include "Endpoint.h"
 #include "EndpointManager.h"
 #include "VppManager.h"
-#include "VppOM.hpp"
-#include "VppInterface.hpp"
-#include "VppL2Binding.hpp"
-#include "VppL3Binding.hpp"
-#include "VppBridgeDomain.hpp"
-#include "VppInterface.hpp"
-#include "VppDhcpConfig.hpp"
-#include "VppAclBinding.hpp"
+#include <vom/om.hpp>
+#include <vom/interface.hpp>
+#include <vom/l2_binding.hpp>
+#include <vom/l3_binding.hpp>
+#include <vom/bridge_domain.hpp>
+#include <vom/interface.hpp>
+#include <vom/dhcp_config.hpp>
+#include <vom/acl_binding.hpp>
 
 //#include "arp.h"
 //#include "eth.h"
@@ -143,7 +143,7 @@ namespace ovsagent {
         /**
          * We are insterested in getting interface events from VPP
          */
-        std::shared_ptr<VPP::Cmd> itf(new VPP::Interface::EventsCmd(*this));
+        std::shared_ptr<VPP::cmd> itf(new VPP::interface::events_cmd(*this));
 
         VPP::HW::enqueue(itf);
         m_cmds.push_back(itf);
@@ -151,7 +151,7 @@ namespace ovsagent {
         /**
          * We are insterested in getting DHCP events from VPP
          */
-        std::shared_ptr<VPP::Cmd> dc(new VPP::DhcpConfig::EventsCmd(*this));
+        std::shared_ptr<VPP::cmd> dc(new VPP::dhcp_config::events_cmd(*this));
 
         VPP::HW::enqueue(dc);
         m_cmds.push_back(dc);
@@ -310,7 +310,7 @@ namespace ovsagent {
                                 this, contractURI));
     }
 
-    void VppManager::handle_interface_event(VPP::Interface::EventsCmd *e)
+    void VppManager::handle_interface_event(VPP::interface::events_cmd *e)
     {
         if (stopping) return;
         taskQueue.dispatch("InterfaceEvent",
@@ -318,7 +318,7 @@ namespace ovsagent {
                                 this, e));
     }
 
-    void VppManager::handle_dhcp_event(VPP::DhcpConfig::EventsCmd *e)
+    void VppManager::handle_dhcp_event(VPP::dhcp_config::events_cmd *e)
     {
         if (stopping) return;
         taskQueue.dispatch("dhcp-config-event",
@@ -417,9 +417,9 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     /*
      * We want a veth interface - admin up
      */
-    VPP::Interface itf(vppInterfaceName.get(),
-                       VPP::Interface::type_t::AFPACKET,
-                       VPP::Interface::admin_state_t::UP);
+    VPP::interface itf(vppInterfaceName.get(),
+                       VPP::interface::type_t::AFPACKET,
+                       VPP::interface::admin_state_t::UP);
     VPP::OM::write(uuid, itf);
 
     uint8_t macAddr[6];
@@ -431,16 +431,16 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         /*
          * Add an L2 ACL to accept packet on this interface only from this MAC
          */
-        VPP::ACL::L2Rule rule(10,
-                              VPP::ACL::action_t::PERMIT,
-                              VPP::Route::prefix_t::ZERO,
-                              macAddr,
-                              VPP::mac_address_t::ONE);
+        VPP::ACL::l2_rule rule(10,
+                               VPP::ACL::action_t::PERMIT,
+                               VPP::route::prefix_t::ZERO,
+                               macAddr,
+                               VPP::mac_address_t::ONE);
 
-        VPP::ACL::L2List acl(uuid, {rule});
+        VPP::ACL::l2_list acl(uuid, {rule});
         VPP::OM::write(uuid, acl);
 
-        VPP::ACL::L2Binding binding(VPP::ACL::direction_t::INPUT, itf, acl);
+        VPP::ACL::l2_binding binding(VPP::ACL::direction_t::INPUT, itf, acl);
         VPP::OM::write(uuid, binding);
     }
 
@@ -500,7 +500,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         bcastFloodMode = fd.get()
             ->getBcastFloodMode(BcastFloodModeEnumT::CONST_NORMAL);
 
-        VPP::BridgeDomain bd(fgrpId);
+        VPP::bridge_domain bd(fgrpId);
 
         if (VPP::rc_t::OK != VPP::OM::write(uuid, bd))
         {
@@ -511,7 +511,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             return;
         }
 
-        VPP::L2Binding l2itf(itf, bd);
+        VPP::l2_binding l2itf(itf, bd);
 
         if (VPP::rc_t::OK != VPP::OM::write(uuid, l2itf))
         {
@@ -567,19 +567,19 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         /*
          * Construct the BridgeDomain
          */
-        VPP::BridgeDomain bd(fgrpId);
+        VPP::bridge_domain bd(fgrpId);
 
         VPP::OM::write(epg_uuid, bd);
 
         /*
          * Construct the encap-link
          */
-        std::shared_ptr<VPP::Interface> encap_link(m_uplink.mk_interface(epg_uuid, epgVnid));
+        std::shared_ptr<VPP::interface> encap_link(m_uplink.mk_interface(epg_uuid, epgVnid));
 
         /*
          * Add the encap-link to the BD
          */
-        VPP::L2Binding l2(*encap_link, bd);
+        VPP::l2_binding l2(*encap_link, bd);
         VPP::OM::write(epg_uuid, l2);
 
         /*
@@ -587,7 +587,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
          */
         optional<shared_ptr<RoutingDomain>> epgRd = pm.getRDForGroup(epgURI);
 
-        VPP::RouteDomain rd(rdId);
+        VPP::route_domain rd(rdId);
         VPP::OM::write(epg_uuid, rd);
 
         updateBVIs(epgURI, bd, rd);
@@ -599,8 +599,8 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     }
 
     void VppManager::updateBVIs(const URI& epgURI,
-                                VPP::BridgeDomain &bd,
-                                const VPP::RouteDomain &rd)
+                                VPP::bridge_domain &bd,
+                                const VPP::route_domain &rd)
     {
         LOG(DEBUG) << "Updating BVIs";
 
@@ -608,13 +608,13 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         PolicyManager::subnet_vector_t subnets;
         agent.getPolicyManager().getSubnetsForGroup(epgURI, subnets);
 
-        VPP::Interface bvi("bvi-" + std::to_string(bd.id()),
-                           VPP::Interface::type_t::BVI,
-                           VPP::Interface::admin_state_t::UP,
+        VPP::interface bvi("bvi-" + std::to_string(bd.id()),
+                           VPP::interface::type_t::BVI,
+                           VPP::interface::admin_state_t::UP,
                            rd);
         VPP::OM::write(epg_uuid, bvi);
 
-        VPP::L2Binding l2(bvi, bd);
+        VPP::l2_binding l2(bvi, bd);
         VPP::OM::write(epg_uuid, l2);
 
         for (shared_ptr<Subnet>& sn : subnets)
@@ -624,9 +624,10 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
             if (routerIp)
             {
-                VPP::Route::prefix_t pfx(routerIp.get(), sn->getPrefixLen().get());
+                VPP::route::prefix_t pfx(routerIp.get(),
+                                         sn->getPrefixLen().get());
 
-                VPP::L3Binding l3(bvi, pfx);
+                VPP::l3_binding l3(bvi, pfx);
                 VPP::OM::write(epg_uuid, l3);
             }
         }
@@ -654,23 +655,23 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     }
 
     void
-    VppManager::handleInterfaceEvent(VPP::Interface::EventsCmd *e)
+    VppManager::handleInterfaceEvent(VPP::interface::events_cmd *e)
     {
         LOG(DEBUG) << "Interface Event: " << *e;
 
-        std::lock_guard<VPP::Interface::EventsCmd> lg(*e);
+        std::lock_guard<VPP::interface::events_cmd> lg(*e);
 
         for (auto &msg : *e)
         {
             auto &payload = msg.get_payload();
 
             VPP::handle_t handle(payload.sw_if_index);
-            std::shared_ptr<VPP::Interface> sp = VPP::Interface::find(handle);
+            std::shared_ptr<VPP::interface> sp = VPP::interface::find(handle);
 
             if (sp)
             {
-                VPP::Interface::oper_state_t oper_state =
-                    VPP::Interface::oper_state_t::from_int(payload.link_up_down);
+                VPP::interface::oper_state_t oper_state =
+                    VPP::interface::oper_state_t::from_int(payload.link_up_down);
 
                 LOG(DEBUG) << "Interface Event: " << sp->to_string()
                            << " state: " << oper_state.to_string();
@@ -683,7 +684,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     }
     
     void
-    VppManager::handleDhcpEvent(VPP::DhcpConfig::EventsCmd *e)
+    VppManager::handleDhcpEvent(VPP::dhcp_config::events_cmd *e)
     {
         LOG(INFO) << "DHCP Event: " << *e;
         m_uplink.handle_dhcp_event(e);

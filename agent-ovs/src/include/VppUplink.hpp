@@ -10,9 +10,9 @@
 #ifndef __VPP_UPLINK_H__
 #define __VPP_UPLINK_H__
 
-#include "VppVxlanTunnel.hpp"
-#include "VppDhcpConfig.hpp"
-#include "VppTapInterface.hpp"
+#include <vom/vxlan_tunnel.hpp>
+#include <vom/dhcp_config.hpp>
+#include <vom/tap_interface.hpp>
 
 namespace VPP
 {
@@ -51,7 +51,7 @@ namespace VPP
         /**
          * Given the VNID, create aninterface of the appropriate type
          */
-        VPP::Interface *mk_interface(const std::string &uuid, uint32_t vnid);
+        VPP::interface *mk_interface(const std::string &uuid, uint32_t vnid);
 
         /**
          * Set the uplink paramenters for vxlan
@@ -79,13 +79,13 @@ namespace VPP
         /**
          * Handle notifications about DHCP complete
          */
-        void handle_dhcp_event(DhcpConfig::EventsCmd *cmd);
+        void handle_dhcp_event(dhcp_config::events_cmd *cmd);
 
     private:
         /**
          * Configure the tap interface
          */
-        void configure_tap(const Route::prefix_t &pfx);
+        void configure_tap(const route::prefix_t &pfx);
 
         /**
          * the encap type on the uplinnk
@@ -95,12 +95,12 @@ namespace VPP
         /**
          * VXLAN uplink encap, if used
          */
-        VPP::VxlanTunnel::endpoint_t m_vxlan;
+        VPP::vxlan_tunnel::endpoint_t m_vxlan;
 
         /**
          * A reference to the uplink physical insterface in the OM
          */
-        std::shared_ptr<Interface> m_uplink;
+        std::shared_ptr<interface> m_uplink;
 
         /**
          * The VLAN used for control traffic

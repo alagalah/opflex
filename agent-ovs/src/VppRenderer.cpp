@@ -7,7 +7,7 @@
  */
 
 #include "VppRenderer.h"
-#include "VppRoute.hpp"
+#include <vom/route.hpp>
 #include "logging.h"
 
 #include <boost/asio/placeholders.hpp>
@@ -108,7 +108,7 @@ namespace ovsagent {
 
         if (inspect.length())
         {
-            inspector.reset(new VPP::Inspect(inspect));
+            inspector.reset(new VPP::inspect(inspect));
         }
     }
 }

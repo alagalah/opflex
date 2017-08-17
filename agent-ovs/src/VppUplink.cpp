@@ -8,14 +8,15 @@
  */
 
 #include "VppUplink.hpp"
-#include "VppInterface.hpp"
-#include "VppSubInterface.hpp"
-#include "VppL3Binding.hpp"
-#include "VppLldpGlobal.hpp"
-#include "VppLldpBinding.hpp"
-#include "VppArpProxyConfig.hpp"
-#include "VppArpProxyBinding.hpp"
-#include "VppIpUnnumbered.hpp"
+
+#include "vom/interface.hpp"
+#include "vom/sub_interface.hpp"
+#include "vom/l3_binding.hpp"
+#include "vom/lldp_global.hpp"
+#include "vom/lldp_binding.hpp"
+#include "vom/arp_proxy_config.hpp"
+#include "vom/arp_proxy_binding.hpp"
+#include "vom/ip_unnumbered.hpp"
 
 using namespace VPP;
 
@@ -25,14 +26,14 @@ Uplink::Uplink()
 {
 }
 
-VPP::Interface* Uplink::mk_interface(const std::string &uuid,
+VPP::interface* Uplink::mk_interface(const std::string &uuid,
                                      uint32_t vnid)
 {
     switch (m_type)
     {
     case VXLAN:
     {
-        VxlanTunnel *vt = new VxlanTunnel(m_vxlan.src, m_vxlan.dst, vnid);
+        vxlan_tunnel *vt = new vxlan_tunnel(m_vxlan.src, m_vxlan.dst, vnid);
 
         VPP::OM::write(uuid, *vt);
 
@@ -40,7 +41,7 @@ VPP::Interface* Uplink::mk_interface(const std::string &uuid,
     }
     case VLAN:
     {
-        SubInterface *sb = new SubInterface(*m_uplink, Interface::admin_state_t::UP, vnid);
+        sub_interface *sb = new sub_interface(*m_uplink, interface::admin_state_t::UP, vnid);
 
         VPP::OM::write(uuid, *sb);
 
@@ -49,10 +50,10 @@ VPP::Interface* Uplink::mk_interface(const std::string &uuid,
     }
 }
 
-void Uplink::configure_tap(const Route::prefix_t &pfx)
+void Uplink::configure_tap(const route::prefix_t &pfx)
 {
-    TapInterface itf("tuntap-0",
-                     Interface::admin_state_t::UP,
+    tap_interface itf("tuntap-0",
+                      interface::admin_state_t::UP,
                      pfx);
     VPP::OM::write(UPLINK_KEY, itf);
 
@@ -62,45 +63,45 @@ void Uplink::configure_tap(const Route::prefix_t &pfx)
      * of the configured prefix in the OM, we'll sweep it from the
      * interface if we restart
      */
-    SubInterface subitf(*m_uplink,
-                        Interface::admin_state_t::UP,
+    sub_interface subitf(*m_uplink,
+                        interface::admin_state_t::UP,
                         m_vlan);
-    L3Binding l3(subitf, pfx);
+    l3_binding l3(subitf, pfx);
     OM::commit(UPLINK_KEY, l3);
 
-    IpUnnumbered ipUnnumber(itf, subitf);
+    ip_unnumbered ipUnnumber(itf, subitf);
     VPP::OM::write(UPLINK_KEY, ipUnnumber);
 
-    ArpProxyConfig arpProxyConfig(low(pfx), high(pfx));
+    arp_proxy_config arpProxyConfig(pfx.low(), pfx.high());
     VPP::OM::write(UPLINK_KEY, arpProxyConfig);
 
-    ArpProxyBinding arpProxyBinding(itf, arpProxyConfig);
+    arp_proxy_binding arpProxyBinding(itf, arpProxyConfig);
     VPP::OM::write(UPLINK_KEY, arpProxyBinding);
 }
 
-void Uplink::handle_dhcp_event(DhcpConfig::EventsCmd *ec)
+void Uplink::handle_dhcp_event(dhcp_config::events_cmd *ec)
 {
     /*
      * Create the TAP interface with the DHCP learn address.
      *  This allows all traffic punt to VPP to arrive at the TAP/agent.
      */
-    std::lock_guard<DhcpConfig::EventsCmd> lg(*ec);
+    std::lock_guard<dhcp_config::events_cmd> lg(*ec);
 
     for (auto &msg : *ec)
     {
         auto &payload = msg.get_payload();
 
-        Route::prefix_t pfx(payload.is_ipv6,
+        route::prefix_t pfx(payload.is_ipv6,
                             payload.host_address,
                             payload.mask_width);
 
         configure_tap(pfx);
-    }
 
-    /*
-     * VXLAN tunnels use the DHCP address as the source
-     */
-    m_vxlan.src = pfx.address();
+        /*
+         * VXLAN tunnels use the DHCP address as the source
+         */
+        m_vxlan.src = pfx.address();
+    }
 
     ec->flush();
 }
@@ -110,9 +111,9 @@ void Uplink::configure(const std::string &fqdn)
     /*
      * Consruct the uplink physical, so we now 'own' it
      */
-    Interface itf(m_iface,
-                  Interface::type_t::ETHERNET,
-                  Interface::admin_state_t::UP);
+    interface itf(m_iface,
+                  interface::type_t::ETHERNET,
+                  interface::admin_state_t::UP);
     OM::write(UPLINK_KEY, itf);
 
     /*
@@ -123,17 +124,17 @@ void Uplink::configure(const std::string &fqdn)
     /**
      * Enable LLDP on this uplionk
      */
-    LldpGlobal lg(fqdn, 5, 2);
+    lldp_global lg(fqdn, 5, 2);
     OM::write(UPLINK_KEY, lg);
-    LldpBinding lb(*m_uplink, "uplink-interface");
+    lldp_binding lb(*m_uplink, "uplink-interface");
     OM::write(UPLINK_KEY, lb);
 
     /*
      * now create the sub-interface on which control and data traffic from
      * the upstream leaf will arrive
      */
-    SubInterface subitf(itf,
-                        Interface::admin_state_t::UP,
+    sub_interface subitf(itf,
+                        interface::admin_state_t::UP,
                         m_vlan);
     OM::write(UPLINK_KEY, subitf);
 
@@ -152,7 +153,7 @@ void Uplink::configure(const std::string &fqdn)
      * Configure DHCP on the uplink subinterface
      * We must use the MAC address of the uplink interface as the DHCP client-ID
      */
-    DhcpConfig dc(subitf, hostname,
+    dhcp_config dc(subitf, hostname,
                   m_uplink->l2_address());
     OM::write(UPLINK_KEY, dc);
 
@@ -161,14 +162,14 @@ void Uplink::configure(const std::string &fqdn)
      * in VPP and we won't get notified. So let's cehck here if there alreay
      * exists an L3 config on the interface
      */
-    std::deque<std::shared_ptr<L3Binding>> l3s = L3Binding::find(itf);
+    std::deque<std::shared_ptr<l3_binding>> l3s = l3_binding::find(itf);
 
     if (l3s.size())
     {
         /*
          * there should only be one. we'll pick the first
          */
-        std::shared_ptr<L3Binding> l3 = l3s.front();
+        std::shared_ptr<l3_binding> l3 = l3s.front();
 
         /*
          * Claim ownership.
