@@ -29,9 +29,10 @@
 #include <vom/dhcp_config.hpp>
 
 /*
- * Fowrad delcare classes to reduce compile time couling
+ * Fowrad delcare classes to reduce compile time coupling
  */
-namespace VPP {
+namespace VOM
+{
     class route_domain;
     class bridge_domain;
     class cmd;
@@ -50,8 +51,8 @@ class VppManager :     public EndpointListener,
                        public ExtraConfigListener,
                        public PolicyListener,
                        public opflex::ofcore::PeerStatusListener,
-                       public VPP::interface::event_listener,
-                       public VPP::dhcp_config::event_listener,
+                       public VOM::interface::event_listener,
+                       public VOM::dhcp_config::event_listener,
                        private boost::noncopyable {
 public:
     /**
@@ -279,8 +280,8 @@ private:
                         uint32_t epgVnid, uint32_t fgrpId,
                         boost::asio::ip::address epgTunDst);
     void updateBVIs(const opflex::modb::URI& egURI,
-                    VPP::bridge_domain &bd,
-                    const VPP::route_domain &rd);
+                    VOM::bridge_domain &bd,
+                    const VOM::route_domain &rd);
 
     /**
      * Associate an endpoint with a flood-group.
@@ -314,22 +315,22 @@ private:
     /**
      * Event listener override to get Interface events
      */
-    void handle_interface_event(VPP::interface::events_cmd *e);
+    void handle_interface_event(VOM::interface::events_cmd *e);
 
     /**
      * Handle interface event in the task-queue context
      */
-    void handleInterfaceEvent(VPP::interface::events_cmd *e);
+    void handleInterfaceEvent(VOM::interface::events_cmd *e);
 
     /**
      * handle DHCP event from DHCP listner
      */
-    void handle_dhcp_event(VPP::dhcp_config::events_cmd *cmd);
+    void handle_dhcp_event(VOM::dhcp_config::events_cmd *cmd);
 
     /**
      * Handle a DHCP event in the task Q thread conttet
      */
-    void handleDhcpEvent(VPP::dhcp_config::events_cmd *e);
+    void handleDhcpEvent(VOM::dhcp_config::events_cmd *e);
 
     /**
      * Handle the connect request to VPP
@@ -383,7 +384,7 @@ private:
     /**
      * A list of interest/want commands
      */
-    std::list<std::shared_ptr<VPP::cmd>> m_cmds;
+    std::list<std::shared_ptr<VOM::cmd>> m_cmds;
 
     /**
      * The HW poll timer

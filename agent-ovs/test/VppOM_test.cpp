@@ -32,7 +32,7 @@
 #include "vom/ip_unnumbered.hpp"
 
 using namespace boost;
-using namespace VPP;
+using namespace VOM;
 
 /**
  * An expectation exception

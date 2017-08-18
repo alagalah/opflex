@@ -217,7 +217,8 @@ if RENDERER_VPP
   libagent_ovs_la_SOURCES += \
 	src/VppRenderer.cpp \
 	src/VppUplink.cpp \
-	src/VppManager.cpp
+	src/VppManager.cpp \
+	src/VppInspect.cpp
 endif
 
 bin_PROGRAMS=agent_ovs gbp_inspect mcast_daemon

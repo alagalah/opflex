@@ -14,6 +14,8 @@
 #include <vom/dhcp_config.hpp>
 #include <vom/tap_interface.hpp>
 
+using namespace VOM;
+
 namespace VPP
 {
     /*
@@ -51,7 +53,7 @@ namespace VPP
         /**
          * Given the VNID, create aninterface of the appropriate type
          */
-        VPP::interface *mk_interface(const std::string &uuid, uint32_t vnid);
+        VOM::interface *mk_interface(const std::string &uuid, uint32_t vnid);
 
         /**
          * Set the uplink paramenters for vxlan
@@ -95,7 +97,7 @@ namespace VPP
         /**
          * VXLAN uplink encap, if used
          */
-        VPP::vxlan_tunnel::endpoint_t m_vxlan;
+        VOM::vxlan_tunnel::endpoint_t m_vxlan;
 
         /**
          * A reference to the uplink physical insterface in the OM
