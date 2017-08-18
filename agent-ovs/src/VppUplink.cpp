@@ -18,6 +18,7 @@
 #include "vom/arp_proxy_binding.hpp"
 #include "vom/ip_unnumbered.hpp"
 
+using namespace VOM;
 using namespace VPP;
 
 static const std::string UPLINK_KEY = "__uplink__";
@@ -26,27 +27,27 @@ Uplink::Uplink()
 {
 }
 
-VPP::interface* Uplink::mk_interface(const std::string &uuid,
+VOM::interface* Uplink::mk_interface(const std::string &uuid,
                                      uint32_t vnid)
 {
     switch (m_type)
     {
     case VXLAN:
-    {
-        vxlan_tunnel *vt = new vxlan_tunnel(m_vxlan.src, m_vxlan.dst, vnid);
+        {
+            vxlan_tunnel *vt = new vxlan_tunnel(m_vxlan.src, m_vxlan.dst, vnid);
 
-        VPP::OM::write(uuid, *vt);
+            VOM::OM::write(uuid, *vt);
 
-        return (vt);
-    }
+            return (vt);
+        }
     case VLAN:
-    {
-        sub_interface *sb = new sub_interface(*m_uplink, interface::admin_state_t::UP, vnid);
+        {
+            sub_interface *sb = new sub_interface(*m_uplink, interface::admin_state_t::UP, vnid);
 
-        VPP::OM::write(uuid, *sb);
+            VOM::OM::write(uuid, *sb);
 
-        return (sb);
-    }
+            return (sb);
+        }
     }
 }
 
@@ -54,8 +55,8 @@ void Uplink::configure_tap(const route::prefix_t &pfx)
 {
     tap_interface itf("tuntap-0",
                       interface::admin_state_t::UP,
-                     pfx);
-    VPP::OM::write(UPLINK_KEY, itf);
+                      pfx);
+    VOM::OM::write(UPLINK_KEY, itf);
 
     /*
      * commit and L3 Config to the OM so this uplink owns the
@@ -64,19 +65,19 @@ void Uplink::configure_tap(const route::prefix_t &pfx)
      * interface if we restart
      */
     sub_interface subitf(*m_uplink,
-                        interface::admin_state_t::UP,
-                        m_vlan);
+                         interface::admin_state_t::UP,
+                         m_vlan);
     l3_binding l3(subitf, pfx);
     OM::commit(UPLINK_KEY, l3);
 
     ip_unnumbered ipUnnumber(itf, subitf);
-    VPP::OM::write(UPLINK_KEY, ipUnnumber);
+    VOM::OM::write(UPLINK_KEY, ipUnnumber);
 
     arp_proxy_config arpProxyConfig(pfx.low(), pfx.high());
-    VPP::OM::write(UPLINK_KEY, arpProxyConfig);
+    VOM::OM::write(UPLINK_KEY, arpProxyConfig);
 
     arp_proxy_binding arpProxyBinding(itf, arpProxyConfig);
-    VPP::OM::write(UPLINK_KEY, arpProxyBinding);
+    VOM::OM::write(UPLINK_KEY, arpProxyBinding);
 }
 
 void Uplink::handle_dhcp_event(dhcp_config::events_cmd *ec)
@@ -112,7 +113,7 @@ void Uplink::configure(const std::string &fqdn)
      * Consruct the uplink physical, so we now 'own' it
      */
     interface itf(m_iface,
-                  interface::type_t::ETHERNET,
+                  interface::type_t::AFPACKET,
                   interface::admin_state_t::UP);
     OM::write(UPLINK_KEY, itf);
 
@@ -134,8 +135,8 @@ void Uplink::configure(const std::string &fqdn)
      * the upstream leaf will arrive
      */
     sub_interface subitf(itf,
-                        interface::admin_state_t::UP,
-                        m_vlan);
+                         interface::admin_state_t::UP,
+                         m_vlan);
     OM::write(UPLINK_KEY, subitf);
 
     /**
@@ -153,8 +154,8 @@ void Uplink::configure(const std::string &fqdn)
      * Configure DHCP on the uplink subinterface
      * We must use the MAC address of the uplink interface as the DHCP client-ID
      */
-    dhcp_config dc(subitf, hostname,
-                  m_uplink->l2_address());
+    dhcp_config dc(itf, hostname,
+                   m_uplink->l2_address());
     OM::write(UPLINK_KEY, dc);
 
     /**

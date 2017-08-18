@@ -13,13 +13,12 @@
 #include <opflex/ofcore/OFFramework.h>
 #include "Renderer.h"
 #include "VppManager.h"
+#include "VppInspect.h"
 #include "IdGenerator.h"
 
 #pragma once
 #ifndef OVSAGENT_VPP_RENDERER_H
 #define OVSAGENT_VPP_RENDERER_H
-
-#include "vom/inspect.hpp"
 
 namespace ovsagent {
 
@@ -70,7 +69,7 @@ public:
     virtual void stop();
 
 private:
-    std::unique_ptr<VPP::inspect> inspector;
+    std::unique_ptr<VppInspect> inspector;
     IdGenerator idGen;
     VppManager vppManager;
     std::string bridgeName;

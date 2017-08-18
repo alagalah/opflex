@@ -96,8 +96,8 @@ namespace ovsagent {
         virtualDHCPEnabled(false),
         stopping(false) {
 
-        VPP::HW::init();
-        VPP::OM::init();
+        VOM::HW::init();
+        VOM::OM::init();
         memset(routerMac, 0, sizeof(routerMac));
         memset(dhcpMac, 0, sizeof(dhcpMac));
 
@@ -138,25 +138,25 @@ namespace ovsagent {
     }
     void VppManager::handleInitConnection()
     {
-        VPP::HW::connect();
+        VOM::HW::connect();
 
         /**
          * We are insterested in getting interface events from VPP
          */
-        std::shared_ptr<VPP::cmd> itf(new VPP::interface::events_cmd(*this));
+        std::shared_ptr<VOM::cmd> itf(new VOM::interface::events_cmd(*this));
 
-        VPP::HW::enqueue(itf);
+        VOM::HW::enqueue(itf);
         m_cmds.push_back(itf);
 
         /**
          * We are insterested in getting DHCP events from VPP
          */
-        std::shared_ptr<VPP::cmd> dc(new VPP::dhcp_config::events_cmd(*this));
+        std::shared_ptr<VOM::cmd> dc(new VOM::dhcp_config::events_cmd(*this));
 
-        VPP::HW::enqueue(dc);
+        VOM::HW::enqueue(dc);
         m_cmds.push_back(dc);
 
-        //VPP::HW::write();
+        //VOM::HW::write();
 
         /**
          * Scehdule a timer to Poll for HW livensss
@@ -180,7 +180,7 @@ namespace ovsagent {
         /*
          * the sweep timer was not cancelled, continue with purging old state.
          */
-        VPP::OM::sweep(BOOT_KEY);
+        VOM::OM::sweep(BOOT_KEY);
     }
 
     void VppManager::handleHWPollTimer(const boost::system::error_code& ec)
@@ -188,13 +188,13 @@ namespace ovsagent {
         if (stopping) return;
         if (ec) return;
 
-        if (!VPP::HW::poll())
+        if (!VOM::HW::poll())
         {
             /*
              * Lost connection to VPP; reconnect and then replay all the objects
              */
-            VPP::HW::connect();
-            VPP::OM::replay();
+            VOM::HW::connect();
+            VOM::OM::replay();
         }
 
         /*
@@ -210,7 +210,7 @@ namespace ovsagent {
         /**
          * Read the state from VPP
          */
-        VPP::OM::populate(BOOT_KEY);
+        VOM::OM::populate(BOOT_KEY);
     }
 
     void VppManager::registerModbListeners() {
@@ -310,7 +310,7 @@ namespace ovsagent {
                                 this, contractURI));
     }
 
-    void VppManager::handle_interface_event(VPP::interface::events_cmd *e)
+    void VppManager::handle_interface_event(VOM::interface::events_cmd *e)
     {
         if (stopping) return;
         taskQueue.dispatch("InterfaceEvent",
@@ -318,7 +318,7 @@ namespace ovsagent {
                                 this, e));
     }
 
-    void VppManager::handle_dhcp_event(VPP::dhcp_config::events_cmd *e)
+    void VppManager::handle_dhcp_event(VOM::dhcp_config::events_cmd *e)
     {
         if (stopping) return;
         taskQueue.dispatch("dhcp-config-event",
@@ -399,7 +399,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         /*
          * remove everything related to this endpoint
          */
-        VPP::OM::remove(uuid);
+        VOM::OM::remove(uuid);
         return;
     }
 
@@ -408,7 +408,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
      * At the end of processing we want all the state realted to this endpint,
      * that we don't touch here, gone.
      */
-    VPP::OM::mark(uuid);
+    VOM::OM::mark(uuid);
 
     const Endpoint& endPoint = *epWrapper.get();
     const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
@@ -417,10 +417,10 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     /*
      * We want a veth interface - admin up
      */
-    VPP::interface itf(vppInterfaceName.get(),
-                       VPP::interface::type_t::AFPACKET,
-                       VPP::interface::admin_state_t::UP);
-    VPP::OM::write(uuid, itf);
+    VOM::interface itf(vppInterfaceName.get(),
+                       VOM::interface::type_t::AFPACKET,
+                       VOM::interface::admin_state_t::UP);
+    VOM::OM::write(uuid, itf);
 
     uint8_t macAddr[6];
     bool hasMac = endPoint.getMAC() != boost::none;
@@ -431,17 +431,17 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         /*
          * Add an L2 ACL to accept packet on this interface only from this MAC
          */
-        VPP::ACL::l2_rule rule(10,
-                               VPP::ACL::action_t::PERMIT,
-                               VPP::route::prefix_t::ZERO,
+        VOM::ACL::l2_rule rule(10,
+                               VOM::ACL::action_t::PERMIT,
+                               VOM::route::prefix_t::ZERO,
                                macAddr,
-                               VPP::mac_address_t::ONE);
+                               VOM::mac_address_t::ONE);
 
-        VPP::ACL::l2_list acl(uuid, {rule});
-        VPP::OM::write(uuid, acl);
+        VOM::ACL::l2_list acl(uuid, {rule});
+        VOM::OM::write(uuid, acl);
 
-        VPP::ACL::l2_binding binding(VPP::ACL::direction_t::INPUT, itf, acl);
-        VPP::OM::write(uuid, binding);
+        VOM::ACL::l2_binding binding(VOM::ACL::direction_t::INPUT, itf, acl);
+        VOM::OM::write(uuid, binding);
     }
 
     /* check and parse the IP-addresses */
@@ -500,9 +500,9 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         bcastFloodMode = fd.get()
             ->getBcastFloodMode(BcastFloodModeEnumT::CONST_NORMAL);
 
-        VPP::bridge_domain bd(fgrpId);
+        VOM::bridge_domain bd(fgrpId);
 
-        if (VPP::rc_t::OK != VPP::OM::write(uuid, bd))
+        if (VOM::rc_t::OK != VOM::OM::write(uuid, bd))
         {
             LOG(ERROR) << "VppApi did not create bridge: "
                        << *fd.get()->getName()
@@ -511,9 +511,9 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             return;
         }
 
-        VPP::l2_binding l2itf(itf, bd);
+        VOM::l2_binding l2itf(itf, bd);
 
-        if (VPP::rc_t::OK != VPP::OM::write(uuid, l2itf))
+        if (VOM::rc_t::OK != VOM::OM::write(uuid, l2itf))
         {
             LOG(ERROR) << "VppApi did not set bridge: "
                        << *fd.get()->getName()
@@ -526,7 +526,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     /*
      * That's all folks ...
      */
-    VPP::OM::sweep(uuid);
+    VOM::OM::sweep(uuid);
 }
 
     void VppManager::handleAnycastServiceUpdate(const string& uuid) {
@@ -549,7 +549,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
         if (!agent.getPolicyManager().groupExists(epgURI))
         {
-            VPP::OM::remove(epg_uuid);
+            VOM::OM::remove(epg_uuid);
             return;
         }
         uint32_t epgVnid, rdId, bdId, fgrpId;
@@ -562,45 +562,45 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         /*
          * Mark all of this EPG's state stale.
          */
-        VPP::OM::mark(epg_uuid);
+        VOM::OM::mark(epg_uuid);
 
         /*
          * Construct the BridgeDomain
          */
-        VPP::bridge_domain bd(fgrpId);
+        VOM::bridge_domain bd(fgrpId);
 
-        VPP::OM::write(epg_uuid, bd);
+        VOM::OM::write(epg_uuid, bd);
 
         /*
          * Construct the encap-link
          */
-        std::shared_ptr<VPP::interface> encap_link(m_uplink.mk_interface(epg_uuid, epgVnid));
+        std::shared_ptr<VOM::interface> encap_link(m_uplink.mk_interface(epg_uuid, epgVnid));
 
         /*
          * Add the encap-link to the BD
          */
-        VPP::l2_binding l2(*encap_link, bd);
-        VPP::OM::write(epg_uuid, l2);
+        VOM::l2_binding l2(*encap_link, bd);
+        VOM::OM::write(epg_uuid, l2);
 
         /*
          * Add the BVIs to the BD
          */
         optional<shared_ptr<RoutingDomain>> epgRd = pm.getRDForGroup(epgURI);
 
-        VPP::route_domain rd(rdId);
-        VPP::OM::write(epg_uuid, rd);
+        VOM::route_domain rd(rdId);
+        VOM::OM::write(epg_uuid, rd);
 
         updateBVIs(epgURI, bd, rd);
 
         /*
          * Sweep the remaining EPG's state
          */
-        VPP::OM::sweep(epg_uuid);
+        VOM::OM::sweep(epg_uuid);
     }
 
     void VppManager::updateBVIs(const URI& epgURI,
-                                VPP::bridge_domain &bd,
-                                const VPP::route_domain &rd)
+                                VOM::bridge_domain &bd,
+                                const VOM::route_domain &rd)
     {
         LOG(DEBUG) << "Updating BVIs";
 
@@ -608,14 +608,14 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         PolicyManager::subnet_vector_t subnets;
         agent.getPolicyManager().getSubnetsForGroup(epgURI, subnets);
 
-        VPP::interface bvi("bvi-" + std::to_string(bd.id()),
-                           VPP::interface::type_t::BVI,
-                           VPP::interface::admin_state_t::UP,
+        VOM::interface bvi("bvi-" + std::to_string(bd.id()),
+                           VOM::interface::type_t::BVI,
+                           VOM::interface::admin_state_t::UP,
                            rd);
-        VPP::OM::write(epg_uuid, bvi);
+        VOM::OM::write(epg_uuid, bvi);
 
-        VPP::l2_binding l2(bvi, bd);
-        VPP::OM::write(epg_uuid, l2);
+        VOM::l2_binding l2(bvi, bd);
+        VOM::OM::write(epg_uuid, l2);
 
         for (shared_ptr<Subnet>& sn : subnets)
         {
@@ -624,11 +624,11 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
             if (routerIp)
             {
-                VPP::route::prefix_t pfx(routerIp.get(),
+                VOM::route::prefix_t pfx(routerIp.get(),
                                          sn->getPrefixLen().get());
 
-                VPP::l3_binding l3(bvi, pfx);
-                VPP::OM::write(epg_uuid, l3);
+                VOM::l3_binding l3(bvi, pfx);
+                VOM::OM::write(epg_uuid, l3);
             }
         }
     }
@@ -655,23 +655,23 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     }
 
     void
-    VppManager::handleInterfaceEvent(VPP::interface::events_cmd *e)
+    VppManager::handleInterfaceEvent(VOM::interface::events_cmd *e)
     {
         LOG(DEBUG) << "Interface Event: " << *e;
 
-        std::lock_guard<VPP::interface::events_cmd> lg(*e);
+        std::lock_guard<VOM::interface::events_cmd> lg(*e);
 
         for (auto &msg : *e)
         {
             auto &payload = msg.get_payload();
 
-            VPP::handle_t handle(payload.sw_if_index);
-            std::shared_ptr<VPP::interface> sp = VPP::interface::find(handle);
+            VOM::handle_t handle(payload.sw_if_index);
+            std::shared_ptr<VOM::interface> sp = VOM::interface::find(handle);
 
             if (sp)
             {
-                VPP::interface::oper_state_t oper_state =
-                    VPP::interface::oper_state_t::from_int(payload.link_up_down);
+                VOM::interface::oper_state_t oper_state =
+                    VOM::interface::oper_state_t::from_int(payload.link_up_down);
 
                 LOG(DEBUG) << "Interface Event: " << sp->to_string()
                            << " state: " << oper_state.to_string();
@@ -684,7 +684,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     }
     
     void
-    VppManager::handleDhcpEvent(VPP::dhcp_config::events_cmd *e)
+    VppManager::handleDhcpEvent(VOM::dhcp_config::events_cmd *e)
     {
         LOG(INFO) << "DHCP Event: " << *e;
         m_uplink.handle_dhcp_event(e);

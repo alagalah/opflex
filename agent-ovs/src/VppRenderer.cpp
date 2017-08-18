@@ -108,7 +108,7 @@ namespace ovsagent {
 
         if (inspect.length())
         {
-            inspector.reset(new VPP::inspect(inspect));
+            inspector.reset(new VppInspect(inspect));
         }
     }
 }
