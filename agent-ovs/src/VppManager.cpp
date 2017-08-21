@@ -648,6 +648,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
         if (!rd) {
             LOG(DEBUG) << "Cleaning up for RD: " << rdURI;
+            idGen.erase(getIdNamespace(RoutingDomain::CLASS_ID), rdURI.toString());
             return;
         }
         LOG(DEBUG) << "Updating routing domain " << rdURI;
@@ -655,6 +656,42 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
     void
     VppManager::handleDomainUpdate(class_id_t cid, const URI& domURI) {
+
+        switch (cid) {
+        case RoutingDomain::CLASS_ID:
+            handleRoutingDomainUpdate(domURI);
+            break;
+        case Subnet::CLASS_ID:
+            if (!Subnet::resolve(agent.getFramework(), domURI)) {
+                LOG(DEBUG) << "Cleaning up for Subnet: " << domURI;
+            }
+            break;
+        case BridgeDomain::CLASS_ID:
+            if (!BridgeDomain::resolve(agent.getFramework(), domURI)) {
+                LOG(DEBUG) << "Cleaning up for BD: " << domURI;
+                idGen.erase(getIdNamespace(cid), domURI.toString());
+            }
+            break;
+        case FloodDomain::CLASS_ID:
+            if (!FloodDomain::resolve(agent.getFramework(), domURI)) {
+                LOG(DEBUG) << "Cleaning up for FD: " << domURI;
+                idGen.erase(getIdNamespace(cid), domURI.toString());
+            }
+            break;
+        case FloodContext::CLASS_ID:
+            if (!FloodContext::resolve(agent.getFramework(), domURI)) {
+                LOG(DEBUG) << "Cleaning up for FloodContext: " << domURI;
+                if (removeFromMulticastList(domURI))
+                    multicastGroupsUpdated();
+            }
+            break;
+        case L3ExternalNetwork::CLASS_ID:
+            if (!L3ExternalNetwork::resolve(agent.getFramework(), domURI)) {
+                LOG(DEBUG) << "Cleaning up for L3ExtNet: " << domURI;
+                idGen.erase(getIdNamespace(cid), domURI.toString());
+            }
+            break;
+        }
         LOG(DEBUG) << "Updating domain " << domURI;
     }
 
@@ -710,6 +747,12 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     VppManager::handleContractUpdate(const opflex::modb::URI& contractURI) {
         LOG(DEBUG) << "Updating contract " << contractURI;
 
+        const string& contractId = contractURI.toString();
+        PolicyManager& polMgr = agent.getPolicyManager();
+        if (!polMgr.contractExists(contractURI)) {  // Contract removed
+            idGen.erase(getIdNamespace(Contract::CLASS_ID), contractURI.toString());
+            return;
+        }
     }
 
     void VppManager::initPlatformConfig() {
