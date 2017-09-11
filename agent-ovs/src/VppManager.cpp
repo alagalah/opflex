@@ -478,6 +478,29 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             }
         }
 
+        for (const Endpoint::virt_ip_t& vip : endPoint.getVirtualIPs()) {
+            network::cidr_t vip_cidr;
+            if (!network::cidr_from_string(vip.second, vip_cidr)) {
+                LOG(WARNING) << "Invalid endpoint VIP (CIDR): " << vip.second;
+                continue;
+            }
+            uint8_t vmac[6];
+            vip.first.toUIntArray(vmac);
+
+            for (const address& ipAddr : ipAddresses) {
+                if (!network::cidr_contains(vip_cidr, ipAddr)) {
+                    continue;
+                }
+                VOM::route::prefix_t pfx(ipAddr, ipAddr.is_v4() ? 24 : 64);
+                VOM::ACL::l2_rule pfx_rule(60,
+                                       VOM::ACL::action_t::PERMIT,
+                                       pfx,
+                                       vmac,
+                                       VOM::mac_address_t::ONE);
+                rules.insert(pfx_rule);
+            }
+        }
+
         VOM::ACL::l2_list acl(uuid, rules);
         VOM::OM::write(uuid, acl);
 
