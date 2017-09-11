@@ -425,24 +425,8 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     uint8_t macAddr[6];
     bool hasMac = endPoint.getMAC() != boost::none;
 
-    if (hasMac) {
+    if (hasMac)
         endPoint.getMAC().get().toUIntArray(macAddr);
-
-        /*
-         * Add an L2 ACL to accept packet on this interface only from this MAC
-         */
-        VOM::ACL::l2_rule rule(10,
-                               VOM::ACL::action_t::PERMIT,
-                               VOM::route::prefix_t::ZERO,
-                               macAddr,
-                               VOM::mac_address_t::ONE);
-
-        VOM::ACL::l2_list acl(uuid, {rule});
-        VOM::OM::write(uuid, acl);
-
-        VOM::ACL::l2_binding binding(VOM::ACL::direction_t::INPUT, itf, acl);
-        VOM::OM::write(uuid, binding);
-    }
 
     /* check and parse the IP-addresses */
     boost::system::error_code ec;
@@ -459,12 +443,46 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     }
 
     if (hasMac) {
-        // I don't believe we need it in VPP
-        /* address_v6 linkLocalIp(packets::construct_link_local_ip_addr(macAddr));
+        address_v6 linkLocalIp(network::construct_link_local_ip_addr(macAddr));
         if (endPoint.getIPs().find(linkLocalIp.to_string()) ==
             endPoint.getIPs().end())
             ipAddresses.push_back(linkLocalIp);
-        */
+    }
+
+    VOM::ACL::l2_list::rules_t rules;
+    if (itf.handle().value()) {
+        if (endPoint.isPromiscuousMode()) {
+            VOM::ACL::l2_rule rule(50,
+                                   VOM::ACL::action_t::PERMIT,
+                                   VOM::route::prefix_t::ZEROv6,
+                                   macAddr,
+                                   VOM::mac_address_t::ZERO);
+           rules.insert(rule);
+        } else if (hasMac) {
+            VOM::ACL::l2_rule rule(20,
+                                   VOM::ACL::action_t::PERMIT,
+                                   VOM::route::prefix_t::ZEROv6,
+                                   macAddr,
+                                   VOM::mac_address_t::ONE);
+            rules.insert(rule);
+            for (const address& ipAddr : ipAddresses) {
+                // Allow IPv4/IPv6 packets from port with EP IP address
+                VOM::route::prefix_t pfx(ipAddr, ipAddr.is_v4() ? 24 : 64);
+                VOM::ACL::l2_rule pfx_rule(30,
+                                       VOM::ACL::action_t::PERMIT,
+                                       pfx,
+                                       macAddr,
+                                       VOM::mac_address_t::ONE);
+
+                rules.insert(pfx_rule);
+            }
+        }
+
+        VOM::ACL::l2_list acl(uuid, rules);
+        VOM::OM::write(uuid, acl);
+
+        VOM::ACL::l2_binding binding(VOM::ACL::direction_t::INPUT, itf, acl);
+        VOM::OM::write(uuid, binding);
     }
 
     optional<URI> epgURI = epMgr.getComputedEPG(uuid);
