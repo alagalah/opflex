@@ -452,29 +452,52 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     VOM::ACL::l2_list::rules_t rules;
     if (itf.handle().value()) {
         if (endPoint.isPromiscuousMode()) {
-            VOM::ACL::l2_rule rule(50,
-                                   VOM::ACL::action_t::PERMIT,
-                                   VOM::route::prefix_t::ZEROv6,
-                                   macAddr,
-                                   VOM::mac_address_t::ZERO);
-           rules.insert(rule);
+            VOM::ACL::l2_rule rulev6(50,
+                                     VOM::ACL::action_t::PERMIT,
+                                     VOM::route::prefix_t::ZEROv6,
+                                     macAddr,
+                                     VOM::mac_address_t::ZERO);
+
+            VOM::ACL::l2_rule rulev4(51,
+                                     VOM::ACL::action_t::PERMIT,
+                                     VOM::route::prefix_t::ZERO,
+                                     macAddr,
+                                     VOM::mac_address_t::ZERO);
+            rules.insert(rulev4);
+            rules.insert(rulev6);
         } else if (hasMac) {
-            VOM::ACL::l2_rule rule(20,
-                                   VOM::ACL::action_t::PERMIT,
-                                   VOM::route::prefix_t::ZEROv6,
-                                   macAddr,
-                                   VOM::mac_address_t::ONE);
-            rules.insert(rule);
+            VOM::ACL::l2_rule rulev6(20,
+                                     VOM::ACL::action_t::PERMIT,
+                                     VOM::route::prefix_t::ZEROv6,
+                                     macAddr,
+                                     VOM::mac_address_t::ONE);
+
+            VOM::ACL::l2_rule rulev4(21,
+                                     VOM::ACL::action_t::PERMIT,
+                                     VOM::route::prefix_t::ZERO,
+                                     macAddr,
+                                     VOM::mac_address_t::ONE);
+            rules.insert(rulev4);
+            rules.insert(rulev6);
+
             for (const address& ipAddr : ipAddresses) {
                 // Allow IPv4/IPv6 packets from port with EP IP address
-                VOM::route::prefix_t pfx(ipAddr, ipAddr.is_v4() ? 24 : 64);
-                VOM::ACL::l2_rule pfx_rule(30,
-                                       VOM::ACL::action_t::PERMIT,
-                                       pfx,
-                                       macAddr,
-                                       VOM::mac_address_t::ONE);
-
-                rules.insert(pfx_rule);
+                VOM::route::prefix_t pfx(ipAddr, ipAddr.is_v4() ? 32 : 128);
+                if (ipAddr.is_v6()) {
+                    VOM::ACL::l2_rule rule(30,
+                                           VOM::ACL::action_t::PERMIT,
+                                           pfx,
+                                           macAddr,
+                                           VOM::mac_address_t::ONE);
+                    rules.insert(rule);
+                } else {
+                    VOM::ACL::l2_rule rule(31,
+                                           VOM::ACL::action_t::PERMIT,
+                                           pfx,
+                                           macAddr,
+                                           VOM::mac_address_t::ONE);
+                    rules.insert(rule);
+                }
             }
         }
 
@@ -491,13 +514,22 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                 if (!network::cidr_contains(vip_cidr, ipAddr)) {
                     continue;
                 }
-                VOM::route::prefix_t pfx(ipAddr, ipAddr.is_v4() ? 24 : 64);
-                VOM::ACL::l2_rule pfx_rule(60,
-                                       VOM::ACL::action_t::PERMIT,
-                                       pfx,
-                                       vmac,
-                                       VOM::mac_address_t::ONE);
-                rules.insert(pfx_rule);
+                VOM::route::prefix_t pfx(ipAddr, ipAddr.is_v4() ? 32 : 128);
+                if (ipAddr.is_v6()) {
+                    VOM::ACL::l2_rule rule(60,
+                                           VOM::ACL::action_t::PERMIT,
+                                           pfx,
+                                           vmac,
+                                           VOM::mac_address_t::ONE);
+                    rules.insert(rule);
+                } else {
+                    VOM::ACL::l2_rule rule(61,
+                                           VOM::ACL::action_t::PERMIT,
+                                           pfx,
+                                           vmac,
+                                           VOM::mac_address_t::ONE);
+                    rules.insert(rule);
+                }
             }
         }
 
