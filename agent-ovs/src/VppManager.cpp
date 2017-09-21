@@ -38,6 +38,7 @@
 #include <vom/interface.hpp>
 #include <vom/dhcp_config.hpp>
 #include <vom/acl_binding.hpp>
+#include <vom/interface_span.hpp>
 
 //#include "arp.h"
 //#include "eth.h"
@@ -421,6 +422,14 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                        VOM::interface::type_t::AFPACKET,
                        VOM::interface::admin_state_t::UP);
     VOM::OM::write(uuid, itf);
+
+    VOM::interface itftap("tap-"+vppInterfaceName.get(),
+                       VOM::interface::type_t::TAP,
+                       VOM::interface::admin_state_t::UP);
+    VOM::OM::write(uuid, itftap);
+
+    VOM::interface_span itfSpan(itf, itftap, VOM::interface_span::state_t::RX_ENABLED);
+    VOM::OM::write(uuid, itfSpan);
 
     uint8_t macAddr[6];
     bool hasMac = endPoint.getMAC() != boost::none;
