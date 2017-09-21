@@ -234,6 +234,22 @@ public:
                     {
                         rc = handle_derived<ip_unnumbered::unconfig_cmd>(f_exp, f_act);
                     }
+                    else if (typeid(*f_exp) == typeid(ip6nd_ra_config::config_cmd))
+                    {
+                        rc = handle_derived<ip6nd_ra_config::config_cmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ip6nd_ra_config::unconfig_cmd))
+                    {
+                        rc = handle_derived<ip6nd_ra_config::unconfig_cmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ip6nd_ra_prefix::config_cmd))
+                    {
+                        rc = handle_derived<ip6nd_ra_prefix::config_cmd>(f_exp, f_act);
+                    }
+                    else if (typeid(*f_exp) == typeid(ip6nd_ra_prefix::unconfig_cmd))
+                    {
+                        rc = handle_derived<ip6nd_ra_prefix::unconfig_cmd>(f_exp, f_act);
+                    }
                     else
                     {
                         throw ExpException();
@@ -901,6 +917,122 @@ BOOST_AUTO_TEST_CASE(test_ip_unnumbered) {
     ADD_EXPECT(interface::af_packet_delete_cmd(hw_ifh, itf1_name));
 
     TRY_CHECK(OM::remove(eric));
+}
+
+BOOST_AUTO_TEST_CASE(test_ip6nd) {
+    VppInit vi;
+    const std::string paulo = "PauloCoelho";
+    rc_t rc = rc_t::OK;
+
+    /*
+     * ra config
+     */
+    std::string itf_name = "host1";
+    interface itf(itf_name,
+                   interface::type_t::AFPACKET,
+                   interface::admin_state_t::UP);
+    HW::item<handle_t> hw_ifh(2, rc_t::OK);
+    HW::item<interface::admin_state_t> hw_as_up(interface::admin_state_t::UP, rc_t::OK);
+    ADD_EXPECT(interface::af_packet_create_cmd(hw_ifh, itf_name));
+    ADD_EXPECT(interface::state_change_cmd(hw_as_up, hw_ifh));
+    TRY_CHECK_RC(OM::write(paulo, itf));
+
+    route::prefix_t pfx_10("fd8f:69d8:c12c:ca62::3", 128);
+    l3_binding *l3 = new l3_binding(itf, pfx_10);
+    HW::item<bool> hw_l3_bind(true, rc_t::OK);
+    HW::item<bool> hw_l3_unbind(false, rc_t::OK);
+    ADD_EXPECT(l3_binding::bind_cmd(hw_l3_bind, hw_ifh.data(), pfx_10));
+    TRY_CHECK_RC(OM::write(paulo, *l3));
+
+    ra_config ra(0, 1, 0, 4);
+    ip6nd_ra_config *ip6ra = new ip6nd_ra_config(itf, ra);
+    HW::item<bool> hw_ip6nd_ra_config_config(true, rc_t::OK);
+    HW::item<bool> hw_ip6nd_ra_config_unconfig(false, rc_t::OK);
+    ADD_EXPECT(ip6nd_ra_config::config_cmd(hw_ip6nd_ra_config_config, hw_ifh.data(), ra));
+    TRY_CHECK_RC(OM::write(paulo, *ip6ra));
+
+    /*
+     * ra prefix
+     */
+    ra_prefix ra_pfx(pfx_10, 0, 0, 2592000, 604800);
+    ip6nd_ra_prefix *ip6pfx = new ip6nd_ra_prefix(itf, ra_pfx);
+    HW::item<bool> hw_ip6nd_ra_prefix_config(true, rc_t::OK);
+    HW::item<bool> hw_ip6nd_ra_prefix_unconfig(false, rc_t::OK);
+    ADD_EXPECT(ip6nd_ra_prefix::config_cmd(hw_ip6nd_ra_prefix_config, hw_ifh.data(), ra_pfx));
+    TRY_CHECK_RC(OM::write(paulo, *ip6pfx));
+
+    delete l3;
+    delete ip6pfx;
+    delete ip6ra;
+
+    HW::item<interface::admin_state_t> hw_as_down(interface::admin_state_t::DOWN, rc_t::OK);
+    STRICT_ORDER_OFF();
+    ADD_EXPECT(ip6nd_ra_prefix::unconfig_cmd(hw_ip6nd_ra_prefix_unconfig, hw_ifh.data(), ra_pfx));
+    ADD_EXPECT(ip6nd_ra_config::unconfig_cmd(hw_ip6nd_ra_config_unconfig, hw_ifh.data(), ra));
+    ADD_EXPECT(l3_binding::unbind_cmd(hw_l3_unbind, hw_ifh.data(), pfx_10));
+    ADD_EXPECT(interface::state_change_cmd(hw_as_down, hw_ifh));
+    ADD_EXPECT(interface::af_packet_delete_cmd(hw_ifh, itf1_name));
+
+    TRY_CHECK(OM::remove(paulo));
+}
+
+BOOST_AUTO_TEST_CASE(test_interface_span) {
+    VppInit vi;
+    const std::string elif = "ElifShafak";
+    rc_t rc = rc_t::OK;
+
+    /*
+     * Interface 1 to be mirrored
+     */
+    std::string itf1_name = "host1";
+    interface itf1(itf1_name,
+                   interface::type_t::AFPACKET,
+                   interface::admin_state_t::UP);
+    HW::item<handle_t> hw_ifh(2, rc_t::OK);
+    HW::item<interface::admin_state_t> hw_as_up(interface::admin_state_t::UP, rc_t::OK);
+    ADD_EXPECT(interface::af_packet_create_cmd(hw_ifh, itf1_name));
+    ADD_EXPECT(interface::state_change_cmd(hw_as_up, hw_ifh));
+    TRY_CHECK_RC(OM::write(elif, itf1));
+
+    route::prefix_t pfx_10("10.10.10.10", 24);
+    l3_binding *l3 = new l3_binding(itf1, pfx_10);
+    HW::item<bool> hw_l3_bind(true, rc_t::OK);
+    HW::item<bool> hw_l3_unbind(false, rc_t::OK);
+    ADD_EXPECT(l3_binding::bind_cmd(hw_l3_bind, hw_ifh.data(), pfx_10));
+    TRY_CHECK_RC(OM::write(elif, *l3));
+
+    /*
+     * Interface 2 where traffic is mirrored
+     */
+    std::string itf2_name = "host2";
+    interface itf2(itf2_name,
+                   interface::type_t::AFPACKET,
+                   interface::admin_state_t::UP);
+
+    HW::item<handle_t> hw_ifh2(4, rc_t::OK);
+    ADD_EXPECT(interface::af_packet_create_cmd(hw_ifh2, itf2_name));
+    ADD_EXPECT(interface::state_change_cmd(hw_as_up, hw_ifh2));
+    TRY_CHECK_RC(OM::write(elif, itf2));
+
+    interface_span *itf_span = new interface_span(itf1, itf2, state_t::TX_RX_ENABLED);
+    HW::item<bool> hw_is_cfg(true, rc_t::OK);
+    HW::item<bool> hw_is_uncfg(false, rc_t::OK);
+    ADD_EXPECT(interface_span::config_cmd(hw_is_cfg, hw_ifh1.data(), hw_ifh2.data(), 3));
+    TRY_CHECK_RC(OM::write(elif, *itf_span));
+
+    delete l3;
+    delete itf_span;
+
+    HW::item<interface::admin_state_t> hw_as_down(interface::admin_state_t::DOWN, rc_t::OK);
+    STRICT_ORDER_OFF();
+    ADD_EXPECT(interface_span::unconfig_cmd(hw_ip_uncfg, hw_ifh1.data(), hw_ifh2.data(), 0));
+    ADD_EXPECT(l3_binding::unbind_cmd(hw_l3_unbind, hw_ifh.data(), pfx_10));
+    ADD_EXPECT(interface::state_change_cmd(hw_as_down, hw_ifh2));
+    ADD_EXPECT(interface::af_packet_delete_cmd(hw_ifh2, itf2_name));
+    ADD_EXPECT(interface::state_change_cmd(hw_as_down, hw_ifh));
+    ADD_EXPECT(interface::af_packet_delete_cmd(hw_ifh, itf1_name));
+
+    TRY_CHECK(OM::remove(elif));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
