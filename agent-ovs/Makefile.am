@@ -77,7 +77,6 @@ if RENDERER_VPP
 
   VPPCLIENT_LIBS = \
 	-lvom \
-	-lvppinfra \
 	-lvapiclient \
 	-lsvm
 
