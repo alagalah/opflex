@@ -669,7 +669,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
          */
         optional<shared_ptr<RoutingDomain>> epgRd = pm.getRDForGroup(epgURI);
 
-        VOM::route_domain rd(rdId);
+        VOM::route_domain rd(VOM::l3_proto_t::IPV4, rdId);
         VOM::OM::write(epg_uuid, rd);
 
         updateBVIs(epgURI, bd, rd);
