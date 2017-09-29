@@ -312,7 +312,6 @@ endif
 VPP_TEST_SOURCES=
 if RENDERER_VPP
   VPP_TEST_SOURCES += \
-	test/VppOM_test.cpp \
 	test/VppManager_test.cpp
 endif
 
