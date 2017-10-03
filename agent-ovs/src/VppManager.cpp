@@ -35,6 +35,7 @@
 #include <vom/l2_binding.hpp>
 #include <vom/l3_binding.hpp>
 #include <vom/bridge_domain.hpp>
+#include <vom/bridge_domain_entry.hpp>
 #include <vom/interface.hpp>
 #include <vom/dhcp_config.hpp>
 #include <vom/acl_binding.hpp>
@@ -92,14 +93,11 @@ namespace ovsagent {
         taskQueue(agent.getAgentIOService()),
         idGen(idGen_),
         floodScope(FLOOD_DOMAIN),
-        virtualRouterEnabled(true),
-        routerAdv(false),
         virtualDHCPEnabled(false),
         stopping(false) {
 
         VOM::HW::init();
         VOM::OM::init();
-        memset(routerMac, 0, sizeof(routerMac));
         memset(dhcpMac, 0, sizeof(dhcpMac));
 
         agent.getFramework().registerPeerStatusListener(this);
@@ -248,6 +246,15 @@ namespace ovsagent {
     void VppManager::setVirtualRouter(bool virtualRouterEnabled,
                                       bool routerAdv,
                                       const string& virtualRouterMac) {
+        if (virtualRouterEnabled) {
+            try {
+                uint8_t routerMac[6];
+                MAC(virtualRouterMac).toUIntArray(routerMac);
+                m_vr = std::make_shared<VPP::VirtualRouter>(VPP::VirtualRouter(routerMac));
+            } catch (std::invalid_argument) {
+                LOG(ERROR) << "Invalid virtual router MAC: " << virtualRouterMac;
+            }
+        }
     }
 
     void VppManager::setVirtualDHCP(bool dhcpEnabled,
@@ -603,6 +610,18 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                        << vppInterfaceName.get();
             return;
         }
+
+        if (hasMac)
+        {
+            VOM::bridge_domain_entry be(bd, {macAddr}, itf);
+
+            if (VOM::rc_t::OK != VOM::OM::write(uuid, be))
+            {
+                LOG(ERROR) << "bridge-domain-entry: "
+                           << vppInterfaceName.get();
+                return;
+            }
+        }
     }
 
     /*
@@ -694,6 +713,15 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                            VOM::interface::type_t::BVI,
                            VOM::interface::admin_state_t::UP,
                            rd);
+        if (m_vr)
+        {
+            /*
+             * Set the BVI's MAC address to the Virtual Router
+             * address, so packets destined to the VR are handled
+             * by layer 3.
+             */
+            bvi.set(m_vr->mac());
+        }
         VOM::OM::write(epg_uuid, bvi);
 
         VOM::l2_binding l2(bvi, bd);
