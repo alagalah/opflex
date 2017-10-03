@@ -25,6 +25,8 @@
 #include <unordered_map>
 
 #include "VppUplink.hpp"
+#include "VppVirtualRouter.hpp"
+
 #include <vom/interface.hpp>
 #include <vom/dhcp_config.hpp>
 
@@ -134,13 +136,6 @@ public:
      * subscriptions will be written
      */
     void setMulticastGroupFile(const std::string& mcastGroupFile);
-
-
-    /**
-     * Get the router MAC address as an array of 6 bytes
-     * @return the router MAC
-     */
-    const uint8_t *getRouterMacAddr() { return routerMac; }
 
     /**
      * Get the DHCP MAC address as an array of 6 bytes
@@ -362,13 +357,16 @@ private:
     TaskQueue taskQueue;
 
     FloodScope floodScope;
-    bool virtualRouterEnabled;
-    uint8_t routerMac[6];
-    bool routerAdv;
+
     bool virtualDHCPEnabled;
     bool conntrackEnabled;
     uint8_t dhcpMac[6];
     std::string mcastGroupFile;
+
+    /**
+     * Virtual Router Settings
+     */
+    std::shared_ptr<VPP::VirtualRouter> m_vr;
 
     /**
      * The sweep boot state timer.

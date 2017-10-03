@@ -61,6 +61,10 @@ namespace ovsagent {
         static const std::string ENCAP_IFACE("encap-iface");
         static const std::string REMOTE_IP("remote-ip");
         static const std::string REMOTE_PORT("remote-port");
+        static const std::string VIRTUAL_ROUTER("forwarding"
+                                                ".virtual-router.enabled");
+        static const std::string VIRTUAL_ROUTER_MAC("forwarding"
+                                                    ".virtual-router.mac");
 
         bridgeName = properties.get<std::string>(VPP_BRIDGE_NAME, "vpp");
 

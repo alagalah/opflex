@@ -217,6 +217,7 @@ if RENDERER_VPP
 	src/VppRenderer.cpp \
 	src/VppUplink.cpp \
 	src/VppManager.cpp \
+	src/VppVirtualRouter.cpp \
 	src/VppInspect.cpp
 endif
 
