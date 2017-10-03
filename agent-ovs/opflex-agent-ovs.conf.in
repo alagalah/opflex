@@ -269,8 +269,31 @@
         //             // for control traffic.
         //             "uplink-vlan": 4093
         //         }
+	//     },
+        //     "forwarding": {
+        //         // Configure the virtual distributed router
+        //         "virtual-router": {
+        //             // Enable virtual distributed router.  Set to true
+        //             // to enable or false to disable.
+        //             // Default: true.
+        //             "enabled": true,
+        //
+        //             // Override MAC address for virtual router.
+        //             // Default: "00:22:bd:f8:19:ff"
+        //             "mac": "00:22:bd:f8:19:ff",
+        //
+        //             // Configure IPv6-related settings for the virtual
+        //             // router
+        //             "ipv6" : {
+        //                 // Send router advertisement messages in
+        //                 // response to router solicitation requests as
+        //                 // well as unsolicited advertisements.  This
+        //                 // is not required in stitched mode since the
+        //                 // hardware router will send them.
+        //                 "router-advertisement": false
+        //             }
+        //         }
         //    }
         //}
-
     }
 }
