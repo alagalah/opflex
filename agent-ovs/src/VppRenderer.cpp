@@ -65,6 +65,8 @@ namespace ovsagent {
                                                 ".virtual-router.enabled");
         static const std::string VIRTUAL_ROUTER_MAC("forwarding"
                                                     ".virtual-router.mac");
+        static const std::string VIRTUAL_ROUTER_RA("forwarding.virtual-router"
+                                                   ".ipv6.router-advertisement");
 
         bridgeName = properties.get<std::string>(VPP_BRIDGE_NAME, "vpp");
 
@@ -72,6 +74,7 @@ namespace ovsagent {
 
         auto vxlan = properties.get_child_optional(ENCAP_VXLAN);
         auto vlan = properties.get_child_optional(ENCAP_VLAN);
+        auto vr = properties.get_child_optional(VIRTUAL_ROUTER);
 
         if (vlan)
         {
@@ -103,6 +106,12 @@ namespace ovsagent {
                                         remote_ip,
                                         vxlan.get().get<uint16_t>(REMOTE_PORT, 4789));
             }
+        }
+        if (vr) {
+            vppManager.setVirtualRouter(vr.get().get<bool>(VIRTUAL_ROUTER, true),
+                                        vr.get().get<bool>(VIRTUAL_ROUTER_RA, true),
+                                        vr.get().get<std::string>(VIRTUAL_ROUTER_MAC,
+                                                                  "00:22:bd:f8:19:ff"));
         }
 
         /*
