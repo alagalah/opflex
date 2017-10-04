@@ -36,6 +36,7 @@
 #include <vom/l3_binding.hpp>
 #include <vom/bridge_domain.hpp>
 #include <vom/bridge_domain_entry.hpp>
+#include <vom/bridge_domain_arp_entry.hpp>
 #include <vom/interface.hpp>
 #include <vom/dhcp_config.hpp>
 #include <vom/acl_binding.hpp>
@@ -613,13 +614,29 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
         if (hasMac)
         {
+            /*
+             * An entry in the BD's L2 FIB to forward traffic to the end-point
+             */
             VOM::bridge_domain_entry be(bd, {macAddr}, itf);
 
-            if (VOM::rc_t::OK != VOM::OM::write(uuid, be))
-            {
+            if (VOM::rc_t::OK != VOM::OM::write(uuid, be)) {
                 LOG(ERROR) << "bridge-domain-entry: "
                            << vppInterfaceName.get();
                 return;
+            }
+
+            /*
+             * An entry in the BD's ARP termination table to reply to
+             * ARP request for this end-point from other local end-points
+             */
+            for (const address& ipAddr : ipAddresses) {
+                VOM::bridge_domain_arp_entry bae(bd, {macAddr}, ipAddr);
+
+                if (VOM::rc_t::OK != VOM::OM::write(uuid, bae)) {
+                    LOG(ERROR) << "bridge-domain-arp-entry: "
+                               << vppInterfaceName.get();
+                    return;
+                }
             }
         }
     }
@@ -679,8 +696,14 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
         /*
          * Add the encap-link to the BD
+         *
+         * If the encap link is a VLAN, then set the pop VTR operation on the
+         * link so that the VLAN tag is correctly pop/pushed on rx/tx resp.
          */
         VOM::l2_binding l2(*encap_link, bd);
+        if (VOM::interface::type_t::VXLAN != encap_link->type()) {
+            l2.set(l2_binding::l2_vtr_op_t::L2_VTR_POP_1, epgVnid);
+        }
         VOM::OM::write(epg_uuid, l2);
 
         /*
@@ -734,11 +757,20 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
             if (routerIp)
             {
+                /*
+                 * apply the subnet prefix on the BVI
+                 * and add an entry into the ARP Table for it.
+                 */
                 VOM::route::prefix_t pfx(routerIp.get(),
                                          sn->getPrefixLen().get());
 
                 VOM::l3_binding l3(bvi, pfx);
                 VOM::OM::write(epg_uuid, l3);
+
+                VOM::bridge_domain_arp_entry bae(bd,
+                                                 bvi.l2_address().to_mac(),
+                                                 routerIp.get());
+                VOM::OM::write(epg_uuid, bae);
             }
         }
     }
