@@ -121,7 +121,7 @@ namespace ovsagent {
         /**
          * DO BOOT
          */
-        
+
         /**
          * ... followed by vpp boot dump
          */
@@ -323,6 +323,14 @@ namespace ovsagent {
         if (stopping) return;
         taskQueue.dispatch("InterfaceEvent",
                            bind(&VppManager::handleInterfaceEvent,
+                                this, e));
+    }
+
+    void VppManager::handle_interface_stat(VOM::interface::stats_cmd *e)
+    {
+        if (stopping) return;
+        taskQueue.dispatch("InterfaceStat",
+                           bind(&VppManager::handleInterfaceStat,
                                 this, e));
     }
 
@@ -892,7 +900,34 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
         e->flush();
     }
-    
+
+    void
+    VppManager::handleInterfaceStat(VOM::interface::stats_cmd *e)
+    {
+        LOG(DEBUG) << "Interface Stat: " << *e;
+
+        std::lock_guard<VOM::interface::stats_cmd> lg(*e);
+
+        for (auto &msg : *e)
+            {
+                auto &payload = msg.get_payload();
+
+                for (int i=0; i < payload.count; ++i) {
+                    auto &data = payload.data[i];
+
+                    VOM::handle_t handle(data.sw_if_index);
+                    std::shared_ptr<VOM::interface> sp = VOM::interface::find(handle);
+                    LOG(INFO) << "Interface Stat: " << sp->to_string()
+                               << " stat rx_packets: " << data.rx_packets
+                              << " stat rx_bytes: " << data.rx_bytes
+                              << " stat tx_packets: " << data.tx_packets
+                              << " stat tx_bytes: " << data.tx_bytes;
+                }
+            }
+
+        e->flush();
+    }
+
     void
     VppManager::handleDhcpEvent(VOM::dhcp_config::events_cmd *e)
     {

@@ -54,6 +54,7 @@ class VppManager :     public EndpointListener,
                        public PolicyListener,
                        public opflex::ofcore::PeerStatusListener,
                        public VOM::interface::event_listener,
+                       public VOM::interface::stat_listener,
                        public VOM::dhcp_config::event_listener,
                        private boost::noncopyable {
 public:
@@ -318,6 +319,16 @@ private:
      * Handle interface event in the task-queue context
      */
     void handleInterfaceEvent(VOM::interface::events_cmd *e);
+
+    /**
+     * Event listener override to get Interface stats
+     */
+    void handle_interface_stat(VOM::interface::stats_cmd *e);
+
+    /**
+     * Handle interface stats in the task-queue context
+     */
+    void handleInterfaceStat(VOM::interface::stats_cmd *e);
 
     /**
      * handle DHCP event from DHCP listner
