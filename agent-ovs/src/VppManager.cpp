@@ -43,10 +43,7 @@
 #include <vom/interface_span.hpp>
 #include <vom/route_domain.hpp>
 #include <vom/route.hpp>
-
-//#include "arp.h"
-//#include "eth.h"
-
+#include <vom/neighbour.hpp>
 
 using std::string;
 using std::vector;
@@ -641,16 +638,22 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                 }
 
                 /*
-                 * Add an L3 DVR route to the end point. This will match packets
+                 * Add an L3 rewrite route to the end point. This will match packets
                  * from locally attached EPs in different subnets.
                  */
                 VOM::route_domain rd(rdId);
                 VOM::OM::write(uuid, rd);
 
-                VOM::route::path ep_path(itf, VOM::nh_proto_t::ETHERNET);
+                VOM::route::path ep_path(ipAddr, itf);
                 VOM::route::ip_route ep_route(rd, ipAddr);
                 ep_route.add(ep_path);
                 VOM::OM::write(uuid, ep_route);
+
+                /*
+                 * Add a neighbour entry
+                 */
+                VOM::neighbour ne(itf, {macAddr}, ipAddr);
+                VOM::OM::write(uuid, ne);
             }
         }
     }
