@@ -277,7 +277,9 @@ private:
                         boost::asio::ip::address epgTunDst);
     void updateBVIs(const opflex::modb::URI& egURI,
                     VOM::bridge_domain &bd,
-                    const VOM::route_domain &rd);
+                    const VOM::route_domain &rd,
+                    std::shared_ptr<VOM::interface> encap_link);
+
 
     /**
      * Associate an endpoint with a flood-group.
