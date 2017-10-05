@@ -41,6 +41,8 @@
 #include <vom/dhcp_config.hpp>
 #include <vom/acl_binding.hpp>
 #include <vom/interface_span.hpp>
+#include <vom/route_domain.hpp>
+#include <vom/route.hpp>
 
 //#include "arp.h"
 //#include "eth.h"
@@ -637,6 +639,18 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                                << vppInterfaceName.get();
                     return;
                 }
+
+                /*
+                 * Add an L3 DVR route to the end point. This will match packets
+                 * from locally attached EPs in different subnets.
+                 */
+                VOM::route_domain rd(rdId);
+                VOM::OM::write(uuid, rd);
+
+                VOM::route::path ep_path(itf, VOM::nh_proto_t::ETHERNET);
+                VOM::route::ip_route ep_route(rd, ipAddr);
+                ep_route.add(ep_path);
+                VOM::OM::write(uuid, ep_route);
             }
         }
     }
@@ -711,10 +725,10 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
          */
         optional<shared_ptr<RoutingDomain>> epgRd = pm.getRDForGroup(epgURI);
 
-        VOM::route_domain rd(VOM::l3_proto_t::IPV4, rdId);
+        VOM::route_domain rd(rdId);
         VOM::OM::write(epg_uuid, rd);
 
-        updateBVIs(epgURI, bd, rd);
+        updateBVIs(epgURI, bd, rd, encap_link);
 
         /*
          * Sweep the remaining EPG's state
@@ -724,7 +738,8 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
     void VppManager::updateBVIs(const URI& epgURI,
                                 VOM::bridge_domain &bd,
-                                const VOM::route_domain &rd)
+                                const VOM::route_domain &rd,
+                                std::shared_ptr<VOM::interface> encap_link)
     {
         LOG(DEBUG) << "Updating BVIs";
 
@@ -732,6 +747,9 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         PolicyManager::subnet_vector_t subnets;
         agent.getPolicyManager().getSubnetsForGroup(epgURI, subnets);
 
+        /*
+         * Create a BVI interface for the EPG and add it to the bridge-domain
+         */
         VOM::interface bvi("bvi-" + std::to_string(bd.id()),
                            VOM::interface::type_t::BVI,
                            VOM::interface::admin_state_t::UP,
@@ -757,20 +775,30 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
             if (routerIp)
             {
+                boost::asio::ip::address raddr = routerIp.get();
                 /*
-                 * apply the subnet prefix on the BVI
+                 * apply the host prefix on the BVI
                  * and add an entry into the ARP Table for it.
                  */
-                VOM::route::prefix_t pfx(routerIp.get(),
-                                         sn->getPrefixLen().get());
-
-                VOM::l3_binding l3(bvi, pfx);
+                VOM::route::prefix_t host_pfx(raddr);
+                VOM::l3_binding l3(bvi, host_pfx);
                 VOM::OM::write(epg_uuid, l3);
 
                 VOM::bridge_domain_arp_entry bae(bd,
                                                  bvi.l2_address().to_mac(),
-                                                 routerIp.get());
+                                                 raddr);
                 VOM::OM::write(epg_uuid, bae);
+
+                /*
+                 * add the subnet as a DVR route, so all other EPs will be
+                 * L3-bridged to the uplink
+                 */
+                VOM::route::prefix_t subnet_pfx(raddr, sn->getPrefixLen().get());
+                VOM::route::path dvr_path(*encap_link,
+                                          VOM::nh_proto_t::ETHERNET);
+                VOM::route::ip_route subnet_route(rd, subnet_pfx);
+                subnet_route.add(dvr_path);
+                VOM::OM::write(epg_uuid, subnet_route);
             }
         }
     }
