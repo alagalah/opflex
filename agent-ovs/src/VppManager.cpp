@@ -44,6 +44,8 @@
 #include <vom/route_domain.hpp>
 #include <vom/route.hpp>
 #include <vom/neighbour.hpp>
+#include <vom/nat_static.hpp>
+#include <vom/nat_binding.hpp>
 
 using std::string;
 using std::vector;
@@ -419,6 +421,11 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         return;
     }
 
+    optional<URI> epgURI = epMgr.getComputedEPG(uuid);
+    if (!epgURI) {      // can't do much without EPG
+        return;
+    }
+
     /*
      * This is an update to all the state related to this endpoint.
      * At the end of processing we want all the state realted to this endpint,
@@ -430,12 +437,26 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
     int rv;
 
+    uint32_t epgVnid, rdId, bdId, fgrpId;
+    optional<URI> fgrpURI, bdURI, rdURI;
+    if (!getGroupForwardingInfo(epgURI.get(), epgVnid, rdURI,
+                            rdId, bdURI, bdId, fgrpURI, fgrpId)) {
+        return;
+    }
+
+    /*
+     * the route-domain the endpoint is in
+     */
+    route_domain rd(rdId);
+    VOM::OM::write(uuid, rd);
+
     /*
      * We want a veth interface - admin up
      */
     VOM::interface itf(vppInterfaceName.get(),
                        VOM::interface::type_t::AFPACKET,
-                       VOM::interface::admin_state_t::UP);
+                       VOM::interface::admin_state_t::UP,
+                       rd);
     VOM::OM::write(uuid, itf);
 
     VOM::interface itftap("tap-"+vppInterfaceName.get(),
@@ -560,20 +581,8 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         VOM::ACL::l2_list acl(uuid, rules);
         VOM::OM::write(uuid, acl);
 
-        VOM::ACL::l2_binding binding(VOM::ACL::direction_t::INPUT, itf, acl);
+        VOM::ACL::l2_binding binding(VOM::direction_t::INPUT, itf, acl);
         VOM::OM::write(uuid, binding);
-    }
-
-    optional<URI> epgURI = epMgr.getComputedEPG(uuid);
-    if (!epgURI) {      // can't do much without EPG
-        return;
-    }
-
-    uint32_t epgVnid, rdId, bdId, fgrpId;
-    optional<URI> fgrpURI, bdURI, rdURI;
-    if (!getGroupForwardingInfo(epgURI.get(), epgVnid, rdURI,
-                            rdId, bdURI, bdId, fgrpURI, fgrpId)) {
-        return;
     }
 
     optional<shared_ptr<FloodDomain> > fd =
@@ -649,9 +658,6 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                  * Add an L3 rewrite route to the end point. This will match packets
                  * from locally attached EPs in different subnets.
                  */
-                VOM::route_domain rd(rdId);
-                VOM::OM::write(uuid, rd);
-
                 VOM::route::path ep_path(ipAddr, itf);
                 VOM::route::ip_route ep_route(rd, ipAddr);
                 ep_route.add(ep_path);
@@ -662,6 +668,63 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                  */
                 VOM::neighbour ne(itf, {macAddr}, ipAddr);
                 VOM::OM::write(uuid, ne);
+            }
+
+            /*
+             * If the virtual router is enabled, add Floating IP mappings, a.k.a. NAT
+             */
+            uint8_t routingMode =
+                agent.getPolicyManager().getEffectiveRoutingMode(epgURI.get());
+
+            if (m_vr && routingMode == RoutingModeEnumT::CONST_ENABLED) {
+                // IP address mappings
+                for(const Endpoint::IPAddressMapping& ipm :
+                        endPoint.getIPAddressMappings()) {
+                    if (!ipm.getMappedIP() || !ipm.getEgURI())
+                        continue;
+
+                    address mappedIp =
+                        address::from_string(ipm.getMappedIP().get(), ec);
+                    if (ec) continue;
+
+                    address floatingIp;
+                    if (ipm.getFloatingIP()) {
+                        floatingIp =
+                            address::from_string(ipm.getFloatingIP().get(), ec);
+                        if (ec) continue;
+                        if (floatingIp.is_v4() != mappedIp.is_v4()) continue;
+
+                        if (floatingIp.is_v4()) {
+                            /*
+                             * A static binding of the inside (mapped) to outside (floating)
+                             */
+                            nat_static ns(rd, mappedIp, floatingIp.to_v4());
+                            VOM::OM::write(uuid, ns);
+
+                            /*
+                             * the VM's interface is the inside
+                             */
+                            nat_binding nb_in(itf, direction_t::INPUT,
+                                              l3_proto_t::IPV4,
+                                              nat_binding::zone_t::INSIDE);
+                            VOM::OM::write(uuid, nb_in);
+
+                            /*
+                             * and the BVI in the BD is the outside.
+                             */
+                            VOM::interface bvi("bvi-" + std::to_string(bd.id()),
+                                               VOM::interface::type_t::BVI,
+                                               VOM::interface::admin_state_t::UP,
+                                               rd);
+                            VOM::OM::write(uuid, bvi);
+
+                            nat_binding nb_out(itf, direction_t::INPUT,
+                                               l3_proto_t::IPV4,
+                                               nat_binding::zone_t::OUTSIDE);
+                            VOM::OM::write(uuid, nb_out);
+                        }
+                    }
+                }
             }
         }
     }
