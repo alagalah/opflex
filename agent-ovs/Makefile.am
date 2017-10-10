@@ -301,17 +301,6 @@ if RENDERER_OVS
 	test/include/MockFlowReader.h \
 	test/include/MockSwitchManager.h \
 	test/include/FlowManagerFixture.h \
-	test/include/PolicyStatsManagerFixture.h \
-	test/PolicyManager_test.cpp \
-	test/EndpointManager_test.cpp \
-	test/IdGenerator_test.cpp \
-	test/KeyedRateLimiter_test.cpp \
-	test/NotifServer_test.cpp \
-	test/Network_test.cpp \
-	test/main.cpp
-
-if RENDERER_OVS
-  agent_test_SOURCES += \
 	test/MockFlowExecutor.cpp \
 	test/FlowManagerFixture.cpp \
 	test/IntFlowManager_test.cpp \
