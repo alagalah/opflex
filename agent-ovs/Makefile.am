@@ -340,6 +340,7 @@ agent_test_SOURCES = \
 	$(VPP_TEST_SOURCES) \
 	test/include/BaseFixture.h \
 	test/include/ModbFixture.h \
+	test/include/PolicyStatsManagerFixture.h \
 	test/PolicyManager_test.cpp \
 	test/EndpointManager_test.cpp \
 	test/IdGenerator_test.cpp \
