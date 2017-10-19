@@ -11,6 +11,7 @@
 #define VPPAGENT_VPPMANAGER_H_
 
 #include "Agent.h"
+#include "EndpointManager.h"
 #include "IdGenerator.h"
 #include "RDConfig.h"
 #include "TaskQueue.h"
@@ -26,9 +27,9 @@
 
 #include "VppUplink.hpp"
 #include "VppVirtualRouter.hpp"
-
 #include <vom/interface.hpp>
 #include <vom/dhcp_config.hpp>
+#include <vom/acl_list.hpp>
 
 /*
  * Fowrad delcare classes to reduce compile time coupling
@@ -160,6 +161,9 @@ public:
     virtual void contractUpdated(const opflex::modb::URI& contractURI);
     virtual void configUpdated(const opflex::modb::URI& configURI);
 
+    virtual void secGroupSetUpdated(const EndpointListener::uri_set_t& secGrps);
+    virtual void secGroupUpdated(const opflex::modb::URI&);
+
     /* Interface: PortStatusListener */
     virtual void portStatusUpdate(const std::string& portName, uint32_t portNo,
                                   bool fromDesc);
@@ -251,6 +255,19 @@ private:
      */
     void handleContractUpdate(const opflex::modb::URI& contractURI);
 
+    /**
+     * Openstack Security Group
+     */
+    void handleSecGrpUpdate(const opflex::modb::URI& uri);
+
+    /**
+     * Openstack Security Group Set
+     */
+    void handleSecGrpSetUpdate(const EndpointListener::uri_set_t& secGrps);
+    void buildSecGrpSetUpdate(const uri_set_t& secGrps,
+			      const std::string& secGrpId,
+                              VOM::ACL::l3_list::rules_t& in_rules,
+                              VOM::ACL::l3_list::rules_t& out_rules);
     /**
      * Compare and update changes in platform config
      *

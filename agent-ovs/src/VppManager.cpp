@@ -9,6 +9,8 @@
 #include <string>
 #include <sstream>
 #include <boost/system/error_code.hpp>
+#include <boost/algorithm/string/find_iterator.hpp>
+#include <boost/algorithm/string/finder.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -24,7 +26,10 @@
 #include <modelgbp/gbp/BcastFloodModeEnumT.hpp>
 #include <modelgbp/gbp/AddressResModeEnumT.hpp>
 #include <modelgbp/gbp/RoutingModeEnumT.hpp>
-//#include <modelgbp/gbp/ConnTrackEnumT.hpp>
+#include <modelgbp/gbp/ConnTrackEnumT.hpp>
+#include <modelgbp/l2/EtherTypeEnumT.hpp>
+#include <modelgbp/l4/TcpFlagsEnumT.hpp>
+#include <modelgbp/arp/OpcodeEnumT.hpp>
 
 #include "logging.h"
 #include "Endpoint.h"
@@ -67,6 +72,11 @@ using std::mutex;
 using opflex::modb::URI;
 using opflex::modb::MAC;
 using opflex::modb::class_id_t;
+using modelgbp::gbpe::L24Classifier;
+using modelgbp::gbp::DirectionEnumT;
+using modelgbp::gbp::ConnTrackEnumT;
+using modelgbp::arp::OpcodeEnumT;
+using modelgbp::l2::EtherTypeEnumT;
 
 namespace pt = boost::property_tree;
 using namespace modelgbp::gbp;
@@ -74,15 +84,30 @@ using namespace modelgbp::gbpe;
 
 namespace ovsagent {
 
+typedef EndpointListener::uri_set_t uri_set_t;
+
     static const char* ID_NAMESPACES[] =
         {"floodDomain", "bridgeDomain", "routingDomain",
-         "contract", "externalNetwork"};
+         "contract", "externalNetwork", "secGroup", "secGroupSet"};
 
     static const char* ID_NMSPC_FD      = ID_NAMESPACES[0];
     static const char* ID_NMSPC_BD      = ID_NAMESPACES[1];
     static const char* ID_NMSPC_RD      = ID_NAMESPACES[2];
     static const char* ID_NMSPC_CON     = ID_NAMESPACES[3];
     static const char* ID_NMSPC_EXTNET  = ID_NAMESPACES[4];
+    static const char* ID_NMSPC_SECGROUP     = ID_NAMESPACES[5];
+    static const char* ID_NMSPC_SECGROUP_SET = ID_NAMESPACES[6];
+
+    static string getSecGrpSetId(const uri_set_t& secGrps) {
+        std::stringstream ss;
+        bool notfirst = false;
+        for (const URI& uri : secGrps) {
+            if (notfirst) ss << ",";
+            notfirst = true;
+            ss << uri.toString();
+        }
+        return ss.str();
+    }
 
     /**
      * An owner of the objects VPP learns during boot-up
@@ -313,6 +338,20 @@ namespace ovsagent {
                                 this, cid, domURI));
     }
 
+    void VppManager::secGroupSetUpdated(const EndpointListener::uri_set_t& secGrps) {
+        if (stopping) return;
+        taskQueue.dispatch("setSecGrp:",
+                            std::bind(&VppManager::handleSecGrpSetUpdate,
+                                      this, secGrps));
+    }
+
+    void VppManager::secGroupUpdated(const opflex::modb::URI& uri) {
+        if (stopping) return;
+        taskQueue.dispatch("secGrp:",
+                           std::bind(&VppManager::handleSecGrpUpdate,
+                                     this, uri));
+    }
+
     void VppManager::contractUpdated(const opflex::modb::URI& contractURI) {
         if (stopping) return;
         taskQueue.dispatch(contractURI.toString(),
@@ -435,6 +474,8 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
     const Endpoint& endPoint = *epWrapper.get();
     const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
+    const uri_set_t& secGrps = endPoint.getSecurityGroups();
+    const std::string secGrpId = getSecGrpSetId(secGrps);
     int rv;
 
     uint32_t epgVnid, rdId, bdId, fgrpId;
@@ -466,6 +507,28 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
     VOM::interface_span itfSpan(itf, itftap, VOM::interface_span::state_t::RX_ENABLED);
     VOM::OM::write(uuid, itfSpan);
+
+    if (agent.getEndpointManager().secGrpSetEmpty(secGrps)) {
+        VOM::OM::remove(secGrpId);
+    } else {
+        VOM::ACL::l3_list::rules_t in_rules, out_rules;
+        buildSecGrpSetUpdate(secGrps, secGrpId, in_rules, out_rules);
+
+        if (!in_rules.empty()) {
+            VOM::ACL::l3_list in_acl(secGrpId + "in", in_rules);
+            VOM::OM::write(secGrpId, in_acl);
+
+            VOM::ACL::l3_binding in_binding(direction_t::INPUT, itf, in_acl);
+            VOM::OM::write(uuid, in_binding);
+        }
+        if (!out_rules.empty()) {
+            VOM::ACL::l3_list out_acl(secGrpId + "out", out_rules);
+            VOM::OM::write(secGrpId, out_acl);
+
+            VOM::ACL::l3_binding out_binding(direction_t::OUTPUT, itf, out_acl);
+            VOM::OM::write(uuid, out_binding);
+        }
+    }
 
     uint8_t macAddr[6];
     bool hasMac = endPoint.getMAC() != boost::none;
@@ -1147,6 +1210,169 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     VPP::Uplink &VppManager::uplink()
     {
         return m_uplink;
+    }
+
+    void VppManager::handleSecGrpUpdate(const opflex::modb::URI& uri) {
+         unordered_set<uri_set_t> secGrpSets;
+         agent.getEndpointManager().getSecGrpSetsForSecGrp(uri, secGrpSets);
+         for (const uri_set_t& secGrpSet : secGrpSets)
+             secGroupSetUpdated(secGrpSet);
+    }
+
+    void setParamUpdate(L24Classifier& cls, VOM::ACL::l3_rule& rule) {
+
+        using modelgbp::l4::TcpFlagsEnumT;
+
+        if (cls.isArpOpcSet()) {
+            rule.setProto(cls.getArpOpc().get());
+        }
+
+        if (cls.isProtSet()) {
+            rule.setProto(cls.getProt(0));
+
+	    if (cls.isSFromPortSet()) {
+                rule.setSrcFromPort(cls.getSFromPort(0));
+            }
+
+            if (cls.isSToPortSet()) {
+                rule.setSrcToPort(cls.getSToPort(0));
+            }
+
+            if (cls.isDFromPortSet()) {
+                rule.setDstFromPort(cls.getDFromPort(0));
+            }
+
+            if (cls.isDToPortSet()) {
+                rule.setDstToPort(cls.getDToPort(0));
+            }
+
+            if (6 == cls.getProt(0) &&  cls.isTcpFlagsSet()) {
+                rule.setTCPFlagsMask(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
+                rule.setTCPFlagsValue(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
+            }
+        }
+    }
+
+    void VppManager::buildSecGrpSetUpdate(const uri_set_t& secGrps,
+                                          const std::string& secGrpId,
+                                          VOM::ACL::l3_list::rules_t& in_rules,
+                                          VOM::ACL::l3_list::rules_t& out_rules) {
+         LOG(DEBUG) << "Updating security group set";
+
+        if (agent.getEndpointManager().secGrpSetEmpty(secGrps)) {
+            VOM::OM::remove(secGrpId);
+            return;
+        }
+
+        for (const opflex::modb::URI& secGrp : secGrps) {
+            PolicyManager::rule_list_t rules;
+            agent.getPolicyManager().getSecGroupRules(secGrp, rules);
+
+            for (shared_ptr<PolicyRule>& pc : rules) {
+                uint8_t dir = pc->getDirection();
+                const shared_ptr<L24Classifier>& cls = pc->getL24Classifier();
+                uint32_t priority = pc->getPriority();
+                uint16_t etherType = cls->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED);
+                VOM::ACL::action_t act = VOM::ACL::action_t::from_bool(pc->getAllow(),
+			       cls->getConnectionTracking(ConnTrackEnumT::CONST_NORMAL));
+
+                if (!pc->getRemoteSubnets().empty()) {
+                    boost::optional<const network::subnets_t&> remoteSubs;
+                    remoteSubs = pc->getRemoteSubnets();
+                    for (const network::subnet_t& sub : remoteSubs.get()) {
+		        bool is_v6 = boost::asio::ip::address::from_string(sub.first).is_v6();
+			route::prefix_t ip(sub.first, sub.second);
+                        route::prefix_t ip2(route::prefix_t::ZERO);
+
+                        if (etherType == EtherTypeEnumT::CONST_IPV4 ||
+			    etherType == EtherTypeEnumT::CONST_ARP || !is_v6) {
+			    ;
+                        }
+
+			if (etherType == EtherTypeEnumT::CONST_IPV6 && is_v6) {
+                            ip2 = route::prefix_t::ZEROv6;
+			}
+
+                        if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
+                            dir == DirectionEnumT::CONST_IN) {
+			    VOM::ACL::l3_rule rule(priority, act, ip, ip2);
+                            setParamUpdate(*cls, rule);
+                            in_rules.insert(rule);
+                        }
+                        if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
+                            dir == DirectionEnumT::CONST_OUT) {
+                            VOM::ACL::l3_rule rule(priority, act, ip2, ip);
+                            setParamUpdate(*cls, rule);
+                            out_rules.insert(rule);
+                        }
+		    }
+                } else {
+		    route::prefix_t srcIp(route::prefix_t::ZERO);
+		    route::prefix_t dstIp(route::prefix_t::ZERO);
+
+		    if (etherType == EtherTypeEnumT::CONST_IPV6) {
+                        srcIp = route::prefix_t::ZEROv6;
+			dstIp = route::prefix_t::ZEROv6;
+                    }
+
+                    VOM::ACL::l3_rule rule(priority, act, srcIp, dstIp);
+		    setParamUpdate(*cls, rule);
+                    if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
+                        dir == DirectionEnumT::CONST_IN) {
+                        in_rules.insert(rule);
+                    }
+                    if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
+                        dir == DirectionEnumT::CONST_OUT) {
+                        out_rules.insert(rule);
+                    }
+                }
+            }
+        }
+    }
+
+    void VppManager::handleSecGrpSetUpdate(const uri_set_t& secGrps) {
+
+        LOG(DEBUG) << "Updating security group set";
+        VOM::ACL::l3_list::rules_t in_rules, out_rules;
+        const std::string secGrpId = getSecGrpSetId(secGrps);
+        std::shared_ptr<VOM::ACL::l3_list> in_acl, out_acl;
+
+        buildSecGrpSetUpdate(secGrps, secGrpId, in_rules, out_rules);
+
+        if (in_rules.empty() && out_rules.empty())
+            return;
+
+        if (!in_rules.empty()) {
+            VOM::ACL::l3_list inAcl(secGrpId + "in", in_rules);
+            in_acl = inAcl.singular();
+            VOM::OM::write(secGrpId, *in_acl);
+        }
+
+        if (!out_rules.empty()) {
+            VOM::ACL::l3_list outAcl(secGrpId + "out", out_rules);
+            out_acl = outAcl.singular();
+            VOM::OM::write(secGrpId, *out_acl);
+        }
+
+        EndpointManager& epMgr = agent.getEndpointManager();
+        std::unordered_set<std::string> eps;
+        epMgr.getEndpointsForSecGrps(secGrps, eps);
+
+        for (const std::string& uuid : eps) {
+            const Endpoint& endPoint = *epMgr.getEndpoint(uuid).get();
+            const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
+
+            std::shared_ptr<VOM::interface> itf = VOM::interface::find(vppInterfaceName.get());
+
+            if (!in_rules.empty()) {
+                VOM::ACL::l3_binding in_binding(direction_t::INPUT, *itf, *in_acl);
+                VOM::OM::write(uuid, in_binding);
+            }
+            if (!out_rules.empty()) {
+                VOM::ACL::l3_binding out_binding(direction_t::OUTPUT, *itf, *out_acl);
+                VOM::OM::write(uuid, out_binding);
+            }
+        }
     }
 
 } // namespace ovsagent
