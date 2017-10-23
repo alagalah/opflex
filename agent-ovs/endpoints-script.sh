@@ -4,24 +4,51 @@
 # bind four endpoints with the VPP
 # try to ping from one another
 
+##Cleanup script
+
+sudo ip link set veth1 down
+sudo ip link set veth3 down
+sudo ip link set veth5 down
+sudo ip link set veth7 down
+sudo ip link set veth-uplink down
+sudo ip netns exec ns1 ip link set veth2 down
+sudo ip netns exec ns2 ip link set veth4 down
+sudo ip netns exec ns3 ip link set veth6 down
+sudo ip netns exec ns4 ip link set veth8 down
+sudo ip netns exec uplink ip link set uplink-peer down
+
+sudo ip link delete veth1
+sudo ip link delete veth3
+sudo ip link delete veth5
+sudo ip link delete veth7
+sudo ip link delete veth-uplink
+
+sudo ip netns del ns1
+sudo ip netns del ns2
+sudo ip netns del ns3
+sudo ip netns del ns4
+sudo ip netns del uplink
+## generate endpoints
+
 sudo ip netns add ns1
 sudo ip netns add ns2
 sudo ip netns add ns3
 sudo ip netns add ns4
+sudo ip netns add uplink
 #sudo ip netns add ns5
 
 sudo ip link add veth1 type veth peer name veth2
 sudo ip link add veth3 type veth peer name veth4
 sudo ip link add veth5 type veth peer name veth6
 sudo ip link add veth7 type veth peer name veth8
-#sudo ip link add veth9 type veth peer name veth10
+sudo ip link add veth-uplink type veth peer name uplink-peer
 #sudo ip link add veth11 type veth peer name veth12
 
 sudo ip link set veth1 up
 sudo ip link set veth3 up
 sudo ip link set veth5 up
 sudo ip link set veth7 up
-#sudo ip link set veth9 up
+sudo ip link set veth-uplink up
 #sudo ip link set veth10 up
 #sudo ip link set veth11 up
 
@@ -29,12 +56,14 @@ sudo ip link set veth2 netns ns1
 sudo ip link set veth4 netns ns2
 sudo ip link set veth6 netns ns3
 sudo ip link set veth8 netns ns4
+sudo ip link set uplink-peer netns uplink
 #sudo ip link set veth12 netns ns5
 
 sudo ip netns exec ns1 ip link set veth2 up
 sudo ip netns exec ns2 ip link set veth4 up
 sudo ip netns exec ns3 ip link set veth6 up
 sudo ip netns exec ns4 ip link set veth8 up
+sudo ip netns exec uplink ip link set uplink-peer up
 #sudo ip netns exec ns5 ip link set veth12 up
 
 
@@ -54,7 +83,8 @@ sudo ip netns exec ns4 ip addr add 10.0.1.2/24 dev veth8
 
 echo BLDLOG: create endpoints
 cat <<__EE__ > /usr/local/var/lib/opflex-agent-ovs/endpoints/h1.ep
-licy-space-name": "test",
+{
+    "policy-space-name": "test",
     "endpoint-group-name": "group1",
     "interface-name": "veth1",
     "ip": [
