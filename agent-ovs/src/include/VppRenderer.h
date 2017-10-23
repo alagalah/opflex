@@ -13,6 +13,7 @@
 #include <opflex/ofcore/OFFramework.h>
 #include "Renderer.h"
 #include "VppManager.h"
+#include "VppInterfaceStatsManager.hpp"
 #include "VppInspect.h"
 #include "IdGenerator.h"
 

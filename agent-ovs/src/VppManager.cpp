@@ -500,6 +500,14 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                        rd);
     VOM::OM::write(uuid, itf);
 
+    /**
+     * We are interested in getting interface stats from VPP
+     */
+    std::shared_ptr<VOM::cmd> itfstats(new VOM::interface::stats_cmd(*this, std::vector<VOM::handle_t>{itf.handle().value()}));
+
+    VOM::HW::enqueue(itfstats);
+    m_cmds.push_back(itfstats);
+
     VOM::interface itftap("tap-"+vppInterfaceName.get(),
                        VOM::interface::type_t::TAP,
                        VOM::interface::admin_state_t::UP);

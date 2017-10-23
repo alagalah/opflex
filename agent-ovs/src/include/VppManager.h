@@ -32,7 +32,7 @@
 #include <vom/acl_list.hpp>
 
 /*
- * Fowrad delcare classes to reduce compile time coupling
+ * Forward declare classes to reduce compile time coupling
  */
 namespace VOM
 {
