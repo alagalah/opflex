@@ -1232,31 +1232,31 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         using modelgbp::l4::TcpFlagsEnumT;
 
         if (cls.isArpOpcSet()) {
-            rule.setProto(cls.getArpOpc().get());
+            rule.set_proto(cls.getArpOpc().get());
         }
 
         if (cls.isProtSet()) {
-            rule.setProto(cls.getProt(0));
+            rule.set_proto(cls.getProt(0));
 
 	    if (cls.isSFromPortSet()) {
-                rule.setSrcFromPort(cls.getSFromPort(0));
+                rule.set_src_from_port(cls.getSFromPort(0));
             }
 
             if (cls.isSToPortSet()) {
-                rule.setSrcToPort(cls.getSToPort(0));
+                rule.set_src_to_port(cls.getSToPort(0));
             }
 
             if (cls.isDFromPortSet()) {
-                rule.setDstFromPort(cls.getDFromPort(0));
+                rule.set_dst_from_port(cls.getDFromPort(0));
             }
 
             if (cls.isDToPortSet()) {
-                rule.setDstToPort(cls.getDToPort(0));
+                rule.set_dst_to_port(cls.getDToPort(0));
             }
 
             if (6 == cls.getProt(0) &&  cls.isTcpFlagsSet()) {
-                rule.setTCPFlagsMask(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
-                rule.setTCPFlagsValue(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
+                rule.set_tcp_flags_mask(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
+                rule.set_tcp_flags_value(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
             }
         }
     }
