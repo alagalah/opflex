@@ -25,17 +25,7 @@
 #include <fstream>
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/smart_ptr/make_shared_object.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/sinks/sync_frontend.hpp>
-#include <boost/log/sinks/text_ostream_backend.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/sources/record_ostream.hpp>
-#include <boost/log/expressions.hpp>
-namespace logging = boost::log;
-namespace src = boost::log::sources;
-namespace sinks = boost::log::sinks;
-using levels = boost::log::trivial::severity_level;
+#include <vom/logger.hpp>
 #endif
 
 #include <algorithm>
@@ -206,7 +196,7 @@ OFLogHandler::Level lgoStrToLevel(const std::string& newLevelstr) {
 }
 
 #ifdef RENDERER_VPP
-boost::log::trivial::severity_level agentLevelToBoost(OFLogHandler::Level level) {
+VOM::log_level_t agentLevelToVom(OFLogHandler::Level level) {
     switch (level)
     {
     case OFLogHandler::DEBUG0:
@@ -217,19 +207,18 @@ boost::log::trivial::severity_level agentLevelToBoost(OFLogHandler::Level level)
     case OFLogHandler::DEBUG5:
     case OFLogHandler::DEBUG6:
     case OFLogHandler::DEBUG7:
-        return (levels::debug);
+        return (VOM::log_level_t::DEBUG);
     case OFLogHandler::TRACE:
-        return (levels::trace);
     case OFLogHandler::INFO:
-        return (levels::info);
+        return (VOM::log_level_t::INFO);
     case OFLogHandler::WARNING:
-        return (levels::warning);
+        return (VOM::log_level_t::WARNING);
     case OFLogHandler::ERROR:
-        return (levels::error);
+        return (VOM::log_level_t::ERROR);
     case OFLogHandler::FATAL:
-        return (levels::fatal);
+        return (VOM::log_level_t::CRITICAL);
     }
-    return (levels::info);
+    return (VOM::log_level_t::INFO);
 }
 #endif
 
@@ -258,24 +247,20 @@ void initLogging(const std::string& levelstr,
      */
     if (!log_file.empty())
     {
-        typedef sinks::synchronous_sink< sinks::text_ostream_backend > text_sink;
-        boost::shared_ptr< text_sink > sink = boost::make_shared< text_sink >();
-
-        // Add a stream to write log to
-        sink->locked_backend()->add_stream(
-            boost::make_shared< std::ofstream >(log_file));
-
-        // Register the sink in the logging core
-        logging::core::get()->add_sink(sink);
+        VOM::logger().set(log_file);
     }
-    logging::core::get()->set_filter(
-        logging::trivial::severity >= agentLevelToBoost(level)
-    );
+    VOM::logger().set(agentLevelToVom(level));
 #endif
 }
 
 void setLoggingLevel(const std::string& newLevelstr) {
-    logHandler.setLevel(lgoStrToLevel(newLevelstr));
+    OFLogHandler::Level level = lgoStrToLevel(newLevelstr);
+#ifdef RENDERER_OVS
+    logHandler.setLevel(level);
+#endif
+#ifdef RENDERER_VPP
+    VOM::logger().set(agentLevelToVom(level));
+#endif
 }
 
 } /* namespace ovsagent */
