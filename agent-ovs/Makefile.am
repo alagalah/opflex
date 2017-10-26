@@ -27,7 +27,6 @@ endif
 VPP_ADDL_CFLAGS =
 if RENDERER_VPP
   VPP_ADDL_CFLAGS += \
-	-DBOOST_LOG_DYN_LINK \
 	-D__STDC_LIMIT_MACROS \
 	-D__STDC_CONSTANT_MACROS \
 	-I/usr/include/vpp_plugins \
@@ -92,9 +91,7 @@ if RENDERER_VPP
 	$(libmodelgbp_LIBS)	\
 	$(libnl_nf_LIBS)	\
 	$(VPPCLIENT_LIBS)	\
-	-lboost_log		\
 	-lboost_thread		\
-	$(BOOST_LOG_LIB)	\
 	$(BOOST_SYSTEM_LIB)	\
 	$(BOOST_FILESYSTEM_LIB)	\
 	$(BOOST_ASIO_LIB)	\
@@ -240,17 +237,12 @@ agent_ovs_LDADD = \
 
 gbp_inspect_CXXFLAGS = -DSYSCONFDIR='"$(sysconfdir)"'
 
-if RENDERER_VPP
-gbp_inspect_CXXFLAGS += -DBOOST_LOG_DYN_LINK
-endif
-
 gbp_inspect_SOURCES = \
 	src/gbp_inspect.cpp
 
 gbp_inspect_LDADD =
 if RENDERER_VPP
 gbp_inspect_LDADD += \
-	-lboost_log \
 	-lboost_thread
 endif
 
@@ -288,8 +280,7 @@ agent_test_CXXFLAGS = \
 	$(OVS_ADDL_CFLAGS) \
 	$(OVS_TEST_CFLAGS) \
 	$(VPP_ADDL_CFLAGS) \
-	$(VPP_TEST_CFLAGS) \
-	-DBOOST_TEST_DYN_LINK
+	$(VPP_TEST_CFLAGS)
 
 
 OVS_TEST_SOURCES =
