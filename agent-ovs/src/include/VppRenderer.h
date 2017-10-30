@@ -70,10 +70,24 @@ public:
     virtual void stop();
 
 private:
+    /**
+     * The socket used for inspecting the state built in VPP-manager
+     */
     std::unique_ptr<VppInspect> inspector;
+
+    /**
+     * ID generator
+     */
     IdGenerator idGen;
+
+    /**
+     * Single instance of the VPP manager
+     */
     VppManager vppManager;
-    std::string bridgeName;
+
+    /**
+     * has this party started.
+     */
     bool started;
 };
 

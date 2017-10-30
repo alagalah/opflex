@@ -6,11 +6,12 @@
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#include "VppRenderer.h"
-#include <vom/route.hpp>
-#include "logging.h"
-
 #include <boost/asio/placeholders.hpp>
+
+#include <vom/route.hpp>
+
+#include "VppRenderer.h"
+#include "logging.h"
 
 namespace ovsagent {
 
@@ -33,7 +34,7 @@ namespace ovsagent {
     void VppRenderer::start() {
         if (started) return;
         started = true;
-        vppManager.start(bridgeName);
+        vppManager.start();
         vppManager.registerModbListeners();
         LOG(INFO) << "Starting vpp renderer using";
     }
@@ -52,7 +53,6 @@ namespace ovsagent {
 
     void VppRenderer::setProperties(const ptree& properties)
     {
-        static const std::string VPP_BRIDGE_NAME("opflex-vpp");
         static const std::string ENCAP_VXLAN("encap.vxlan");
         static const std::string ENCAP_IVXLAN("encap.ivxlan");
         static const std::string ENCAP_VLAN("encap.vlan");
@@ -67,10 +67,6 @@ namespace ovsagent {
                                                     ".virtual-router.mac");
         static const std::string VIRTUAL_ROUTER_RA("forwarding.virtual-router"
                                                    ".ipv6.router-advertisement");
-
-        bridgeName = properties.get<std::string>(VPP_BRIDGE_NAME, "vpp");
-
-        LOG(INFO) << "Bridge Name " << bridgeName;
 
         auto vxlan = properties.get_child_optional(ENCAP_VXLAN);
         auto vlan = properties.get_child_optional(ENCAP_VLAN);

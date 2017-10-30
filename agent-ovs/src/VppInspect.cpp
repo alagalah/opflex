@@ -15,7 +15,8 @@
 #include "VppInspect.h"
 #include "vom/inspect.hpp"
 
-using namespace ovsagent;
+namespace ovsagent
+{
 
 VppInspect::VppInspect(const std::string &sock_name):
     mSockName(sock_name),
@@ -187,3 +188,5 @@ void VppInspect::on_connection(uv_stream_t* server,
         uv_close((uv_handle_t*) client, NULL);
     }
 }
+
+} // namespace ovsagent

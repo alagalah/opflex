@@ -55,22 +55,9 @@ public:
     }
 
     IdGenerator idGen;
-    const std::string vppname = "vpp-opflex-test";
 };
 
-// Putting configure var to disable VPP UT until Jenkins sorted out.
-
-#ifndef VPP_TESTS
-BOOST_AUTO_TEST_CASE(disable) {
-    LOG(INFO) << "VPP tests temporarily disabled. uncomment #define VPP_TESTS";
-}
-#endif //not VPP_TESTS
-
-#ifdef VPP_TESTS
 BOOST_FIXTURE_TEST_CASE(start, VppManagerFixture) {
-    VppManager vpm(agent, idGen);
-    vpm.start(vppname);
-
 }
-#endif //VPP_TESTS
+
 BOOST_AUTO_TEST_SUITE_END()

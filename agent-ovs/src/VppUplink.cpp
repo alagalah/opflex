@@ -1,13 +1,13 @@
 /* -*- C++ -*-; c-basic-offset: 4; indent-tabs-mode: nil */
 /*
- * Copyright (c) 2014-2016 Cisco Systems, Inc. and others.  All rights reserved.
+ * Copyright (c) 2017 Cisco Systems, Inc. and others.  All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
  * and is available at http://www.eclipse.org/legal/epl-v10.html
  */
 
-#include "VppUplink.hpp"
+#include "VppUplink.h"
 
 #include "vom/interface.hpp"
 #include "vom/sub_interface.hpp"
@@ -19,7 +19,9 @@
 #include "vom/ip_unnumbered.hpp"
 
 using namespace VOM;
-using namespace VPP;
+
+namespace VPP
+{
 
 static const std::string UPLINK_KEY = "__uplink__";
 
@@ -203,3 +205,5 @@ void Uplink::set(const std::string &uplink,
     m_iface = uplink;
     m_vlan = uplink_vlan;
 }
+
+} // namespace VPP

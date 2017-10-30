@@ -18,8 +18,6 @@
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/ip/host_name.hpp>
 
-//#include <netinet/icmp6.h>
-
 #include <modelgbp/gbp/DirectionEnumT.hpp>
 #include <modelgbp/gbp/IntraGroupPolicyEnumT.hpp>
 #include <modelgbp/gbp/UnknownFloodModeEnumT.hpp>
@@ -49,36 +47,22 @@
 #include <vom/route_domain.hpp>
 #include <vom/route.hpp>
 #include <vom/neighbour.hpp>
-#include <vom/nat_static.hpp>
-#include <vom/nat_binding.hpp>
 
 using std::string;
-using std::vector;
-using std::ostringstream;
 using std::shared_ptr;
 using std::unordered_set;
-using std::unordered_map;
 using std::bind;
-using boost::algorithm::trim;
-using boost::ref;
 using boost::optional;
 using boost::asio::deadline_timer;
 using boost::asio::ip::address;
 using boost::asio::ip::address_v6;
 using boost::asio::placeholders::error;
-using std::chrono::milliseconds;
-using std::unique_lock;
-using std::mutex;
 using opflex::modb::URI;
 using opflex::modb::MAC;
 using opflex::modb::class_id_t;
 using modelgbp::gbpe::L24Classifier;
-using modelgbp::gbp::DirectionEnumT;
-using modelgbp::gbp::ConnTrackEnumT;
-using modelgbp::arp::OpcodeEnumT;
 using modelgbp::l2::EtherTypeEnumT;
 
-namespace pt = boost::property_tree;
 using namespace modelgbp::gbp;
 using namespace modelgbp::gbpe;
 
@@ -86,364 +70,340 @@ namespace ovsagent {
 
 typedef EndpointListener::uri_set_t uri_set_t;
 
-    static const char* ID_NAMESPACES[] =
-        {"floodDomain", "bridgeDomain", "routingDomain",
-         "contract", "externalNetwork", "secGroup", "secGroupSet"};
+static const char* ID_NAMESPACES[] = {
+    "floodDomain",
+    "bridgeDomain",
+    "routingDomain",
+    "contract",
+    "externalNetwork",
+    "secGroup",
+    "secGroupSet"
+};
 
-    static const char* ID_NMSPC_FD      = ID_NAMESPACES[0];
-    static const char* ID_NMSPC_BD      = ID_NAMESPACES[1];
-    static const char* ID_NMSPC_RD      = ID_NAMESPACES[2];
-    static const char* ID_NMSPC_CON     = ID_NAMESPACES[3];
-    static const char* ID_NMSPC_EXTNET  = ID_NAMESPACES[4];
-    static const char* ID_NMSPC_SECGROUP     = ID_NAMESPACES[5];
-    static const char* ID_NMSPC_SECGROUP_SET = ID_NAMESPACES[6];
+static const char* ID_NMSPC_FD      = ID_NAMESPACES[0];
+static const char* ID_NMSPC_BD      = ID_NAMESPACES[1];
+static const char* ID_NMSPC_RD      = ID_NAMESPACES[2];
+static const char* ID_NMSPC_CON     = ID_NAMESPACES[3];
+static const char* ID_NMSPC_EXTNET  = ID_NAMESPACES[4];
+static const char* ID_NMSPC_SECGROUP     = ID_NAMESPACES[5];
+static const char* ID_NMSPC_SECGROUP_SET = ID_NAMESPACES[6];
 
-    static string getSecGrpSetId(const uri_set_t& secGrps) {
-        std::stringstream ss;
-        bool notfirst = false;
-        for (const URI& uri : secGrps) {
-            if (notfirst) ss << ",";
-            notfirst = true;
-            ss << uri.toString();
-        }
-        return ss.str();
+static string getSecGrpSetId(const uri_set_t& secGrps) {
+    std::stringstream ss;
+    bool notfirst = false;
+    for (const URI& uri : secGrps) {
+        if (notfirst) ss << ",";
+        notfirst = true;
+        ss << uri.toString();
     }
+    return ss.str();
+}
+
+/**
+ * An owner of the objects VPP learns during boot-up
+ */
+static const std::string BOOT_KEY = "__boot__";
+
+VppManager::VppManager(Agent& agent_,
+                       IdGenerator& idGen_) :
+    agent(agent_),
+    taskQueue(agent.getAgentIOService()),
+    idGen(idGen_),
+    stopping(false) {
+
+    VOM::HW::init();
+    VOM::OM::init();
+
+    agent.getFramework().registerPeerStatusListener(this);
+}
+
+void VppManager::start() {
+    for (size_t i = 0; i < sizeof(ID_NAMESPACES)/sizeof(char*); i++) {
+        idGen.initNamespace(ID_NAMESPACES[i]);
+    }
+    initPlatformConfig();
+
+    /*
+     * make sure the first event in the task Q is the blocking
+     * connection initiation to VPP ...
+     */
+    taskQueue.dispatch("init-connection",
+                       bind(&VppManager::handleInitConnection, this));
 
     /**
-     * An owner of the objects VPP learns during boot-up
+     * DO BOOT
      */
-    static const std::string BOOT_KEY = "__boot__";
 
-    VppManager::VppManager(Agent& agent_,
-                           IdGenerator& idGen_) :
-        agent(agent_),
-        taskQueue(agent.getAgentIOService()),
-        idGen(idGen_),
-        floodScope(FLOOD_DOMAIN),
-        virtualDHCPEnabled(false),
-        stopping(false) {
+    /**
+     * ... followed by vpp boot dump
+     */
+    taskQueue.dispatch("boot-dump",
+                       bind(&VppManager::handleBoot, this));
 
-        VOM::HW::init();
-        VOM::OM::init();
-        memset(dhcpMac, 0, sizeof(dhcpMac));
+    /**
+     * ... followed by uplink configuration
+     */
+    taskQueue.dispatch("uplink-configure",
+                       bind(&VppManager::handleUplinkConfigure, this));
 
-        agent.getFramework().registerPeerStatusListener(this);
+}
 
-    }
+void VppManager::handleInitConnection()
+{
+    if (stopping) return;
 
-    void VppManager::start(const std::string& name) {
+    VOM::HW::connect();
 
-        for (size_t i = 0; i < sizeof(ID_NAMESPACES)/sizeof(char*); i++) {
-            idGen.initNamespace(ID_NAMESPACES[i]);
-        }
-        initPlatformConfig();
+    /**
+     * We are insterested in getting interface events from VPP
+     */
+    std::shared_ptr<VOM::cmd> itf(new VOM::interface::events_cmd(*this));
 
-        /*
-         * make sure the first event in the task Q is the blocking
-         * connection initiation to VPP ...
-         */
-        taskQueue.dispatch("init-connection",
-                           bind(&VppManager::handleInitConnection, this));
+    VOM::HW::enqueue(itf);
+    m_cmds.push_back(itf);
 
-        /**
-         * DO BOOT
-         */
+    /**
+     * We are insterested in getting DHCP events from VPP
+     */
+    std::shared_ptr<VOM::cmd> dc(new VOM::dhcp_config::events_cmd(*this));
 
-        /**
-         * ... followed by vpp boot dump
-         */
-        taskQueue.dispatch("boot-dump",
-                           bind(&VppManager::handleBoot, this));
+    VOM::HW::enqueue(dc);
+    m_cmds.push_back(dc);
 
-        /**
-         * ... followed by uplink configuration
-         */
-        taskQueue.dispatch("uplink-configure",
-                           bind(&VppManager::handleUplinkConfigure, this));
+    /**
+     * Scehdule a timer to Poll for HW livensss
+     */
+    m_poll_timer.reset(new deadline_timer(agent.getAgentIOService()));
+    m_poll_timer->expires_from_now(boost::posix_time::seconds(3));
+    m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this, error));
+}
 
-    }
-    void VppManager::handleInitConnection()
+void VppManager::handleUplinkConfigure()
+{
+    if (stopping) return;
+
+    m_uplink.configure(boost::asio::ip::host_name());
+}
+
+void VppManager::handleSweepTimer(const boost::system::error_code& ec)
+{
+    if (stopping || ec) return;
+
+    LOG(INFO) << "sweep boot data";
+
+    /*
+     * the sweep timer was not cancelled, continue with purging old state.
+     */
+    VOM::OM::sweep(BOOT_KEY);
+}
+
+void VppManager::handleHWPollTimer(const boost::system::error_code& ec)
+{
+    if (stopping || ec) return;
+
+    if (!VOM::HW::poll())
     {
+        /*
+         * Lost connection to VPP; reconnect and then replay all the objects
+         */
         VOM::HW::connect();
-
-        /**
-         * We are insterested in getting interface events from VPP
-         */
-        std::shared_ptr<VOM::cmd> itf(new VOM::interface::events_cmd(*this));
-
-        VOM::HW::enqueue(itf);
-        m_cmds.push_back(itf);
-
-        /**
-         * We are insterested in getting DHCP events from VPP
-         */
-        std::shared_ptr<VOM::cmd> dc(new VOM::dhcp_config::events_cmd(*this));
-
-        VOM::HW::enqueue(dc);
-        m_cmds.push_back(dc);
-
-        //VOM::HW::write();
-
-        /**
-         * Scehdule a timer to Poll for HW livensss
-         */
-        m_poll_timer.reset(new deadline_timer(agent.getAgentIOService()));
-        m_poll_timer->expires_from_now(boost::posix_time::seconds(3));
-        m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this, error));
+        VOM::OM::replay();
     }
 
-    void VppManager::handleUplinkConfigure()
+    /*
+     * re-scehdule a timer to Poll for HW liveness
+     */
+    m_poll_timer.reset(new deadline_timer(agent.getAgentIOService()));
+    m_poll_timer->expires_from_now(boost::posix_time::seconds(3));
+    m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this, error));
+}
+
+void VppManager::handleBoot()
+{
+    if (stopping) return;
+
+    /**
+     * Read the state from VPP
+     */
+    VOM::OM::populate(BOOT_KEY);
+}
+
+void VppManager::registerModbListeners() {
+    // Initialize policy listeners
+    agent.getEndpointManager().registerListener(this);
+    agent.getServiceManager().registerListener(this);
+    agent.getExtraConfigManager().registerListener(this);
+    agent.getPolicyManager().registerListener(this);
+}
+
+void VppManager::stop() {
+    stopping = true;
+
+    agent.getEndpointManager().unregisterListener(this);
+    agent.getServiceManager().unregisterListener(this);
+    agent.getExtraConfigManager().unregisterListener(this);
+    agent.getPolicyManager().unregisterListener(this);
+
+    if (m_sweep_timer)
     {
-        m_uplink.configure(boost::asio::ip::host_name());
+        m_sweep_timer->cancel();
     }
 
-    void VppManager::handleSweepTimer(const boost::system::error_code& ec)
+    if (m_poll_timer)
     {
-        if (ec) return;
-
-        LOG(INFO) << "sweep boot data";
-
-        /*
-         * the sweep timer was not cancelled, continue with purging old state.
-         */
-        VOM::OM::sweep(BOOT_KEY);
+        m_poll_timer->cancel();
     }
+}
 
-    void VppManager::handleHWPollTimer(const boost::system::error_code& ec)
-    {
-        if (stopping) return;
-        if (ec) return;
-
-        if (!VOM::HW::poll())
-        {
-            /*
-             * Lost connection to VPP; reconnect and then replay all the objects
-             */
-            VOM::HW::connect();
-            VOM::OM::replay();
-        }
-
-        /*
-         * re-scehdule a timer to Poll for HW liveness
-         */
-        m_poll_timer.reset(new deadline_timer(agent.getAgentIOService()));
-        m_poll_timer->expires_from_now(boost::posix_time::seconds(3));
-        m_poll_timer->async_wait(bind(&VppManager::handleHWPollTimer, this, error));
-    }
-
-    void VppManager::handleBoot()
-    {
-        /**
-         * Read the state from VPP
-         */
-        VOM::OM::populate(BOOT_KEY);
-    }
-
-    void VppManager::registerModbListeners() {
-        // Initialize policy listeners
-        agent.getEndpointManager().registerListener(this);
-        agent.getServiceManager().registerListener(this);
-        agent.getExtraConfigManager().registerListener(this);
-        agent.getPolicyManager().registerListener(this);
-    }
-
-    void VppManager::stop() {
-        stopping = true;
-
-        agent.getEndpointManager().unregisterListener(this);
-        agent.getServiceManager().unregisterListener(this);
-        agent.getExtraConfigManager().unregisterListener(this);
-        agent.getPolicyManager().unregisterListener(this);
-
-        if (m_sweep_timer)
-        {
-            m_sweep_timer->cancel();
-        }
-
-        if (m_poll_timer)
-        {
-            m_poll_timer->cancel();
-        }
-    }
-
-    void VppManager::setFloodScope(FloodScope fscope) {
-        floodScope = fscope;
-    }
-
-    void VppManager::setVirtualRouter(bool virtualRouterEnabled,
-                                      bool routerAdv,
-                                      const string& virtualRouterMac) {
-        if (virtualRouterEnabled) {
-            try {
-                uint8_t routerMac[6];
-                MAC(virtualRouterMac).toUIntArray(routerMac);
-                m_vr = std::make_shared<VPP::VirtualRouter>(VPP::VirtualRouter(routerMac));
-            } catch (std::invalid_argument) {
-                LOG(ERROR) << "Invalid virtual router MAC: " << virtualRouterMac;
-            }
-        }
-    }
-
-    void VppManager::setVirtualDHCP(bool dhcpEnabled,
-                                    const string& mac) {
-        this->virtualDHCPEnabled = dhcpEnabled;
+void VppManager::setVirtualRouter(bool virtualRouterEnabled,
+                                  bool routerAdv,
+                                  const string& virtualRouterMac) {
+    if (virtualRouterEnabled) {
         try {
-            MAC(mac).toUIntArray(dhcpMac);
+            uint8_t routerMac[6];
+            MAC(virtualRouterMac).toUIntArray(routerMac);
+            m_vr = std::make_shared<VPP::VirtualRouter>(VPP::VirtualRouter(routerMac));
         } catch (std::invalid_argument) {
-            LOG(ERROR) << "Invalid virtual DHCP server MAC: " << mac;
+            LOG(ERROR) << "Invalid virtual router MAC: " << virtualRouterMac;
         }
     }
+}
 
+void VppManager::endpointUpdated(const std::string& uuid) {
+    if (stopping) return;
 
-    void VppManager::setMulticastGroupFile(const std::string& mcastGroupFile) {
-        this->mcastGroupFile = mcastGroupFile;
+    taskQueue.dispatch(uuid,
+                       bind(&VppManager::handleEndpointUpdate, this, uuid));
+}
+
+void VppManager::serviceUpdated(const std::string& uuid) {
+    if (stopping) return;
+
+    LOG(INFO) << "Service Update Not supported ";
+}
+
+void VppManager::rdConfigUpdated(const opflex::modb::URI& rdURI) {
+    domainUpdated(RoutingDomain::CLASS_ID, rdURI);
+}
+
+void VppManager::egDomainUpdated(const opflex::modb::URI& egURI) {
+    if (stopping) return;
+
+    taskQueue.dispatch(egURI.toString(),
+                       bind(&VppManager::handleEndpointGroupDomainUpdate,
+                            this, egURI));
+}
+
+void VppManager::domainUpdated(class_id_t cid, const URI& domURI) {
+    if (stopping) return;
+
+    taskQueue.dispatch(domURI.toString(),
+                       bind(&VppManager::handleDomainUpdate,
+                            this, cid, domURI));
+}
+
+void VppManager::secGroupSetUpdated(const EndpointListener::uri_set_t& secGrps) {
+    if (stopping) return;
+    taskQueue.dispatch("setSecGrp:",
+                       std::bind(&VppManager::handleSecGrpSetUpdate,
+                                 this, secGrps));
+}
+
+void VppManager::secGroupUpdated(const opflex::modb::URI& uri) {
+    if (stopping) return;
+    taskQueue.dispatch("secGrp:",
+                       std::bind(&VppManager::handleSecGrpUpdate,
+                                 this, uri));
+}
+
+void VppManager::contractUpdated(const opflex::modb::URI& contractURI) {
+    if (stopping) return;
+    taskQueue.dispatch(contractURI.toString(),
+                       bind(&VppManager::handleContractUpdate,
+                            this, contractURI));
+}
+
+void VppManager::handle_interface_event(VOM::interface::events_cmd *e)
+{
+    if (stopping) return;
+    taskQueue.dispatch("InterfaceEvent",
+                       bind(&VppManager::handleInterfaceEvent,
+                            this, e));
+}
+
+void VppManager::handle_interface_stat(VOM::interface::stats_cmd *e)
+{
+    if (stopping) return;
+    taskQueue.dispatch("InterfaceStat",
+                       bind(&VppManager::handleInterfaceStat,
+                            this, e));
+}
+
+void VppManager::handle_dhcp_event(VOM::dhcp_config::events_cmd *e)
+{
+    if (stopping) return;
+    taskQueue.dispatch("dhcp-config-event",
+                       bind(&VppManager::handleDhcpEvent,
+                            this, e));
+}
+
+void VppManager::configUpdated(const opflex::modb::URI& configURI) {
+    if (stopping) return;
+    agent.getAgentIOService()
+        .dispatch(bind(&VppManager::handleConfigUpdate, this, configURI));
+}
+
+void VppManager::portStatusUpdate(const string& portName,
+                                  uint32_t portNo, bool fromDesc) {
+    if (stopping) return;
+    agent.getAgentIOService()
+        .dispatch(bind(&VppManager::handlePortStatusUpdate, this,
+                       portName, portNo));
+}
+
+void VppManager::peerStatusUpdated(const std::string&, int,
+                                   PeerStatus peerStatus) {
+    if (stopping) return;
+}
+
+bool VppManager::getGroupForwardingInfo(const URI& epgURI, uint32_t& vnid,
+                                        optional<URI>& rdURI,
+                                        uint32_t& rdId,
+                                        optional<URI>& bdURI,
+                                        uint32_t& bdId,
+                                        optional<URI>& fdURI,
+                                        uint32_t& fdId) {
+    PolicyManager& polMgr = agent.getPolicyManager();
+    optional<uint32_t> epgVnid = polMgr.getVnidForGroup(epgURI);
+    if (!epgVnid) {
+        return false;
+    }
+    vnid = epgVnid.get();
+
+    optional<shared_ptr<RoutingDomain> > epgRd = polMgr.getRDForGroup(epgURI);
+    optional<shared_ptr<BridgeDomain> > epgBd = polMgr.getBDForGroup(epgURI);
+    optional<shared_ptr<FloodDomain> > epgFd = polMgr.getFDForGroup(epgURI);
+    if (!epgRd && !epgBd && !epgFd) {
+        return false;
     }
 
-    void VppManager::enableConnTrack() {
-        conntrackEnabled = true;
+    bdId = 0;
+    if (epgBd) {
+        bdURI = epgBd.get()->getURI();
+        bdId = getId(BridgeDomain::CLASS_ID, bdURI.get());
     }
-
-    void VppManager::endpointUpdated(const std::string& uuid) {
-        if (stopping) return;
-
-        taskQueue.dispatch(uuid,
-                           bind(&VppManager::handleEndpointUpdate, this, uuid));
+    fdId = 0;
+    if (epgFd) {
+        fdURI = epgFd.get()->getURI();
+        fdId = getId(FloodDomain::CLASS_ID, fdURI.get());
     }
-
-    void VppManager::serviceUpdated(const std::string& uuid) {
-        if (stopping) return;
-
-        taskQueue.dispatch(uuid,
-                           bind(&VppManager::handleAnycastServiceUpdate,
-                                this, uuid));
+    rdId = 0;
+    if (epgRd) {
+        rdURI = epgRd.get()->getURI();
+        rdId = getId(RoutingDomain::CLASS_ID, rdURI.get());
     }
-
-    void VppManager::rdConfigUpdated(const opflex::modb::URI& rdURI) {
-        domainUpdated(RoutingDomain::CLASS_ID, rdURI);
-    }
-
-    void VppManager::egDomainUpdated(const opflex::modb::URI& egURI) {
-        if (stopping) return;
-
-        taskQueue.dispatch(egURI.toString(),
-                           bind(&VppManager::handleEndpointGroupDomainUpdate,
-                                this, egURI));
-    }
-
-    void VppManager::domainUpdated(class_id_t cid, const URI& domURI) {
-        if (stopping) return;
-
-        taskQueue.dispatch(domURI.toString(),
-                           bind(&VppManager::handleDomainUpdate,
-                                this, cid, domURI));
-    }
-
-    void VppManager::secGroupSetUpdated(const EndpointListener::uri_set_t& secGrps) {
-        if (stopping) return;
-        taskQueue.dispatch("setSecGrp:",
-                            std::bind(&VppManager::handleSecGrpSetUpdate,
-                                      this, secGrps));
-    }
-
-    void VppManager::secGroupUpdated(const opflex::modb::URI& uri) {
-        if (stopping) return;
-        taskQueue.dispatch("secGrp:",
-                           std::bind(&VppManager::handleSecGrpUpdate,
-                                     this, uri));
-    }
-
-    void VppManager::contractUpdated(const opflex::modb::URI& contractURI) {
-        if (stopping) return;
-        taskQueue.dispatch(contractURI.toString(),
-                           bind(&VppManager::handleContractUpdate,
-                                this, contractURI));
-    }
-
-    void VppManager::handle_interface_event(VOM::interface::events_cmd *e)
-    {
-        if (stopping) return;
-        taskQueue.dispatch("InterfaceEvent",
-                           bind(&VppManager::handleInterfaceEvent,
-                                this, e));
-    }
-
-    void VppManager::handle_interface_stat(VOM::interface::stats_cmd *e)
-    {
-        if (stopping) return;
-        taskQueue.dispatch("InterfaceStat",
-                           bind(&VppManager::handleInterfaceStat,
-                                this, e));
-    }
-
-    void VppManager::handle_dhcp_event(VOM::dhcp_config::events_cmd *e)
-    {
-        if (stopping) return;
-        taskQueue.dispatch("dhcp-config-event",
-                           bind(&VppManager::handleDhcpEvent,
-                                this, e));
-    }
-
-    void VppManager::configUpdated(const opflex::modb::URI& configURI) {
-        if (stopping) return;
-        agent.getAgentIOService()
-            .dispatch(bind(&VppManager::handleConfigUpdate, this, configURI));
-    }
-
-    void VppManager::portStatusUpdate(const string& portName,
-                                      uint32_t portNo, bool fromDesc) {
-        if (stopping) return;
-        agent.getAgentIOService()
-            .dispatch(bind(&VppManager::handlePortStatusUpdate, this,
-                           portName, portNo));
-    }
-
-    void VppManager::peerStatusUpdated(const std::string&, int,
-                                       PeerStatus peerStatus) {
-        if (stopping || isSyncing) return;
-    }
-
-    bool VppManager::getGroupForwardingInfo(const URI& epgURI, uint32_t& vnid,
-                                            optional<URI>& rdURI,
-                                            uint32_t& rdId,
-                                            optional<URI>& bdURI,
-                                            uint32_t& bdId,
-                                            optional<URI>& fdURI,
-                                            uint32_t& fdId) {
-        PolicyManager& polMgr = agent.getPolicyManager();
-        optional<uint32_t> epgVnid = polMgr.getVnidForGroup(epgURI);
-        if (!epgVnid) {
-            return false;
-        }
-        vnid = epgVnid.get();
-
-        optional<shared_ptr<RoutingDomain> > epgRd = polMgr.getRDForGroup(epgURI);
-        optional<shared_ptr<BridgeDomain> > epgBd = polMgr.getBDForGroup(epgURI);
-        optional<shared_ptr<FloodDomain> > epgFd = polMgr.getFDForGroup(epgURI);
-        if (!epgRd && !epgBd && !epgFd) {
-            return false;
-        }
-
-        bdId = 0;
-        if (epgBd) {
-            bdURI = epgBd.get()->getURI();
-            bdId = getId(BridgeDomain::CLASS_ID, bdURI.get());
-        }
-        fdId = 0;
-        if (epgFd) {    // FD present -> flooding is desired
-            if (floodScope == ENDPOINT_GROUP) {
-                fdURI = epgURI;
-            } else  {
-                fdURI = epgFd.get()->getURI();
-            }
-            fdId = getId(FloodDomain::CLASS_ID, fdURI.get());
-        }
-        rdId = 0;
-        if (epgRd) {
-            rdURI = epgRd.get()->getURI();
-            rdId = getId(RoutingDomain::CLASS_ID, rdURI.get());
-        }
-        return true;
-    }
+    return true;
+}
 
 void VppManager::handleEndpointUpdate(const string& uuid) {
 
@@ -470,7 +430,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
      * At the end of processing we want all the state realted to this endpint,
      * that we don't touch here, gone.
      */
-    VOM::OM::mark(uuid);
+    VOM::OM::mark_n_sweep ms(uuid);
 
     const Endpoint& endPoint = *epWrapper.get();
     const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
@@ -481,7 +441,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     uint32_t epgVnid, rdId, bdId, fgrpId;
     optional<URI> fgrpURI, bdURI, rdURI;
     if (!getGroupForwardingInfo(epgURI.get(), epgVnid, rdURI,
-                            rdId, bdURI, bdId, fgrpURI, fgrpId)) {
+                                rdId, bdURI, bdId, fgrpURI, fgrpId)) {
         return;
     }
 
@@ -503,14 +463,14 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     /**
      * We are interested in getting interface stats from VPP
      */
-    std::shared_ptr<VOM::cmd> itfstats(new VOM::interface::stats_cmd(*this, std::vector<VOM::handle_t>{itf.handle().value()}));
+    std::shared_ptr<VOM::cmd> itfstats(new VOM::interface::stats_cmd(*this, std::vector<VOM::handle_t>{itf.handle()}));
 
     VOM::HW::enqueue(itfstats);
     m_cmds.push_back(itfstats);
 
     VOM::interface itftap("tap-"+vppInterfaceName.get(),
-                       VOM::interface::type_t::TAP,
-                       VOM::interface::admin_state_t::UP);
+                          VOM::interface::type_t::TAP,
+                          VOM::interface::admin_state_t::UP);
     VOM::OM::write(uuid, itftap);
 
     VOM::interface_span itfSpan(itf, itftap, VOM::interface_span::state_t::RX_ENABLED);
@@ -678,26 +638,10 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
             ->getBcastFloodMode(BcastFloodModeEnumT::CONST_NORMAL);
 
         VOM::bridge_domain bd(fgrpId);
-
-        if (VOM::rc_t::OK != VOM::OM::write(uuid, bd))
-        {
-            LOG(ERROR) << "VppApi did not create bridge: "
-                       << *fd.get()->getName()
-                       << " for port: "
-                       << vppInterfaceName.get();
-            return;
-        }
+        VOM::OM::write(uuid, bd);
 
         VOM::l2_binding l2itf(itf, bd);
-
-        if (VOM::rc_t::OK != VOM::OM::write(uuid, l2itf))
-        {
-            LOG(ERROR) << "VppApi did not set bridge: "
-                       << *fd.get()->getName()
-                       << " for port: "
-                       << vppInterfaceName.get();
-            return;
-        }
+        VOM::OM::write(uuid, l2itf);
 
         if (hasMac)
         {
@@ -740,647 +684,492 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                 VOM::neighbour ne(itf, {macAddr}, ipAddr);
                 VOM::OM::write(uuid, ne);
             }
-
-            /*
-             * If the virtual router is enabled, add Floating IP mappings, a.k.a. NAT
-             */
-            uint8_t routingMode =
-                agent.getPolicyManager().getEffectiveRoutingMode(epgURI.get());
-
-            if (m_vr && routingMode == RoutingModeEnumT::CONST_ENABLED) {
-                // IP address mappings
-                for(const Endpoint::IPAddressMapping& ipm :
-                        endPoint.getIPAddressMappings()) {
-                    if (!ipm.getMappedIP() || !ipm.getEgURI())
-                        continue;
-
-                    address mappedIp =
-                        address::from_string(ipm.getMappedIP().get(), ec);
-                    if (ec) continue;
-
-                    address floatingIp;
-                    if (ipm.getFloatingIP()) {
-                        floatingIp =
-                            address::from_string(ipm.getFloatingIP().get(), ec);
-                        if (ec) continue;
-                        if (floatingIp.is_v4() != mappedIp.is_v4()) continue;
-
-                        if (floatingIp.is_v4()) {
-                            /*
-                             * A static binding of the inside (mapped) to outside (floating)
-                             */
-                            nat_static ns(rd, mappedIp, floatingIp.to_v4());
-                            VOM::OM::write(uuid, ns);
-
-                            /*
-                             * the VM's interface is the inside
-                             */
-                            nat_binding nb_in(itf, direction_t::INPUT,
-                                              l3_proto_t::IPV4,
-                                              nat_binding::zone_t::INSIDE);
-                            VOM::OM::write(uuid, nb_in);
-
-                            /*
-                             * and the BVI in the BD is the outside.
-                             */
-                            VOM::interface bvi("bvi-" + std::to_string(bd.id()),
-                                               VOM::interface::type_t::BVI,
-                                               VOM::interface::admin_state_t::UP,
-                                               rd);
-                            VOM::OM::write(uuid, bvi);
-
-                            nat_binding nb_out(itf, direction_t::INPUT,
-                                               l3_proto_t::IPV4,
-                                               nat_binding::zone_t::OUTSIDE);
-                            VOM::OM::write(uuid, nb_out);
-                        }
-                    }
-                }
-            }
         }
     }
 
     /*
-     * That's all folks ...
+     * That's all folks ... destructor of mark_n_sweep calls the
+     * sweep for the stale state
      */
-    VOM::OM::sweep(uuid);
 }
 
-    void VppManager::handleAnycastServiceUpdate(const string& uuid) {
-        LOG(DEBUG) << "Updating anycast service " << uuid;
+void VppManager::handleEndpointGroupDomainUpdate(const URI& epgURI)
+{
+    LOG(DEBUG) << "Updating endpoint-group " << epgURI;
 
-    }
+    const string& epg_uuid = epgURI.toString();
+    PolicyManager &pm = agent.getPolicyManager();
 
-    void VppManager::updateEPGFlood(const URI& epgURI, uint32_t epgVnid,
-                                    uint32_t fgrpId, address epgTunDst) {
-        LOG(DEBUG) << "Updating EPGFlood " << fgrpId;
-    }
-
-
-    void VppManager::handleEndpointGroupDomainUpdate(const URI& epgURI)
+    if (!agent.getPolicyManager().groupExists(epgURI))
     {
-        LOG(DEBUG) << "Updating endpoint-group " << epgURI;
-
-        const string& epg_uuid = epgURI.toString();
-        PolicyManager &pm = agent.getPolicyManager();
-
-        if (!agent.getPolicyManager().groupExists(epgURI))
-        {
-            VOM::OM::remove(epg_uuid);
-            return;
-        }
-        uint32_t epgVnid, rdId, bdId, fgrpId;
-        optional<URI> fgrpURI, bdURI, rdURI;
-        if (!getGroupForwardingInfo(epgURI, epgVnid, rdURI,
-                                    rdId, bdURI, bdId, fgrpURI, fgrpId)) {
-            return;
-        }
-
-        /*
-         * Mark all of this EPG's state stale.
-         */
-        VOM::OM::mark(epg_uuid);
-
-        /*
-         * Construct the BridgeDomain
-         */
-        VOM::bridge_domain bd(fgrpId);
-
-        VOM::OM::write(epg_uuid, bd);
-
-        /*
-         * Construct the encap-link
-         */
-        std::shared_ptr<VOM::interface> encap_link(m_uplink.mk_interface(epg_uuid, epgVnid));
-
-        /*
-         * Add the encap-link to the BD
-         *
-         * If the encap link is a VLAN, then set the pop VTR operation on the
-         * link so that the VLAN tag is correctly pop/pushed on rx/tx resp.
-         */
-        VOM::l2_binding l2(*encap_link, bd);
-        if (VOM::interface::type_t::VXLAN != encap_link->type()) {
-            l2.set(l2_binding::l2_vtr_op_t::L2_VTR_POP_1, epgVnid);
-        }
-        VOM::OM::write(epg_uuid, l2);
-
-        /*
-         * Add the BVIs to the BD
-         */
-        optional<shared_ptr<RoutingDomain>> epgRd = pm.getRDForGroup(epgURI);
-
-        VOM::route_domain rd(rdId);
-        VOM::OM::write(epg_uuid, rd);
-
-        updateBVIs(epgURI, bd, rd, encap_link);
-
-        /*
-         * Sweep the remaining EPG's state
-         */
-        VOM::OM::sweep(epg_uuid);
+        VOM::OM::remove(epg_uuid);
+        return;
+    }
+    uint32_t epgVnid, rdId, bdId, fgrpId;
+    optional<URI> fgrpURI, bdURI, rdURI;
+    if (!getGroupForwardingInfo(epgURI, epgVnid, rdURI,
+                                rdId, bdURI, bdId, fgrpURI, fgrpId)) {
+        return;
     }
 
-    void VppManager::updateBVIs(const URI& epgURI,
-                                VOM::bridge_domain &bd,
-                                const VOM::route_domain &rd,
-                                std::shared_ptr<VOM::interface> encap_link)
+    /*
+     * Mark all of this EPG's state stale.
+     */
+    VOM::OM::mark(epg_uuid);
+
+    /*
+     * Construct the BridgeDomain
+     */
+    VOM::bridge_domain bd(fgrpId);
+
+    VOM::OM::write(epg_uuid, bd);
+
+    /*
+     * Construct the encap-link
+     */
+    std::shared_ptr<VOM::interface> encap_link(m_uplink.mk_interface(epg_uuid, epgVnid));
+
+    /*
+     * Add the encap-link to the BD
+     *
+     * If the encap link is a VLAN, then set the pop VTR operation on the
+     * link so that the VLAN tag is correctly pop/pushed on rx/tx resp.
+     */
+    VOM::l2_binding l2(*encap_link, bd);
+    if (VOM::interface::type_t::VXLAN != encap_link->type()) {
+        l2.set(l2_binding::l2_vtr_op_t::L2_VTR_POP_1, epgVnid);
+    }
+    VOM::OM::write(epg_uuid, l2);
+
+    /*
+     * Add the BVIs to the BD
+     */
+    optional<shared_ptr<RoutingDomain>> epgRd = pm.getRDForGroup(epgURI);
+
+    VOM::route_domain rd(rdId);
+    VOM::OM::write(epg_uuid, rd);
+
+    updateBVIs(epgURI, bd, rd, encap_link);
+
+    /*
+     * Sweep the remaining EPG's state
+     */
+    VOM::OM::sweep(epg_uuid);
+}
+
+void VppManager::updateBVIs(const URI& epgURI,
+                            VOM::bridge_domain &bd,
+                            const VOM::route_domain &rd,
+                            std::shared_ptr<VOM::interface> encap_link)
+{
+    LOG(DEBUG) << "Updating BVIs";
+
+    const string& epg_uuid = epgURI.toString();
+    PolicyManager::subnet_vector_t subnets;
+    agent.getPolicyManager().getSubnetsForGroup(epgURI, subnets);
+
+    /*
+     * Create a BVI interface for the EPG and add it to the bridge-domain
+     */
+    VOM::interface bvi("bvi-" + std::to_string(bd.id()),
+                       VOM::interface::type_t::BVI,
+                       VOM::interface::admin_state_t::UP,
+                       rd);
+    if (m_vr)
     {
-        LOG(DEBUG) << "Updating BVIs";
-
-        const string& epg_uuid = epgURI.toString();
-        PolicyManager::subnet_vector_t subnets;
-        agent.getPolicyManager().getSubnetsForGroup(epgURI, subnets);
-
         /*
-         * Create a BVI interface for the EPG and add it to the bridge-domain
+         * Set the BVI's MAC address to the Virtual Router
+         * address, so packets destined to the VR are handled
+         * by layer 3.
          */
-        VOM::interface bvi("bvi-" + std::to_string(bd.id()),
-                           VOM::interface::type_t::BVI,
-                           VOM::interface::admin_state_t::UP,
-                           rd);
-        if (m_vr)
+        bvi.set(m_vr->mac());
+    }
+    VOM::OM::write(epg_uuid, bvi);
+
+    VOM::l2_binding l2(bvi, bd);
+    VOM::OM::write(epg_uuid, l2);
+
+    for (shared_ptr<Subnet>& sn : subnets)
+    {
+        optional<address> routerIp =
+            PolicyManager::getRouterIpForSubnet(*sn);
+
+        if (routerIp)
         {
+            boost::asio::ip::address raddr = routerIp.get();
             /*
-             * Set the BVI's MAC address to the Virtual Router
-             * address, so packets destined to the VR are handled
-             * by layer 3.
+             * apply the host prefix on the BVI
+             * and add an entry into the ARP Table for it.
              */
-            bvi.set(m_vr->mac());
-        }
-        VOM::OM::write(epg_uuid, bvi);
+            VOM::route::prefix_t host_pfx(raddr);
+            VOM::l3_binding l3(bvi, host_pfx);
+            VOM::OM::write(epg_uuid, l3);
 
-        VOM::l2_binding l2(bvi, bd);
-        VOM::OM::write(epg_uuid, l2);
+            VOM::bridge_domain_arp_entry bae(bd,
+                                             bvi.l2_address().to_mac(),
+                                             raddr);
+            VOM::OM::write(epg_uuid, bae);
 
-        for (shared_ptr<Subnet>& sn : subnets)
-        {
-            optional<address> routerIp =
-                PolicyManager::getRouterIpForSubnet(*sn);
-
-            if (routerIp)
-            {
-                boost::asio::ip::address raddr = routerIp.get();
-                /*
-                 * apply the host prefix on the BVI
-                 * and add an entry into the ARP Table for it.
-                 */
-                VOM::route::prefix_t host_pfx(raddr);
-                VOM::l3_binding l3(bvi, host_pfx);
-                VOM::OM::write(epg_uuid, l3);
-
-                VOM::bridge_domain_arp_entry bae(bd,
-                                                 bvi.l2_address().to_mac(),
-                                                 raddr);
-                VOM::OM::write(epg_uuid, bae);
-
-                /*
-                 * add the subnet as a DVR route, so all other EPs will be
-                 * L3-bridged to the uplink
-                 */
-                VOM::route::prefix_t subnet_pfx(raddr, sn->getPrefixLen().get());
-                VOM::route::path dvr_path(*encap_link,
-                                          VOM::nh_proto_t::ETHERNET);
-                VOM::route::ip_route subnet_route(rd, subnet_pfx);
-                subnet_route.add(dvr_path);
-                VOM::OM::write(epg_uuid, subnet_route);
-            }
+            /*
+             * add the subnet as a DVR route, so all other EPs will be
+             * L3-bridged to the uplink
+             */
+            VOM::route::prefix_t subnet_pfx(raddr, sn->getPrefixLen().get());
+            VOM::route::path dvr_path(*encap_link,
+                                      VOM::nh_proto_t::ETHERNET);
+            VOM::route::ip_route subnet_route(rd, subnet_pfx);
+            subnet_route.add(dvr_path);
+            VOM::OM::write(epg_uuid, subnet_route);
         }
     }
+}
 
-    void VppManager::updateGroupSubnets(const URI& egURI, uint32_t bdId,
-                                        uint32_t rdId) {
-        LOG(DEBUG) << "Updating GroupSubnets bd: " << bdId << " rd: " << rdId;
+void VppManager::handleRoutingDomainUpdate(const URI& rdURI) {
+    optional<shared_ptr<RoutingDomain > > rd =
+        RoutingDomain::resolve(agent.getFramework(), rdURI);
+
+    if (!rd) {
+        LOG(DEBUG) << "Cleaning up for RD: " << rdURI;
+        idGen.erase(getIdNamespace(RoutingDomain::CLASS_ID), rdURI.toString());
+        return;
     }
+    LOG(DEBUG) << "Updating routing domain " << rdURI;
+}
 
-    void VppManager::handleRoutingDomainUpdate(const URI& rdURI) {
-        optional<shared_ptr<RoutingDomain > > rd =
-            RoutingDomain::resolve(agent.getFramework(), rdURI);
+void VppManager::handleDomainUpdate(class_id_t cid, const URI& domURI) {
 
-        if (!rd) {
-            LOG(DEBUG) << "Cleaning up for RD: " << rdURI;
-            idGen.erase(getIdNamespace(RoutingDomain::CLASS_ID), rdURI.toString());
-            return;
+    switch (cid) {
+    case RoutingDomain::CLASS_ID:
+        handleRoutingDomainUpdate(domURI);
+        break;
+    case Subnet::CLASS_ID:
+        if (!Subnet::resolve(agent.getFramework(), domURI)) {
+            LOG(DEBUG) << "Cleaning up for Subnet: " << domURI;
         }
-        LOG(DEBUG) << "Updating routing domain " << rdURI;
-    }
-
-    void
-    VppManager::handleDomainUpdate(class_id_t cid, const URI& domURI) {
-
-        switch (cid) {
-        case RoutingDomain::CLASS_ID:
-            handleRoutingDomainUpdate(domURI);
-            break;
-        case Subnet::CLASS_ID:
-            if (!Subnet::resolve(agent.getFramework(), domURI)) {
-                LOG(DEBUG) << "Cleaning up for Subnet: " << domURI;
-            }
-            break;
-        case BridgeDomain::CLASS_ID:
-            if (!BridgeDomain::resolve(agent.getFramework(), domURI)) {
-                LOG(DEBUG) << "Cleaning up for BD: " << domURI;
-                idGen.erase(getIdNamespace(cid), domURI.toString());
-            }
-            break;
-        case FloodDomain::CLASS_ID:
-            if (!FloodDomain::resolve(agent.getFramework(), domURI)) {
-                LOG(DEBUG) << "Cleaning up for FD: " << domURI;
-                idGen.erase(getIdNamespace(cid), domURI.toString());
-            }
-            break;
-        case FloodContext::CLASS_ID:
-            if (!FloodContext::resolve(agent.getFramework(), domURI)) {
-                LOG(DEBUG) << "Cleaning up for FloodContext: " << domURI;
-                if (removeFromMulticastList(domURI))
-                    multicastGroupsUpdated();
-            }
-            break;
-        case L3ExternalNetwork::CLASS_ID:
-            if (!L3ExternalNetwork::resolve(agent.getFramework(), domURI)) {
-                LOG(DEBUG) << "Cleaning up for L3ExtNet: " << domURI;
-                idGen.erase(getIdNamespace(cid), domURI.toString());
-            }
-            break;
+        break;
+    case BridgeDomain::CLASS_ID:
+        if (!BridgeDomain::resolve(agent.getFramework(), domURI)) {
+            LOG(DEBUG) << "Cleaning up for BD: " << domURI;
+            idGen.erase(getIdNamespace(cid), domURI.toString());
         }
-        LOG(DEBUG) << "Updating domain " << domURI;
+        break;
+    case FloodDomain::CLASS_ID:
+        if (!FloodDomain::resolve(agent.getFramework(), domURI)) {
+            LOG(DEBUG) << "Cleaning up for FD: " << domURI;
+            idGen.erase(getIdNamespace(cid), domURI.toString());
+        }
+        break;
+    case FloodContext::CLASS_ID:
+        if (!FloodContext::resolve(agent.getFramework(), domURI)) {
+            LOG(DEBUG) << "Cleaning up for FloodContext: " << domURI;
+        }
+        break;
+    case L3ExternalNetwork::CLASS_ID:
+        if (!L3ExternalNetwork::resolve(agent.getFramework(), domURI)) {
+            LOG(DEBUG) << "Cleaning up for L3ExtNet: " << domURI;
+            idGen.erase(getIdNamespace(cid), domURI.toString());
+        }
+        break;
     }
+    LOG(DEBUG) << "Updating domain " << domURI;
+}
 
-    void
-    VppManager::handleInterfaceEvent(VOM::interface::events_cmd *e)
+void VppManager::handleInterfaceEvent(VOM::interface::events_cmd *e)
+{
+    LOG(DEBUG) << "Interface Event: " << *e;
+
+    std::lock_guard<VOM::interface::events_cmd> lg(*e);
+
+    for (auto &msg : *e)
     {
-        LOG(DEBUG) << "Interface Event: " << *e;
+        auto &payload = msg.get_payload();
 
-        std::lock_guard<VOM::interface::events_cmd> lg(*e);
+        VOM::handle_t handle(payload.sw_if_index);
+        std::shared_ptr<VOM::interface> sp = VOM::interface::find(handle);
 
-        for (auto &msg : *e)
+        if (sp)
         {
-            auto &payload = msg.get_payload();
+            VOM::interface::oper_state_t oper_state =
+                VOM::interface::oper_state_t::from_int(payload.link_up_down);
 
-            VOM::handle_t handle(payload.sw_if_index);
+            LOG(DEBUG) << "Interface Event: " << sp->to_string()
+                       << " state: " << oper_state.to_string();
+
+            sp->set(oper_state);
+        }
+    }
+
+    e->flush();
+}
+
+void VppManager::handleInterfaceStat(VOM::interface::stats_cmd *e)
+{
+    LOG(DEBUG) << "Interface Stat: " << *e;
+
+    std::lock_guard<VOM::interface::stats_cmd> lg(*e);
+
+    for (auto &msg : *e)
+    {
+        auto &payload = msg.get_payload();
+
+        for (int i=0; i < payload.count; ++i) {
+            auto &data = payload.data[i];
+
+            VOM::handle_t handle(data.sw_if_index);
             std::shared_ptr<VOM::interface> sp = VOM::interface::find(handle);
-
-            if (sp)
-            {
-                VOM::interface::oper_state_t oper_state =
-                    VOM::interface::oper_state_t::from_int(payload.link_up_down);
-
-                LOG(DEBUG) << "Interface Event: " << sp->to_string()
-                           << " state: " << oper_state.to_string();
-
-                sp->set(oper_state);
-            }
-        }
-
-        e->flush();
-    }
-
-    void
-    VppManager::handleInterfaceStat(VOM::interface::stats_cmd *e)
-    {
-        LOG(DEBUG) << "Interface Stat: " << *e;
-
-        std::lock_guard<VOM::interface::stats_cmd> lg(*e);
-
-        for (auto &msg : *e)
-            {
-                auto &payload = msg.get_payload();
-
-                for (int i=0; i < payload.count; ++i) {
-                    auto &data = payload.data[i];
-
-                    VOM::handle_t handle(data.sw_if_index);
-                    std::shared_ptr<VOM::interface> sp = VOM::interface::find(handle);
-                    LOG(INFO) << "Interface Stat: " << sp->to_string()
-                               << " stat rx_packets: " << data.rx_packets
-                              << " stat rx_bytes: " << data.rx_bytes
-                              << " stat tx_packets: " << data.tx_packets
-                              << " stat tx_bytes: " << data.tx_bytes;
-                }
-            }
-
-        e->flush();
-    }
-
-    void
-    VppManager::handleDhcpEvent(VOM::dhcp_config::events_cmd *e)
-    {
-        LOG(INFO) << "DHCP Event: " << *e;
-        m_uplink.handle_dhcp_event(e);
-    }
-
-    void
-    VppManager::updateEndpointFloodGroup(const opflex::modb::URI& fgrpURI,
-                                         const Endpoint& endPoint, uint32_t epPort,
-                                         bool isPromiscuous,
-                                         optional<shared_ptr<FloodDomain> >& fd) {
-        LOG(DEBUG) << "Updating domain " << fgrpURI;
-    }
-
-    void VppManager::removeEndpointFromFloodGroup(const std::string& epUUID) {
-        /*
-         * Remove the endpoint from the flood group (Bridge in VPP)
-         * Remove any configurations and flows from VPP
-         */
-        LOG(DEBUG) << "Removing EP from FD " << epUUID;
-    }
-
-    void
-    VppManager::handleContractUpdate(const opflex::modb::URI& contractURI) {
-        LOG(DEBUG) << "Updating contract " << contractURI;
-
-        const string& contractId = contractURI.toString();
-        PolicyManager& polMgr = agent.getPolicyManager();
-        if (!polMgr.contractExists(contractURI)) {  // Contract removed
-            idGen.erase(getIdNamespace(Contract::CLASS_ID), contractURI.toString());
-            return;
+            LOG(INFO) << "Interface Stat: " << sp->to_string()
+                      << " stat rx_packets: " << data.rx_packets
+                      << " stat rx_bytes: " << data.rx_bytes
+                      << " stat tx_packets: " << data.tx_packets
+                      << " stat tx_bytes: " << data.tx_bytes;
         }
     }
 
-    void VppManager::initPlatformConfig() {
+    e->flush();
+}
 
-        using namespace modelgbp::platform;
+void VppManager::handleDhcpEvent(VOM::dhcp_config::events_cmd *e)
+{
+    LOG(INFO) << "DHCP Event: " << *e;
+    m_uplink.handle_dhcp_event(e);
+}
 
-        optional<shared_ptr<Config> > config =
-            Config::resolve(agent.getFramework(),
-                            agent.getPolicyManager().getOpflexDomain());
+void VppManager::handleContractUpdate(const opflex::modb::URI& contractURI) {
+    LOG(DEBUG) << "Updating contract " << contractURI;
+
+    const string& contractId = contractURI.toString();
+    PolicyManager& polMgr = agent.getPolicyManager();
+    if (!polMgr.contractExists(contractURI)) {  // Contract removed
+        idGen.erase(getIdNamespace(Contract::CLASS_ID), contractURI.toString());
+        return;
+    }
+}
+
+void VppManager::initPlatformConfig() {
+
+    using namespace modelgbp::platform;
+
+    optional<shared_ptr<Config> > config =
+        Config::resolve(agent.getFramework(),
+                        agent.getPolicyManager().getOpflexDomain());
+}
+
+void VppManager::handleConfigUpdate(const opflex::modb::URI& configURI) {
+    LOG(DEBUG) << "Updating platform config " << configURI;
+
+    initPlatformConfig();
+
+    /**
+     * Now that we are known to be opflex connected,
+     * Scehdule a timer to sweep the state we read when we first connected
+     * to VPP.
+     */
+    m_sweep_timer.reset(new deadline_timer(agent.getAgentIOService()));
+    m_sweep_timer->expires_from_now(boost::posix_time::seconds(30));
+    m_sweep_timer->async_wait(bind(&VppManager::handleSweepTimer, this, error));
+}
+
+void VppManager::handlePortStatusUpdate(const string& portName,
+                                        uint32_t) {
+    LOG(DEBUG) << "Port-status update for " << portName;
+}
+
+typedef std::function<bool(opflex::ofcore::OFFramework&,
+                           const string&,
+                           const string&)> IdCb;
+
+static const IdCb ID_NAMESPACE_CB[] =
+{IdGenerator::uriIdGarbageCb<FloodDomain>,
+ IdGenerator::uriIdGarbageCb<BridgeDomain>,
+ IdGenerator::uriIdGarbageCb<RoutingDomain>,
+ IdGenerator::uriIdGarbageCb<Contract>,
+ IdGenerator::uriIdGarbageCb<L3ExternalNetwork>};
+
+
+const char * VppManager::getIdNamespace(class_id_t cid) {
+    const char *nmspc = NULL;
+    switch (cid) {
+    case RoutingDomain::CLASS_ID:   nmspc = ID_NMSPC_RD; break;
+    case BridgeDomain::CLASS_ID:    nmspc = ID_NMSPC_BD; break;
+    case FloodDomain::CLASS_ID:     nmspc = ID_NMSPC_FD; break;
+    case Contract::CLASS_ID:        nmspc = ID_NMSPC_CON; break;
+    case L3ExternalNetwork::CLASS_ID: nmspc = ID_NMSPC_EXTNET; break;
+    default:
+        assert(false);
+    }
+    return nmspc;
+}
+
+uint32_t VppManager::getId(class_id_t cid, const URI& uri) {
+    return idGen.getId(getIdNamespace(cid), uri.toString());
+}
+
+VPP::Uplink &VppManager::uplink()
+{
+    return m_uplink;
+}
+
+void VppManager::handleSecGrpUpdate(const opflex::modb::URI& uri) {
+    unordered_set<uri_set_t> secGrpSets;
+    agent.getEndpointManager().getSecGrpSetsForSecGrp(uri, secGrpSets);
+    for (const uri_set_t& secGrpSet : secGrpSets)
+        secGroupSetUpdated(secGrpSet);
+}
+
+void setParamUpdate(L24Classifier& cls, VOM::ACL::l3_rule& rule) {
+
+    using modelgbp::l4::TcpFlagsEnumT;
+
+    if (cls.isArpOpcSet()) {
+        rule.set_proto(cls.getArpOpc().get());
     }
 
-    void VppManager::handleConfigUpdate(const opflex::modb::URI& configURI) {
-        LOG(DEBUG) << "Updating platform config " << configURI;
+    if (cls.isProtSet()) {
+        rule.set_proto(cls.getProt(0));
 
-        initPlatformConfig();
-
-        /**
-         * Now that we are known to be opflex connected,
-         * Scehdule a timer to sweep the state we read when we first connected
-         * to VPP.
-         */
-        m_sweep_timer.reset(new deadline_timer(agent.getAgentIOService()));
-        m_sweep_timer->expires_from_now(boost::posix_time::seconds(30));
-        m_sweep_timer->async_wait(bind(&VppManager::handleSweepTimer, this, error));
-    }
-
-    void VppManager::handlePortStatusUpdate(const string& portName,
-                                            uint32_t) {
-        LOG(DEBUG) << "Port-status update for " << portName;
-    }
-
-    void VppManager::getGroupVnidAndRdId(const unordered_set<URI>& uris,
-                                         /* out */unordered_map<uint32_t, uint32_t>& ids) {
-        PolicyManager& pm = agent.getPolicyManager();
-        for (const URI& u : uris) {
-            optional<uint32_t> vnid = pm.getVnidForGroup(u);
-            optional<shared_ptr<RoutingDomain> > rd;
-            if (vnid) {
-                rd = pm.getRDForGroup(u);
-            } else {
-                rd = pm.getRDForL3ExtNet(u);
-                if (rd) {
-                    vnid = getExtNetVnid(u);
-                }
-            }
-            if (vnid && rd) {
-                ids[vnid.get()] = getId(RoutingDomain::CLASS_ID,
-                                        rd.get()->getURI());
-            }
-        }
-    }
-
-    typedef std::function<bool(opflex::ofcore::OFFramework&,
-                               const string&,
-                               const string&)> IdCb;
-
-    static const IdCb ID_NAMESPACE_CB[] =
-        {IdGenerator::uriIdGarbageCb<FloodDomain>,
-         IdGenerator::uriIdGarbageCb<BridgeDomain>,
-         IdGenerator::uriIdGarbageCb<RoutingDomain>,
-         IdGenerator::uriIdGarbageCb<Contract>,
-         IdGenerator::uriIdGarbageCb<L3ExternalNetwork>};
-
-
-    const char * VppManager::getIdNamespace(class_id_t cid) {
-        const char *nmspc = NULL;
-        switch (cid) {
-        case RoutingDomain::CLASS_ID:   nmspc = ID_NMSPC_RD; break;
-        case BridgeDomain::CLASS_ID:    nmspc = ID_NMSPC_BD; break;
-        case FloodDomain::CLASS_ID:     nmspc = ID_NMSPC_FD; break;
-        case Contract::CLASS_ID:        nmspc = ID_NMSPC_CON; break;
-        case L3ExternalNetwork::CLASS_ID: nmspc = ID_NMSPC_EXTNET; break;
-        default:
-            assert(false);
-        }
-        return nmspc;
-    }
-
-    uint32_t VppManager::getId(class_id_t cid, const URI& uri) {
-        return idGen.getId(getIdNamespace(cid), uri.toString());
-    }
-
-    uint32_t VppManager::getExtNetVnid(const opflex::modb::URI& uri) {
-        // External networks are assigned private VNIDs that have bit 31 (MSB)
-        // set to 1. This is fine because legal VNIDs are 24-bits or less.
-        return (getId(L3ExternalNetwork::CLASS_ID, uri) | (1 << 31));
-    }
-
-    void VppManager::updateMulticastList(const optional<string>& mcastIp,
-                                         const URI& uri) {
-    }
-
-    bool VppManager::removeFromMulticastList(const URI& uri) {
-        return true;
-    }
-
-    static const std::string MCAST_QUEUE_ITEM("mcast-groups");
-
-    void VppManager::multicastGroupsUpdated() {
-        taskQueue.dispatch(MCAST_QUEUE_ITEM,
-                           bind(&VppManager::writeMulticastGroups, this));
-    }
-
-    void VppManager::writeMulticastGroups() {
-        if (mcastGroupFile == "") return;
-
-        pt::ptree tree;
-        pt::ptree groups;
-        for (MulticastMap::value_type& kv : mcastMap)
-            groups.push_back(std::make_pair("", pt::ptree(kv.first)));
-        tree.add_child("multicast-groups", groups);
-
-        try {
-            pt::write_json(mcastGroupFile, tree);
-        } catch (pt::json_parser_error e) {
-            LOG(ERROR) << "Could not write multicast group file "
-                       << e.what();
-        }
-    }
-
-    VPP::Uplink &VppManager::uplink()
-    {
-        return m_uplink;
-    }
-
-    void VppManager::handleSecGrpUpdate(const opflex::modb::URI& uri) {
-         unordered_set<uri_set_t> secGrpSets;
-         agent.getEndpointManager().getSecGrpSetsForSecGrp(uri, secGrpSets);
-         for (const uri_set_t& secGrpSet : secGrpSets)
-             secGroupSetUpdated(secGrpSet);
-    }
-
-    void setParamUpdate(L24Classifier& cls, VOM::ACL::l3_rule& rule) {
-
-        using modelgbp::l4::TcpFlagsEnumT;
-
-        if (cls.isArpOpcSet()) {
-            rule.set_proto(cls.getArpOpc().get());
+        if (cls.isSFromPortSet()) {
+            rule.set_src_from_port(cls.getSFromPort(0));
         }
 
-        if (cls.isProtSet()) {
-            rule.set_proto(cls.getProt(0));
+        if (cls.isSToPortSet()) {
+            rule.set_src_to_port(cls.getSToPort(0));
+        }
 
-	    if (cls.isSFromPortSet()) {
-                rule.set_src_from_port(cls.getSFromPort(0));
-            }
+        if (cls.isDFromPortSet()) {
+            rule.set_dst_from_port(cls.getDFromPort(0));
+        }
 
-            if (cls.isSToPortSet()) {
-                rule.set_src_to_port(cls.getSToPort(0));
-            }
+        if (cls.isDToPortSet()) {
+            rule.set_dst_to_port(cls.getDToPort(0));
+        }
 
-            if (cls.isDFromPortSet()) {
-                rule.set_dst_from_port(cls.getDFromPort(0));
-            }
-
-            if (cls.isDToPortSet()) {
-                rule.set_dst_to_port(cls.getDToPort(0));
-            }
-
-            if (6 == cls.getProt(0) &&  cls.isTcpFlagsSet()) {
-                rule.set_tcp_flags_mask(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
-                rule.set_tcp_flags_value(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
-            }
+        if (6 == cls.getProt(0) &&  cls.isTcpFlagsSet()) {
+            rule.set_tcp_flags_mask(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
+            rule.set_tcp_flags_value(cls.getTcpFlags(TcpFlagsEnumT::CONST_UNSPECIFIED));
         }
     }
+}
 
-    void VppManager::buildSecGrpSetUpdate(const uri_set_t& secGrps,
-                                          const std::string& secGrpId,
-                                          VOM::ACL::l3_list::rules_t& in_rules,
-                                          VOM::ACL::l3_list::rules_t& out_rules) {
-         LOG(DEBUG) << "Updating security group set";
+void VppManager::buildSecGrpSetUpdate(const uri_set_t& secGrps,
+                                      const std::string& secGrpId,
+                                      VOM::ACL::l3_list::rules_t& in_rules,
+                                      VOM::ACL::l3_list::rules_t& out_rules) {
+    LOG(DEBUG) << "Updating security group set";
 
-        if (agent.getEndpointManager().secGrpSetEmpty(secGrps)) {
-            VOM::OM::remove(secGrpId);
-            return;
-        }
+    if (agent.getEndpointManager().secGrpSetEmpty(secGrps)) {
+        VOM::OM::remove(secGrpId);
+        return;
+    }
 
-        for (const opflex::modb::URI& secGrp : secGrps) {
-            PolicyManager::rule_list_t rules;
-            agent.getPolicyManager().getSecGroupRules(secGrp, rules);
+    for (const opflex::modb::URI& secGrp : secGrps) {
+        PolicyManager::rule_list_t rules;
+        agent.getPolicyManager().getSecGroupRules(secGrp, rules);
 
-            for (shared_ptr<PolicyRule>& pc : rules) {
-                uint8_t dir = pc->getDirection();
-                const shared_ptr<L24Classifier>& cls = pc->getL24Classifier();
-                uint32_t priority = pc->getPriority();
-                uint16_t etherType = cls->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED);
-                VOM::ACL::action_t act = VOM::ACL::action_t::from_bool(pc->getAllow(),
-			       cls->getConnectionTracking(ConnTrackEnumT::CONST_NORMAL));
+        for (shared_ptr<PolicyRule>& pc : rules) {
+            uint8_t dir = pc->getDirection();
+            const shared_ptr<L24Classifier>& cls = pc->getL24Classifier();
+            uint32_t priority = pc->getPriority();
+            uint16_t etherType = cls->getEtherT(EtherTypeEnumT::CONST_UNSPECIFIED);
+            VOM::ACL::action_t act = VOM::ACL::action_t::from_bool(pc->getAllow(),
+                                                                   cls->getConnectionTracking(ConnTrackEnumT::CONST_NORMAL));
 
-                if (!pc->getRemoteSubnets().empty()) {
-                    boost::optional<const network::subnets_t&> remoteSubs;
-                    remoteSubs = pc->getRemoteSubnets();
-                    for (const network::subnet_t& sub : remoteSubs.get()) {
-		        bool is_v6 = boost::asio::ip::address::from_string(sub.first).is_v6();
-			route::prefix_t ip(sub.first, sub.second);
-                        route::prefix_t ip2(route::prefix_t::ZERO);
+            if (!pc->getRemoteSubnets().empty()) {
+                boost::optional<const network::subnets_t&> remoteSubs;
+                remoteSubs = pc->getRemoteSubnets();
+                for (const network::subnet_t& sub : remoteSubs.get()) {
+                    bool is_v6 = boost::asio::ip::address::from_string(sub.first).is_v6();
+                    route::prefix_t ip(sub.first, sub.second);
+                    route::prefix_t ip2(route::prefix_t::ZERO);
 
-                        if (etherType == EtherTypeEnumT::CONST_IPV4 ||
-			    etherType == EtherTypeEnumT::CONST_ARP || !is_v6) {
-			    ;
-                        }
-
-			if (etherType == EtherTypeEnumT::CONST_IPV6 && is_v6) {
-                            ip2 = route::prefix_t::ZEROv6;
-			}
-
-                        if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
-                            dir == DirectionEnumT::CONST_IN) {
-			    VOM::ACL::l3_rule rule(priority, act, ip, ip2);
-                            setParamUpdate(*cls, rule);
-                            in_rules.insert(rule);
-                        }
-                        if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
-                            dir == DirectionEnumT::CONST_OUT) {
-                            VOM::ACL::l3_rule rule(priority, act, ip2, ip);
-                            setParamUpdate(*cls, rule);
-                            out_rules.insert(rule);
-                        }
-		    }
-                } else {
-		    route::prefix_t srcIp(route::prefix_t::ZERO);
-		    route::prefix_t dstIp(route::prefix_t::ZERO);
-
-		    if (etherType == EtherTypeEnumT::CONST_IPV6) {
-                        srcIp = route::prefix_t::ZEROv6;
-			dstIp = route::prefix_t::ZEROv6;
+                    if (etherType == EtherTypeEnumT::CONST_IPV4 ||
+                        etherType == EtherTypeEnumT::CONST_ARP || !is_v6) {
+                        ;
                     }
 
-                    VOM::ACL::l3_rule rule(priority, act, srcIp, dstIp);
-		    setParamUpdate(*cls, rule);
+                    if (etherType == EtherTypeEnumT::CONST_IPV6 && is_v6) {
+                        ip2 = route::prefix_t::ZEROv6;
+                    }
+
                     if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
                         dir == DirectionEnumT::CONST_IN) {
+                        VOM::ACL::l3_rule rule(priority, act, ip, ip2);
+                        setParamUpdate(*cls, rule);
                         in_rules.insert(rule);
                     }
                     if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
                         dir == DirectionEnumT::CONST_OUT) {
+                        VOM::ACL::l3_rule rule(priority, act, ip2, ip);
+                        setParamUpdate(*cls, rule);
                         out_rules.insert(rule);
                     }
+                }
+            } else {
+                route::prefix_t srcIp(route::prefix_t::ZERO);
+                route::prefix_t dstIp(route::prefix_t::ZERO);
+
+                if (etherType == EtherTypeEnumT::CONST_IPV6) {
+                    srcIp = route::prefix_t::ZEROv6;
+                    dstIp = route::prefix_t::ZEROv6;
+                }
+
+                VOM::ACL::l3_rule rule(priority, act, srcIp, dstIp);
+                setParamUpdate(*cls, rule);
+                if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
+                    dir == DirectionEnumT::CONST_IN) {
+                    in_rules.insert(rule);
+                }
+                if (dir == DirectionEnumT::CONST_BIDIRECTIONAL ||
+                    dir == DirectionEnumT::CONST_OUT) {
+                    out_rules.insert(rule);
                 }
             }
         }
     }
+}
 
-    void VppManager::handleSecGrpSetUpdate(const uri_set_t& secGrps) {
+void VppManager::handleSecGrpSetUpdate(const uri_set_t& secGrps) {
 
-        LOG(DEBUG) << "Updating security group set";
-        VOM::ACL::l3_list::rules_t in_rules, out_rules;
-        const std::string secGrpId = getSecGrpSetId(secGrps);
-        std::shared_ptr<VOM::ACL::l3_list> in_acl, out_acl;
+    LOG(DEBUG) << "Updating security group set";
+    VOM::ACL::l3_list::rules_t in_rules, out_rules;
+    const std::string secGrpId = getSecGrpSetId(secGrps);
+    std::shared_ptr<VOM::ACL::l3_list> in_acl, out_acl;
 
-        buildSecGrpSetUpdate(secGrps, secGrpId, in_rules, out_rules);
+    buildSecGrpSetUpdate(secGrps, secGrpId, in_rules, out_rules);
 
-        if (in_rules.empty() && out_rules.empty())
-            return;
+    if (in_rules.empty() && out_rules.empty())
+        return;
+
+    if (!in_rules.empty()) {
+        VOM::ACL::l3_list inAcl(secGrpId + "in", in_rules);
+        in_acl = inAcl.singular();
+        VOM::OM::write(secGrpId, *in_acl);
+    }
+
+    if (!out_rules.empty()) {
+        VOM::ACL::l3_list outAcl(secGrpId + "out", out_rules);
+        out_acl = outAcl.singular();
+        VOM::OM::write(secGrpId, *out_acl);
+    }
+
+    EndpointManager& epMgr = agent.getEndpointManager();
+    std::unordered_set<std::string> eps;
+    epMgr.getEndpointsForSecGrps(secGrps, eps);
+
+    for (const std::string& uuid : eps) {
+        const Endpoint& endPoint = *epMgr.getEndpoint(uuid).get();
+        const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
+
+        std::shared_ptr<VOM::interface> itf = VOM::interface::find(vppInterfaceName.get());
 
         if (!in_rules.empty()) {
-            VOM::ACL::l3_list inAcl(secGrpId + "in", in_rules);
-            in_acl = inAcl.singular();
-            VOM::OM::write(secGrpId, *in_acl);
+            VOM::ACL::l3_binding in_binding(direction_t::INPUT, *itf, *in_acl);
+            VOM::OM::write(uuid, in_binding);
         }
-
         if (!out_rules.empty()) {
-            VOM::ACL::l3_list outAcl(secGrpId + "out", out_rules);
-            out_acl = outAcl.singular();
-            VOM::OM::write(secGrpId, *out_acl);
-        }
-
-        EndpointManager& epMgr = agent.getEndpointManager();
-        std::unordered_set<std::string> eps;
-        epMgr.getEndpointsForSecGrps(secGrps, eps);
-
-        for (const std::string& uuid : eps) {
-            const Endpoint& endPoint = *epMgr.getEndpoint(uuid).get();
-            const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
-
-            std::shared_ptr<VOM::interface> itf = VOM::interface::find(vppInterfaceName.get());
-
-            if (!in_rules.empty()) {
-                VOM::ACL::l3_binding in_binding(direction_t::INPUT, *itf, *in_acl);
-                VOM::OM::write(uuid, in_binding);
-            }
-            if (!out_rules.empty()) {
-                VOM::ACL::l3_binding out_binding(direction_t::OUTPUT, *itf, *out_acl);
-                VOM::OM::write(uuid, out_binding);
-            }
+            VOM::ACL::l3_binding out_binding(direction_t::OUTPUT, *itf, *out_acl);
+            VOM::OM::write(uuid, out_binding);
         }
     }
+}
 
 } // namespace ovsagent

@@ -38,10 +38,10 @@ AM_CPPFLAGS = $(BOOST_CPPFLAGS) \
 	-DLOCALSTATEDIR='"$(localstatedir)"'
 
 AM_LDFLAGS = $(BOOST_LDFLAGS)
+noinst_LTLIBRARIES = libagent_ovs.la
+COMMON_SHARED_LIBS =
 
 if RENDERER_OVS
-  noinst_LTLIBRARIES = libagent_ovs.la
-
   libagent_ovs_la_CFLAGS += \
 	$(libopenvswitch_CFLAGS) \
 	$(libofproto_CFLAGS)
@@ -69,15 +69,16 @@ if RENDERER_VPP
   AM_CPPFLAGS += \
 	-I/usr/include/vpp_plugins
 
-  noinst_LTLIBRARIES = libagent_ovs.la
   libagent_ovs_la_CFLAGS += \
         -I/usr/include/vpp_plugins \
-        -Wall
+        -Wall -Werror
 
-  VPPCLIENT_LIBS = \
+  COMMON_SHARED_LIBS += \
 	-lvom \
+	$(BOOST_SYSTEM_LIB)	\
 	-lvapiclient \
-	-lsvm
+	-lsvm \
+        -lpthread -lm -lrt
 
   libagent_ovs_la_CXXFLAGS += \
 	$(libopflex_CFLAGS) \
@@ -90,12 +91,11 @@ if RENDERER_VPP
 	$(libopflex_LIBS) 	\
 	$(libmodelgbp_LIBS)	\
 	$(libnl_nf_LIBS)	\
-	$(VPPCLIENT_LIBS)	\
 	-lboost_thread		\
 	$(BOOST_SYSTEM_LIB)	\
 	$(BOOST_FILESYSTEM_LIB)	\
 	$(BOOST_ASIO_LIB)	\
-	-lpthread -lm -lrt
+	$(COMMON_SHARED_LIBS)
 endif
 
 noinst_HEADERS = \
@@ -230,33 +230,27 @@ agent_ovs_CXXFLAGS = -DSYSCONFDIR='"$(sysconfdir)"' \
 	$(libmodelgbp_CFLAGS)
 agent_ovs_SOURCES = \
 	src/main.cpp
-
 agent_ovs_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIB) \
-	libagent_ovs.la
+	libagent_ovs.la \
+	$(COMMON_SHARED_LIBS)
 
 gbp_inspect_CXXFLAGS = -DSYSCONFDIR='"$(sysconfdir)"'
-
 gbp_inspect_SOURCES = \
 	src/gbp_inspect.cpp
-
-gbp_inspect_LDADD =
-if RENDERER_VPP
-gbp_inspect_LDADD += \
-	-lboost_thread
-endif
-
-gbp_inspect_LDADD += \
+gbp_inspect_LDADD = \
 	$(BOOST_IOSTREAMS_LIB) \
 	$(BOOST_PROGRAM_OPTIONS_LIB) \
-	libagent_ovs.la
+	libagent_ovs.la \
+	$(COMMON_SHARED_LIBS)
 
 mcast_daemon_CXXFLAGS = -DLOCALSTATEDIR='"$(localstatedir)"'
 mcast_daemon_SOURCES = \
 	src/mcast_daemon.cpp
 mcast_daemon_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIB) \
-	libagent_ovs.la
+	libagent_ovs.la \
+	$(COMMON_SHARED_LIBS)
 
 TESTS = agent_test
 noinst_PROGRAMS = $(TESTS) mock_server integration_test
@@ -332,7 +326,8 @@ agent_test_SOURCES = \
 
 agent_test_LDADD = \
 	$(BOOST_UNIT_TEST_FRAMEWORK_LIB) \
-	libagent_ovs.la
+	libagent_ovs.la \
+	$(COMMON_SHARED_LIBS)
 
 mock_server_CXXFLAGS = \
 	-I$(top_srcdir)/test/include \
@@ -343,7 +338,8 @@ mock_server_SOURCES = \
 	test/mock_server.cpp
 mock_server_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIB) \
-	libagent_ovs.la
+	libagent_ovs.la \
+	$(COMMON_SHARED_LIBS)
 
 agentconfdir=$(sysconfdir)/opflex-agent-ovs
 agentconf_DATA = opflex-agent-ovs.conf

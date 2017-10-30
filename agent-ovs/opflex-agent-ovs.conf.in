@@ -235,8 +235,6 @@
         // VPP Renderer
         // Example:
         // "vpp": {
-        //     "int-bridge-name": "vpp",
-        //     "access-bridge-name": "vpp",
         //     "inspect-socket": "/usr/local/var/run/opflex-agent-vpp-inspect.sock",
         //     "encap": {
         //         "vxlan" : {

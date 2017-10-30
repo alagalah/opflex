@@ -1,6 +1,6 @@
 /* -*- C++ -*-; c-basic-offset: 4; indent-tabs-mode: nil */
 /*
- * Copyright (c) 2014-2017 Cisco Systems, Inc. and others.  All rights reserved.
+ * Copyright (c) 2017 Cisco Systems, Inc. and others.  All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v1.0 which accompanies this distribution,
@@ -10,26 +10,28 @@
 #ifndef VPPAGENT_VPPMANAGER_H_
 #define VPPAGENT_VPPMANAGER_H_
 
-#include "Agent.h"
-#include "EndpointManager.h"
-#include "IdGenerator.h"
-#include "RDConfig.h"
-#include "TaskQueue.h"
-#include <opflex/ofcore/PeerStatusListener.h>
-
 #include <boost/asio/ip/address.hpp>
 #include <boost/optional.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
-#include <utility>
-#include <unordered_map>
-
-#include "VppUplink.hpp"
-#include "VppVirtualRouter.hpp"
 #include <vom/interface.hpp>
 #include <vom/dhcp_config.hpp>
 #include <vom/acl_list.hpp>
+
+#include <opflex/ofcore/PeerStatusListener.h>
+
+#include <utility>
+
+#include "Agent.h"
+#include "EndpointManager.h"
+#include "IdGenerator.h"
+#include "RDConfig.h"
+#include "TaskQueue.h"
+
+
+#include "VppUplink.h"
+#include "VppVirtualRouter.h"
 
 /*
  * Forward declare classes to reduce compile time coupling
@@ -72,7 +74,7 @@ public:
     /**
      * Module start
      */
-    void start(const std::string& name);
+    void start();
 
     /**
      * Installs listeners for receiving updates to MODB state.
@@ -85,32 +87,6 @@ public:
     void stop();
 
     /**
-     * Flooding scopes supported by the flow manager.
-     */
-    enum FloodScope {
-        /**
-         * Flood to all endpoints within a flood domain
-         */
-        FLOOD_DOMAIN,
-
-        /**
-         * Flood to endpoints only within an endpoint group
-         */
-        ENDPOINT_GROUP
-    };
-
-    /**
-     * Set the flood scope
-     * @param floodScope the flood scope
-     */
-    void setFloodScope(FloodScope floodScope);
-
-    /**
-     * Enable connection tracking support
-     */
-    void enableConnTrack();
-
-    /**
      * Enable or disable the virtual routing
      *
      * @param virtualRouterEnabled true to enable the router
@@ -121,29 +97,6 @@ public:
     void setVirtualRouter(bool virtualRouterEnabled,
                           bool routerAdv,
                           const std::string& mac);
-
-    /**
-     * Enable or disable the virtual DHCP server
-     *
-     * @param dhcpEnabled true to enable the server
-     * @param mac the MAC address to use as the dhcp MAC formatted as
-     * a colon-separated string of 6 hex-encoded bytes.
-     */
-    void setVirtualDHCP(bool dhcpEnabled,
-                        const std::string& mac);
-
-    /**
-     * Set the multicast group file
-     * @param mcastGroupFile The file where multicast group
-     * subscriptions will be written
-     */
-    void setMulticastGroupFile(const std::string& mcastGroupFile);
-
-    /**
-     * Get the DHCP MAC address as an array of 6 bytes
-     * @return the DHCP MAC
-     */
-    const uint8_t *getDHCPMacAddr() { return dhcpMac; }
 
     /* Interface: EndpointListener */
     virtual void endpointUpdated(const std::string& uuid);
@@ -180,19 +133,6 @@ public:
                                    PeerStatus peerStatus);
 
     /**
-     * Get the VNID and routing-domain ID for the specified endpoint
-     * groups or L3 external networks
-     *
-     * @param uris URIs of endpoint groups to search for
-     * @param ids Map of VNIDs-to-RoutingDomainID of the groups which
-     * have a VNID. Routing-domain ID is set to 0 if the group is not
-     * part of a routing-domain
-     */
-    void getGroupVnidAndRdId(
-        const std::unordered_set<opflex::modb::URI>& uris,
-        /* out */std::unordered_map<uint32_t, uint32_t>& ids);
-
-    /**
      * Get or generate a unique ID for a given object for use with flows.
      *
      * @param cid Class ID of the object
@@ -202,11 +142,8 @@ public:
     uint32_t getId(opflex::modb::class_id_t cid, const opflex::modb::URI& uri);
 
     /**
-     * Get the promiscuous-mode ID equivalent for a flood domain ID
-     * @param fgrpId the flood domain Id
+     * Return the uplink object
      */
-    static uint32_t getPromId(uint32_t fgrpId);
-
     VPP::Uplink &uplink();
 
 private:
@@ -216,13 +153,6 @@ private:
      * @param uuid UUID of the changed endpoint
      */
     void handleEndpointUpdate(const std::string& uuid);
-
-    /**
-     * Compare and update changes in an anycast service.
-     *
-     * @param uuid UUID of the changed anycast service
-     */
-    void handleAnycastServiceUpdate(const std::string& uuid);
 
     /**
      * Compare and update changes in an endpoint group.
@@ -297,36 +227,6 @@ private:
                     const VOM::route_domain &rd,
                     std::shared_ptr<VOM::interface> encap_link);
 
-
-    /**
-     * Associate an endpoint with a flood-group.
-     *
-     * @param fgrpURI URI of flood-group (flood-domain or endpoint-group)
-     * @param endpoint The endpoint to update
-     * @param epPort Port number of endpoint
-     * @param isPromiscuous whether the endpoint port is promiscuous
-     * @param fd Flood-domain to which the endpoint belongs
-     */
-    void updateEndpointFloodGroup(const opflex::modb::URI& fgrpURI,
-                                  const Endpoint& endPoint,
-                                  uint32_t epPort,
-                                  bool isPromiscuous,
-                                  boost::optional<std::shared_ptr<
-                                      modelgbp::gbp::FloodDomain> >& fd);
-
-    /**
-     * Dis-associate an endpoint from any flood-group.
-     *
-     * @param epUUID UUID of endpoint
-     */
-    void removeEndpointFromFloodGroup(const std::string& epUUID);
-
-    /*
-     * Map of endpoint to the port it is using.
-     */
-    typedef std::unordered_map<std::string,
-                               std::pair<uint32_t, bool> > Ep2PortMap;
-
     /**
      * Event listener override to get Interface events
      */
@@ -382,16 +282,20 @@ private:
      */
     void handleHWPollTimer(const boost::system::error_code& ec);
 
+    /**
+     * Referene to the uber-agent
+     */
     Agent& agent;
+
+    /**
+     * Refernece to the ID generator instance
+     */
     IdGenerator& idGen;
+
+    /**
+     * The internal task-queue for handling the async upates
+     */
     TaskQueue taskQueue;
-
-    FloodScope floodScope;
-
-    bool virtualDHCPEnabled;
-    bool conntrackEnabled;
-    uint8_t dhcpMac[6];
-    std::string mcastGroupFile;
 
     /**
      * Virtual Router Settings
@@ -419,55 +323,17 @@ private:
      */
     std::unique_ptr<boost::asio::deadline_timer> m_poll_timer;
 
-    /*
-     * Map of flood-group URI to the endpoints associated with it.
-     * The flood-group can either be a flood-domain or an endpoint-group
+    /**
+     * Return the namespace name from the ID
      */
-    typedef std::unordered_map<opflex::modb::URI, Ep2PortMap> FloodGroupMap;
-    FloodGroupMap floodGroupMap;
-
     const char * getIdNamespace(opflex::modb::class_id_t cid);
 
-    bool isSyncing;
-
-    uint32_t getExtNetVnid(const opflex::modb::URI& uri);
-
+    /**
+     * indicator this manager is stopping
+     */
     volatile bool stopping;
 
     void initPlatformConfig();
-
-    /* Set of URIs of managed objects */
-    typedef std::unordered_set<opflex::modb::URI> UriSet;
-    /* Map of multi-cast IP addresses to associated managed objects */
-    typedef std::unordered_map<std::string, UriSet> MulticastMap;
-    MulticastMap mcastMap;
-
-    /**
-     * Associate or disassociate a managed object with a multicast IP, and
-     * update the multicast group subscription if necessary.
-     * @param mcastIp The multicast IP to associate with; if unset disassociates
-     * any previous association
-     * @param uri URI of the managed object to associate to
-     */
-    void updateMulticastList(const boost::optional<std::string>& mcastIp,
-                             const opflex::modb::URI& uri);
-
-    /**
-     * Remove all multicast IP associations for a managed object.
-     * @param uri URI of the managed object to disassociate
-     * @return true if an update should be queued
-     */
-    bool removeFromMulticastList(const opflex::modb::URI& uri);
-
-    /**
-     * Queue a write of the current multicast subscriptions
-     */
-    void multicastGroupsUpdated();
-
-    /**
-     * Write out the current multicast subscriptions
-     */
-    void writeMulticastGroups();
 };
 
 } // namespace ovsagent
