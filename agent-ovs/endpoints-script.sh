@@ -90,6 +90,16 @@ cat <<__EE__ > /usr/local/var/lib/opflex-agent-ovs/endpoints/h1.ep
     "ip": [
         "10.0.0.1"
     ],
+    "dhcp4": {
+        "ip": "10.0.0.1",
+        "prefix-len": 24
+    },
+    "security-group": [
+        {
+         "policy-space": "test",
+         "name": "secGrp3"
+        }
+    ],
     "mac": "00:00:00:00:00:01",
     "uuid": "83f18f0b-80f7-46e2-b06c-4d9487b0c754"
 }
@@ -102,6 +112,16 @@ cat <<__EE__ > /usr/local/var/lib/opflex-agent-ovs/endpoints/h2.ep
     "interface-name": "veth3",
     "ip": [
         "10.0.0.2"
+    ],
+    "dhcp4": {
+        "ip": "10.0.0.2",
+        "prefix-len": 24
+    },
+    "security-group": [
+        {
+         "policy-space": "test",
+         "name": "secGrp2"
+        }
     ],
     "mac": "00:00:00:00:00:02",
     "uuid": "83f18f0b-80f7-46e2-b06c-4d9487b0c755"

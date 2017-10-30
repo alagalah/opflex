@@ -482,6 +482,14 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         VOM::ACL::l3_list::rules_t in_rules, out_rules;
         buildSecGrpSetUpdate(secGrps, secGrpId, in_rules, out_rules);
 
+        optional<Endpoint::DHCPv4Config> v4c = endPoint.getDHCPv4Config();
+        if (v4c)
+            allowDhcpRequest(in_rules, EtherTypeEnumT::CONST_IPV4);
+
+        optional<Endpoint::DHCPv6Config> v6c = endPoint.getDHCPv6Config();
+        if (v6c)
+            allowDhcpRequest(in_rules, EtherTypeEnumT::CONST_IPV6);
+
         if (!in_rules.empty()) {
             VOM::ACL::l3_list in_acl(secGrpId + "in", in_rules);
             VOM::OM::write(secGrpId, in_acl);
@@ -1014,6 +1022,38 @@ void VppManager::handleSecGrpUpdate(const opflex::modb::URI& uri) {
     agent.getEndpointManager().getSecGrpSetsForSecGrp(uri, secGrpSets);
     for (const uri_set_t& secGrpSet : secGrpSets)
         secGroupSetUpdated(secGrpSet);
+}
+
+void VppManager::allowDhcpRequest(VOM::ACL::l3_list::rules_t& in_rules,
+				  uint16_t etherType) {
+
+    VOM::ACL::action_t act = VOM::ACL::action_t::PERMIT;
+
+    if (etherType == EtherTypeEnumT::CONST_IPV4) {
+        route::prefix_t pfx = route::prefix_t::ZERO;
+
+        VOM::ACL::l3_rule rule(200, act, pfx, pfx);
+
+        rule.set_proto(17);
+        rule.set_src_from_port(68);
+        rule.set_src_to_port(68);
+        rule.set_dst_from_port(67);
+        rule.set_dst_to_port(67);
+
+        in_rules.insert(rule);
+    } else {
+        route::prefix_t pfx = route::prefix_t::ZEROv6;
+
+        VOM::ACL::l3_rule rule(200, act, pfx, pfx);
+
+        rule.set_proto(17);
+        rule.set_src_from_port(546);
+        rule.set_src_to_port(546);
+        rule.set_dst_from_port(547);
+        rule.set_dst_to_port(547);
+
+        in_rules.insert(rule);
+    }
 }
 
 void setParamUpdate(L24Classifier& cls, VOM::ACL::l3_rule& rule) {

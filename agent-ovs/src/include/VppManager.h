@@ -194,6 +194,7 @@ private:
      * Openstack Security Group Set
      */
     void handleSecGrpSetUpdate(const EndpointListener::uri_set_t& secGrps);
+    void allowDhcpRequest(VOM::ACL::l3_list::rules_t& in_rules, uint16_t etherType);
     void buildSecGrpSetUpdate(const uri_set_t& secGrps,
 			      const std::string& secGrpId,
                               VOM::ACL::l3_list::rules_t& in_rules,
