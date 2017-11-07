@@ -157,7 +157,7 @@ void VppManager::handleInitConnection()
     /**
      * We are insterested in getting interface events from VPP
      */
-    std::shared_ptr<VOM::cmd> itf(new VOM::interface::events_cmd(*this));
+    std::shared_ptr<VOM::cmd> itf(new VOM::interface_cmds::events_cmd(*this));
 
     VOM::HW::enqueue(itf);
     m_cmds.push_back(itf);
@@ -165,7 +165,7 @@ void VppManager::handleInitConnection()
     /**
      * We are insterested in getting DHCP events from VPP
      */
-    std::shared_ptr<VOM::cmd> dc(new VOM::dhcp_config::events_cmd(*this));
+    std::shared_ptr<VOM::cmd> dc(new VOM::dhcp_config_cmds::events_cmd(*this));
 
     VOM::HW::enqueue(dc);
     m_cmds.push_back(dc);
@@ -323,7 +323,7 @@ void VppManager::contractUpdated(const opflex::modb::URI& contractURI) {
                             this, contractURI));
 }
 
-void VppManager::handle_interface_event(VOM::interface::events_cmd *e)
+void VppManager::handle_interface_event(VOM::interface_cmds::events_cmd *e)
 {
     if (stopping) return;
     taskQueue.dispatch("InterfaceEvent",
@@ -331,7 +331,7 @@ void VppManager::handle_interface_event(VOM::interface::events_cmd *e)
                             this, e));
 }
 
-void VppManager::handle_interface_stat(VOM::interface::stats_cmd *e)
+void VppManager::handle_interface_stat(VOM::interface_cmds::stats_cmd *e)
 {
     if (stopping) return;
     taskQueue.dispatch("InterfaceStat",
@@ -339,7 +339,7 @@ void VppManager::handle_interface_stat(VOM::interface::stats_cmd *e)
                             this, e));
 }
 
-void VppManager::handle_dhcp_event(VOM::dhcp_config::events_cmd *e)
+void VppManager::handle_dhcp_event(VOM::dhcp_config_cmds::events_cmd *e)
 {
     if (stopping) return;
     taskQueue.dispatch("dhcp-config-event",
@@ -463,7 +463,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     /**
      * We are interested in getting interface stats from VPP
      */
-    std::shared_ptr<VOM::cmd> itfstats(new VOM::interface::stats_cmd(*this, std::vector<VOM::handle_t>{itf.handle()}));
+    std::shared_ptr<VOM::cmd> itfstats(new VOM::interface_cmds::stats_cmd(*this, std::vector<VOM::handle_t>{itf.handle()}));
 
     VOM::HW::enqueue(itfstats);
     m_cmds.push_back(itfstats);
@@ -882,11 +882,11 @@ void VppManager::handleDomainUpdate(class_id_t cid, const URI& domURI) {
     LOG(DEBUG) << "Updating domain " << domURI;
 }
 
-void VppManager::handleInterfaceEvent(VOM::interface::events_cmd *e)
+void VppManager::handleInterfaceEvent(VOM::interface_cmds::events_cmd *e)
 {
     LOG(DEBUG) << "Interface Event: " << *e;
 
-    std::lock_guard<VOM::interface::events_cmd> lg(*e);
+    std::lock_guard<VOM::interface_cmds::events_cmd> lg(*e);
 
     for (auto &msg : *e)
     {
@@ -910,11 +910,11 @@ void VppManager::handleInterfaceEvent(VOM::interface::events_cmd *e)
     e->flush();
 }
 
-void VppManager::handleInterfaceStat(VOM::interface::stats_cmd *e)
+void VppManager::handleInterfaceStat(VOM::interface_cmds::stats_cmd *e)
 {
     LOG(DEBUG) << "Interface Stat: " << *e;
 
-    std::lock_guard<VOM::interface::stats_cmd> lg(*e);
+    std::lock_guard<VOM::interface_cmds::stats_cmd> lg(*e);
 
     for (auto &msg : *e)
     {
@@ -936,7 +936,7 @@ void VppManager::handleInterfaceStat(VOM::interface::stats_cmd *e)
     e->flush();
 }
 
-void VppManager::handleDhcpEvent(VOM::dhcp_config::events_cmd *e)
+void VppManager::handleDhcpEvent(VOM::dhcp_config_cmds::events_cmd *e)
 {
     LOG(INFO) << "DHCP Event: " << *e;
     m_uplink.handle_dhcp_event(e);

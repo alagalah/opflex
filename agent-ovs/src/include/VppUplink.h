@@ -12,6 +12,7 @@
 
 #include <vom/vxlan_tunnel.hpp>
 #include <vom/dhcp_config.hpp>
+#include <vom/dhcp_config_cmds.hpp>
 #include <vom/tap_interface.hpp>
 
 using namespace VOM;
@@ -81,7 +82,7 @@ namespace VPP
         /**
          * Handle notifications about DHCP complete
          */
-        void handle_dhcp_event(dhcp_config::events_cmd *cmd);
+        void handle_dhcp_event(dhcp_config_cmds::events_cmd *cmd);
 
     private:
         /**

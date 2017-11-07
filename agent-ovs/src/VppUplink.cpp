@@ -82,13 +82,13 @@ void Uplink::configure_tap(const route::prefix_t &pfx)
     VOM::OM::write(UPLINK_KEY, arpProxyBinding);
 }
 
-void Uplink::handle_dhcp_event(dhcp_config::events_cmd *ec)
+void Uplink::handle_dhcp_event(dhcp_config_cmds::events_cmd *ec)
 {
     /*
      * Create the TAP interface with the DHCP learn address.
      *  This allows all traffic punt to VPP to arrive at the TAP/agent.
      */
-    std::lock_guard<dhcp_config::events_cmd> lg(*ec);
+    std::lock_guard<dhcp_config_cmds::events_cmd> lg(*ec);
 
     for (auto &msg : *ec)
     {

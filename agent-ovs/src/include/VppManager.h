@@ -16,7 +16,9 @@
 #include <boost/asio/deadline_timer.hpp>
 
 #include <vom/interface.hpp>
+#include <vom/interface_cmds.hpp>
 #include <vom/dhcp_config.hpp>
+#include <vom/dhcp_config_cmds.hpp>
 #include <vom/acl_list.hpp>
 
 #include <opflex/ofcore/PeerStatusListener.h>
@@ -231,32 +233,32 @@ private:
     /**
      * Event listener override to get Interface events
      */
-    void handle_interface_event(VOM::interface::events_cmd *e);
+    void handle_interface_event(VOM::interface_cmds::events_cmd *e);
 
     /**
      * Handle interface event in the task-queue context
      */
-    void handleInterfaceEvent(VOM::interface::events_cmd *e);
+    void handleInterfaceEvent(VOM::interface_cmds::events_cmd *e);
 
     /**
      * Event listener override to get Interface stats
      */
-    void handle_interface_stat(VOM::interface::stats_cmd *e);
+    void handle_interface_stat(VOM::interface_cmds::stats_cmd *e);
 
     /**
      * Handle interface stats in the task-queue context
      */
-    void handleInterfaceStat(VOM::interface::stats_cmd *e);
+    void handleInterfaceStat(VOM::interface_cmds::stats_cmd *e);
 
     /**
      * handle DHCP event from DHCP listner
      */
-    void handle_dhcp_event(VOM::dhcp_config::events_cmd *cmd);
+    void handle_dhcp_event(VOM::dhcp_config_cmds::events_cmd *cmd);
 
     /**
      * Handle a DHCP event in the task Q thread conttet
      */
-    void handleDhcpEvent(VOM::dhcp_config::events_cmd *e);
+    void handleDhcpEvent(VOM::dhcp_config_cmds::events_cmd *e);
 
     /**
      * Handle the connect request to VPP
