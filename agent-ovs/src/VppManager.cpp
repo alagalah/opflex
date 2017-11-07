@@ -43,7 +43,6 @@
 #include <vom/interface.hpp>
 #include <vom/dhcp_config.hpp>
 #include <vom/acl_binding.hpp>
-#include <vom/interface_span.hpp>
 #include <vom/route_domain.hpp>
 #include <vom/route.hpp>
 #include <vom/neighbour.hpp>
@@ -467,14 +466,6 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
 
     VOM::HW::enqueue(itfstats);
     m_cmds.push_back(itfstats);
-
-    VOM::interface itftap("tap-"+vppInterfaceName.get(),
-                          VOM::interface::type_t::TAP,
-                          VOM::interface::admin_state_t::UP);
-    VOM::OM::write(uuid, itftap);
-
-    VOM::interface_span itfSpan(itf, itftap, VOM::interface_span::state_t::RX_ENABLED);
-    VOM::OM::write(uuid, itfSpan);
 
     if (agent.getEndpointManager().secGrpSetEmpty(secGrps)) {
         VOM::OM::remove(secGrpId);
