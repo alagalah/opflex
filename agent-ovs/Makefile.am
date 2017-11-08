@@ -235,7 +235,9 @@ agent_ovs_LDADD = \
 	libagent_ovs.la \
 	$(COMMON_SHARED_LIBS)
 
-gbp_inspect_CXXFLAGS = -DSYSCONFDIR='"$(sysconfdir)"'
+gbp_inspect_CXXFLAGS = -DSYSCONFDIR='"$(sysconfdir)"' \
+	$(libopflex_CFLAGS) \
+	$(libmodelgbp_CFLAGS)
 gbp_inspect_SOURCES = \
 	src/gbp_inspect.cpp
 gbp_inspect_LDADD = \
@@ -244,7 +246,8 @@ gbp_inspect_LDADD = \
 	libagent_ovs.la \
 	$(COMMON_SHARED_LIBS)
 
-mcast_daemon_CXXFLAGS = -DLOCALSTATEDIR='"$(localstatedir)"'
+mcast_daemon_CXXFLAGS = -DLOCALSTATEDIR='"$(localstatedir)"' \
+	$(libopflex_CFLAGS)
 mcast_daemon_SOURCES = \
 	src/mcast_daemon.cpp
 mcast_daemon_LDADD = \
@@ -266,7 +269,9 @@ VPP_TEST_CFLAGS =
 
 agent_test_CFLAGS = \
 	$(OVS_TEST_CFLAGS) \
-	$(VPP_TEST_CFLAGS)
+	$(VPP_TEST_CFLAGS) \
+	$(libofproto_CFLAGS) \
+	$(rapidjson_CFLAGS)
 
 agent_test_CXXFLAGS = \
 	-I$(top_srcdir)/test/include \
@@ -275,6 +280,9 @@ agent_test_CXXFLAGS = \
 	$(OVS_TEST_CFLAGS) \
 	$(VPP_ADDL_CFLAGS) \
 	$(VPP_TEST_CFLAGS) \
+	$(libopflex_CFLAGS) \
+	$(libopenvswitch_CFLAGS) \
+	$(libofproto_CFLAGS) \
 	-DBOOST_TEST_DYN_LINK
 
 
