@@ -432,7 +432,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
     VOM::OM::mark_n_sweep ms(uuid);
 
     const Endpoint& endPoint = *epWrapper.get();
-    const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
+    const optional<string>& vppInterfaceName = endPoint.getAccessInterface();
     const uri_set_t& secGrps = endPoint.getSecurityGroups();
     const std::string secGrpId = getSecGrpSetId(secGrps);
     int rv;
@@ -636,7 +636,7 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
         bcastFloodMode = fd.get()
             ->getBcastFloodMode(BcastFloodModeEnumT::CONST_NORMAL);
 
-        VOM::bridge_domain bd(fgrpId);
+        VOM::bridge_domain bd(fgrpId, VOM::bridge_domain::learning_mode_t::OFF);
         VOM::OM::write(uuid, bd);
 
         VOM::l2_binding l2itf(itf, bd);
@@ -719,7 +719,7 @@ void VppManager::handleEndpointGroupDomainUpdate(const URI& epgURI)
     /*
      * Construct the BridgeDomain
      */
-    VOM::bridge_domain bd(fgrpId);
+    VOM::bridge_domain bd(fgrpId, VOM::bridge_domain::learning_mode_t::OFF);
 
     VOM::OM::write(epg_uuid, bd);
 
@@ -797,12 +797,16 @@ void VppManager::updateBVIs(const URI& epgURI,
         {
             boost::asio::ip::address raddr = routerIp.get();
             /*
-             * apply the host prefix on the BVI
-             * and add an entry into the ARP Table for it.
+             * - apply the host prefix on the BVI
+             * - add an entry into the L2 FIB for it.
+             * - add an entry into the ARP Table for it.
              */
             VOM::route::prefix_t host_pfx(raddr);
             VOM::l3_binding l3(bvi, host_pfx);
             VOM::OM::write(epg_uuid, l3);
+
+            VOM::bridge_domain_entry be(bd, bvi.l2_address().to_mac(), bvi);
+            VOM::OM::write(epg_uuid, be);
 
             VOM::bridge_domain_arp_entry bae(bd,
                                              bvi.l2_address().to_mac(),
@@ -1188,7 +1192,7 @@ void VppManager::handleSecGrpSetUpdate(const uri_set_t& secGrps) {
 
     for (const std::string& uuid : eps) {
         const Endpoint& endPoint = *epMgr.getEndpoint(uuid).get();
-        const optional<string>& vppInterfaceName = endPoint.getInterfaceName();
+        const optional<string>& vppInterfaceName = endPoint.getAccessInterface();
 
         std::shared_ptr<VOM::interface> itf = VOM::interface::find(vppInterfaceName.get());
 

@@ -115,7 +115,7 @@ void Uplink::configure(const std::string &fqdn)
      * Consruct the uplink physical, so we now 'own' it
      */
     interface itf(m_iface,
-                  interface::type_t::AFPACKET,
+                  interface::type_t::ETHERNET,
                   interface::admin_state_t::UP);
     OM::write(UPLINK_KEY, itf);
 
@@ -149,14 +149,14 @@ void Uplink::configure(const std::string &fqdn)
     std::string::size_type n = hostname.find(".");
     if (n != std::string::npos)
     {
-        hostname = hostname.substr(n);
+        hostname = hostname.substr(0,n);
     }
 
     /**
      * Configure DHCP on the uplink subinterface
      * We must use the MAC address of the uplink interface as the DHCP client-ID
      */
-    dhcp_config dc(itf, hostname,
+    dhcp_config dc(subitf, hostname,
                    m_uplink->l2_address());
     OM::write(UPLINK_KEY, dc);
 
