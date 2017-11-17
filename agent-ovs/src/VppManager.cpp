@@ -459,13 +459,21 @@ void VppManager::handleEndpointUpdate(const string& uuid) {
                        rd);
     VOM::OM::write(uuid, itf);
 
+    /*
+     * If the interface is not created then we can do no more
+     */
+    if (handle_t::INVALID == itf.handle())
+      return;
+
     /**
      * We are interested in getting interface stats from VPP
-     */
-    std::shared_ptr<VOM::cmd> itfstats(new VOM::interface_cmds::stats_cmd(*this, std::vector<VOM::handle_t>{itf.handle()}));
-
-    VOM::HW::enqueue(itfstats);
-    m_cmds.push_back(itfstats);
+     *
+     * UNDER DEVELOPEMENT
+     *
+     std::shared_ptr<VOM::cmd> itfstats(new VOM::interface_cmds::stats_cmd(*this, std::vector<VOM::handle_t>{itf.handle()}));
+     VOM::HW::enqueue(itfstats);
+     m_cmds.push_back(itfstats);
+    */
 
     if (agent.getEndpointManager().secGrpSetEmpty(secGrps)) {
         VOM::OM::remove(secGrpId);
@@ -1194,7 +1202,13 @@ void VppManager::handleSecGrpSetUpdate(const uri_set_t& secGrps) {
         const Endpoint& endPoint = *epMgr.getEndpoint(uuid).get();
         const optional<string>& vppInterfaceName = endPoint.getAccessInterface();
 
+        if (!vppInterfaceName)
+            continue;
+
         std::shared_ptr<VOM::interface> itf = VOM::interface::find(vppInterfaceName.get());
+
+        if (!itf)
+            continue;
 
         if (!in_rules.empty()) {
             VOM::ACL::l3_binding in_binding(direction_t::INPUT, *itf, *in_acl);
